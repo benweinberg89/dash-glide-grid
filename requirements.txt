@@ -1,0 +1,2 @@
+# dash is required to call `build:py`
+dash[dev]>=3.3.0

@@ -1,0 +1,53 @@
+{
+  "name": "dash_glide_grid",
+  "version": "0.1.0",
+  "description": "A high-performance data grid component for Plotly Dash",
+  "main": "build/index.js",
+  "scripts": {
+    "start": "webpack serve --config ./webpack.serve.config.js --open",
+    "validate-init": "python _validate_init.py",
+    "prepublishOnly": "npm run validate-init",
+    "build:js": "webpack --mode production",
+    "build:backends": "uv run dash-generate-components ./src/lib/components dash_glide_grid -p package-info.json --ignore \\.test\\.",
+    "build": "npm run build:js && npm run build:backends"
+  },
+  "author": "Ben Weinberg",
+  "license": "MIT",
+  "dependencies": {
+    "@glideapps/glide-data-grid": "6.0.4-alpha24",
+    "@glideapps/glide-data-grid-cells": "6.0.4-alpha24",
+    "lodash": "^4.17.21",
+    "marked": "^17.0.0",
+    "ramda": "^0.26.1",
+    "react-responsive-carousel": "^3.2.23"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.1",
+    "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
+    "@babel/preset-env": "^7.22.2",
+    "@babel/preset-react": "^7.22.3",
+    "@plotly/dash-component-plugins": "^1.2.3",
+    "@plotly/webpack-dash-dynamic-import": "^1.2.0",
+    "babel-eslint": "^10.1.0",
+    "babel-loader": "^9.1.2",
+    "copyfiles": "^2.1.1",
+    "css-loader": "^6.8.1",
+    "eslint": "^6.0.1",
+    "eslint-config-prettier": "^6.0.0",
+    "eslint-plugin-import": "^2.18.0",
+    "eslint-plugin-react": "^7.14.2",
+    "prop-types": "^15.8.1",
+    "react": "^18.3.1",
+    "react-docgen": "^5.4.3",
+    "react-dom": "^18.3.1",
+    "style-loader": "^3.3.3",
+    "styled-jsx": "^3.2.1",
+    "webpack": "^5.84.1",
+    "webpack-cli": "^5.1.1",
+    "webpack-dev-server": "^4.15.0"
+  },
+  "engines": {
+    "node": ">=8.11.0",
+    "npm": ">=6.1.0"
+  }
+}

@@ -1,0 +1,50 @@
+[project]
+name = "dash-glide-grid"
+version = "0.1.0"
+description = "A high-performance data grid component for Plotly Dash"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Ben Weinberg"}
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Framework :: Dash",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "dash>=3.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/benweinberg89/dash-glide-grid"
+Repository = "https://github.com/benweinberg89/dash-glide-grid"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dash_glide_grid"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+dash_glide_grid = [
+    "*.js",
+    "*.js.map",
+    "*.json",
+]
+
+[dependency-groups]
+dev = [
+    "build>=1.0.0",
+    "twine>=5.0.0",
+    "pyyaml>=6.0.0",
+]
