@@ -299,6 +299,7 @@ const GlideGrid = (props) => {
         enableUndoRedo,
         maxUndoSteps,
         undoRedoAction,
+        editorScrollBehavior,
         setProps
     } = props;
 
@@ -315,6 +316,10 @@ const GlideGrid = (props) => {
 
     // Local state for sorting (to enable immediate UI updates)
     const [localSortColumns, setLocalSortColumns] = useState(sortColumns || []);
+
+    // Editor scroll behavior state
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const scrollPositionRef = useRef({ x: 0, y: 0 });
 
     // Local state for column filters (synced with Dash prop)
     const [localFilters, setLocalFilters] = useState(columnFilters || {});
@@ -762,6 +767,116 @@ const GlideGrid = (props) => {
         }
     }, []);
 
+    // Detect editor close via MutationObserver (for Escape/click-outside)
+    useEffect(() => {
+        if (!isEditorOpen) return;
+
+        const portal = document.getElementById('portal');
+        if (!portal) return;
+
+        const observer = new MutationObserver((mutations) => {
+            // Check if editor overlay was removed
+            const hasEditorChild = portal.querySelector('[class*="overlay-editor"], [class*="gdg-"]');
+            if (!hasEditorChild && portal.children.length === 0) {
+                setIsEditorOpen(false);
+            }
+        });
+
+        observer.observe(portal, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, [isEditorOpen]);
+
+    // "close-on-scroll" behavior: close editor when scroll detected
+    useEffect(() => {
+        if (editorScrollBehavior !== 'close-on-scroll' || !isEditorOpen) return;
+
+        const closeEditor = () => {
+            // Dispatch Escape key to document to close the editor
+            const escapeEvent = new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                which: 27,
+                bubbles: true,
+                cancelable: true
+            });
+            document.dispatchEvent(escapeEvent);
+
+            // Also try to blur active element in portal
+            const portal = document.getElementById('portal');
+            if (portal) {
+                const activeEl = portal.querySelector('input, select, textarea, [contenteditable]');
+                if (activeEl) {
+                    activeEl.blur();
+                }
+            }
+
+            setIsEditorOpen(false);
+        };
+
+        // Listen to page scroll
+        window.addEventListener('scroll', closeEditor, true);
+
+        // Also listen to wheel events on the grid container to catch grid scroll attempts
+        const gridContainer = document.querySelector('[data-testid="data-grid-canvas"]')?.parentElement?.parentElement;
+        if (gridContainer) {
+            gridContainer.addEventListener('wheel', closeEditor, { passive: true });
+        }
+
+        return () => {
+            window.removeEventListener('scroll', closeEditor, true);
+            if (gridContainer) {
+                gridContainer.removeEventListener('wheel', closeEditor);
+            }
+        };
+    }, [editorScrollBehavior, isEditorOpen]);
+
+    // "lock-scroll" behavior: prevent scrolling while editor is open
+    const wheelHandlerRef = useRef(null);
+
+    useEffect(() => {
+        if (editorScrollBehavior !== 'lock-scroll') return;
+
+        if (isEditorOpen) {
+            // Save current scroll position
+            scrollPositionRef.current = {
+                x: window.scrollX,
+                y: window.scrollY
+            };
+            // Lock page scroll by fixing body position
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollPositionRef.current.y}px`;
+            document.body.style.left = `-${scrollPositionRef.current.x}px`;
+            document.body.style.width = '100%';
+            document.body.style.overflow = 'hidden';
+
+            // Create wheel handler and store in ref for cleanup
+            wheelHandlerRef.current = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            // Prevent wheel events on the entire document to stop grid internal scroll
+            document.addEventListener('wheel', wheelHandlerRef.current, { passive: false });
+        }
+
+        return () => {
+            // Cleanup - restore page scroll and remove wheel listener
+            if (document.body.style.position === 'fixed') {
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.left = '';
+                document.body.style.width = '';
+                document.body.style.overflow = '';
+                window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
+            }
+            if (wheelHandlerRef.current) {
+                document.removeEventListener('wheel', wheelHandlerRef.current);
+                wheelHandlerRef.current = null;
+            }
+        };
+    }, [editorScrollBehavior, isEditorOpen]);
+
     // Transform columns to Glide format (including sort indicators)
     const glideColumns = useMemo(() => {
         if (!localColumns || !Array.isArray(localColumns)) {
@@ -898,6 +1013,7 @@ const GlideGrid = (props) => {
 
     // Handle cell edits
     const handleCellEdited = useCallback((cell, newValue) => {
+        setIsEditorOpen(false);
         if (!setProps || readonly) return;
 
         const [col, row] = cell;
@@ -1770,6 +1886,7 @@ const GlideGrid = (props) => {
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
+        setIsEditorOpen(true);
         if (setProps) {
             setProps({
                 cellActivated: {
@@ -1804,6 +1921,26 @@ const GlideGrid = (props) => {
 
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {
+        // Close editor on grid internal scroll if behavior is set
+        if (editorScrollBehavior === 'close-on-scroll' && isEditorOpen) {
+            const portal = document.getElementById('portal');
+            if (portal && portal.children.length > 0) {
+                const escapeEvent = new KeyboardEvent('keydown', {
+                    key: 'Escape',
+                    code: 'Escape',
+                    keyCode: 27,
+                    which: 27,
+                    bubbles: true,
+                    cancelable: true
+                });
+                portal.dispatchEvent(escapeEvent);
+                if (portal.firstElementChild) {
+                    portal.firstElementChild.dispatchEvent(escapeEvent);
+                }
+            }
+            setIsEditorOpen(false);
+        }
+
         if (setProps) {
             setProps({
                 visibleRegion: {
@@ -1816,7 +1953,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, editorScrollBehavior, isEditorOpen]);
 
     // ========== PHASE 3: ROW/COLUMN REORDERING ==========
 
