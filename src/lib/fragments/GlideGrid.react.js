@@ -791,7 +791,9 @@ const GlideGrid = (props) => {
         if (editorScrollBehavior !== 'close-on-scroll' || !isEditorOpen) return;
 
         const closeEditor = () => {
-            // Dispatch Escape key to document to close the editor
+            // Try multiple approaches to close the editor
+
+            // 1. Dispatch Escape key to document
             const escapeEvent = new KeyboardEvent('keydown', {
                 key: 'Escape',
                 code: 'Escape',
@@ -802,13 +804,28 @@ const GlideGrid = (props) => {
             });
             document.dispatchEvent(escapeEvent);
 
-            // Also try to blur active element in portal
+            // 2. Blur active element in portal
             const portal = document.getElementById('portal');
             if (portal) {
                 const activeEl = portal.querySelector('input, select, textarea, [contenteditable]');
                 if (activeEl) {
                     activeEl.blur();
                 }
+            }
+
+            // 3. Focus the grid to close editor overlay
+            if (gridRef.current) {
+                gridRef.current.focus();
+            }
+
+            // 4. Clear portal contents directly as last resort
+            if (portal && portal.children.length > 0) {
+                // Small delay to let escape propagate first
+                setTimeout(() => {
+                    if (portal.children.length > 0) {
+                        portal.innerHTML = '';
+                    }
+                }, 50);
             }
 
             setIsEditorOpen(false);
@@ -833,6 +850,7 @@ const GlideGrid = (props) => {
 
     // "lock-scroll" behavior: prevent scrolling while editor is open
     const wheelHandlerRef = useRef(null);
+    const scrollHandlerRef = useRef(null);
 
     useEffect(() => {
         if (editorScrollBehavior !== 'lock-scroll') return;
@@ -843,36 +861,40 @@ const GlideGrid = (props) => {
                 x: window.scrollX,
                 y: window.scrollY
             };
-            // Lock page scroll by fixing body position
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${scrollPositionRef.current.y}px`;
-            document.body.style.left = `-${scrollPositionRef.current.x}px`;
-            document.body.style.width = '100%';
-            document.body.style.overflow = 'hidden';
 
-            // Create wheel handler and store in ref for cleanup
+            // Create wheel handler to prevent scroll
             wheelHandlerRef.current = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
             };
 
-            // Prevent wheel events on the entire document to stop grid internal scroll
+            // Create scroll handler to restore position if scroll somehow happens
+            scrollHandlerRef.current = () => {
+                window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
+            };
+
+            // Prevent wheel events
             document.addEventListener('wheel', wheelHandlerRef.current, { passive: false });
+            // Also prevent touchmove for mobile
+            document.addEventListener('touchmove', wheelHandlerRef.current, { passive: false });
+            // Restore scroll position if it changes
+            window.addEventListener('scroll', scrollHandlerRef.current);
+
+            // Set overflow hidden on html element (less layout shift than body fixed)
+            document.documentElement.style.overflow = 'hidden';
         }
 
         return () => {
-            // Cleanup - restore page scroll and remove wheel listener
-            if (document.body.style.position === 'fixed') {
-                document.body.style.position = '';
-                document.body.style.top = '';
-                document.body.style.left = '';
-                document.body.style.width = '';
-                document.body.style.overflow = '';
-                window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
-            }
+            // Cleanup
+            document.documentElement.style.overflow = '';
             if (wheelHandlerRef.current) {
                 document.removeEventListener('wheel', wheelHandlerRef.current);
+                document.removeEventListener('touchmove', wheelHandlerRef.current);
                 wheelHandlerRef.current = null;
+            }
+            if (scrollHandlerRef.current) {
+                window.removeEventListener('scroll', scrollHandlerRef.current);
+                scrollHandlerRef.current = null;
             }
         };
     }, [editorScrollBehavior, isEditorOpen]);
