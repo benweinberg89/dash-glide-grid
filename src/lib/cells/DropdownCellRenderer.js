@@ -76,9 +76,10 @@ const Editor = (p) => {
             inputValue: inputValue,
             onInputChange: setInputValue,
             menuPlacement: "auto",
-            // FIX: These two props prevent scroll issues
+            // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
+            closeMenuOnScroll: false,
             value: values.find((x) => x.value === value),
             styles: {
                 control: (base) => ({

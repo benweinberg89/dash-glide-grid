@@ -830,17 +830,34 @@ const GlideGrid = (props) => {
         };
 
         const handleWheel = (e) => {
+            // Allow scrolling within dropdown menus (react-select)
+            // The menu is rendered in the portal element
+            const portal = document.getElementById('portal');
+            if (portal && portal.contains(e.target)) {
+                return;
+            }
+
+            // Event is outside dropdown - close the overlay
             e.preventDefault();
             e.stopPropagation();
             closeOverlay();
         };
 
-        window.addEventListener('scroll', closeOverlay, true);
+        const handleScroll = (e) => {
+            // Ignore scroll events from within the portal (dropdown menu scrolling)
+            const portal = document.getElementById('portal');
+            if (portal && portal.contains(e.target)) {
+                return;
+            }
+            closeOverlay();
+        };
+
+        window.addEventListener('scroll', handleScroll, true);
         document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
 
         return () => {
             document.documentElement.style.overflow = originalOverflow;
-            window.removeEventListener('scroll', closeOverlay, true);
+            window.removeEventListener('scroll', handleScroll, true);
             document.removeEventListener('wheel', handleWheel, { capture: true });
         };
     }, [editorScrollBehavior, isEditorOpen]);

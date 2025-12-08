@@ -301,9 +301,10 @@ const Editor = (p) => {
             value: resolveValues(value, options, allowDuplicates),
             onKeyDown: cell.readonly ? undefined : handleKeyDown,
             menuPlacement: "auto",
-            // FIX: These two props prevent scroll issues
+            // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
+            closeMenuOnScroll: false,
             menuPortalTarget: portalElementRef?.current ?? document.getElementById("portal"),
             autoFocus: true,
             openMenuOnFocus: true,

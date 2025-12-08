@@ -19,21 +19,42 @@ COLUMNS = [
     {'title': 'Amount', 'id': 'amount', 'width': 100},
 ]
 
-# Status dropdown options
+# Status dropdown options (many options to test scrolling)
 STATUS_OPTIONS = [
     {'value': 'active', 'label': 'Active', 'color': '#10b981'},
     {'value': 'pending', 'label': 'Pending', 'color': '#f59e0b'},
     {'value': 'inactive', 'label': 'Inactive', 'color': '#ef4444'},
     {'value': 'review', 'label': 'Under Review', 'color': '#6366f1'},
+    {'value': 'approved', 'label': 'Approved', 'color': '#22c55e'},
+    {'value': 'rejected', 'label': 'Rejected', 'color': '#dc2626'},
+    {'value': 'draft', 'label': 'Draft', 'color': '#9ca3af'},
+    {'value': 'scheduled', 'label': 'Scheduled', 'color': '#8b5cf6'},
+    {'value': 'in_progress', 'label': 'In Progress', 'color': '#3b82f6'},
+    {'value': 'on_hold', 'label': 'On Hold', 'color': '#f97316'},
+    {'value': 'cancelled', 'label': 'Cancelled', 'color': '#78716c'},
+    {'value': 'completed', 'label': 'Completed', 'color': '#059669'},
+    {'value': 'blocked', 'label': 'Blocked', 'color': '#b91c1c'},
+    {'value': 'deferred', 'label': 'Deferred', 'color': '#a855f7'},
+    {'value': 'escalated', 'label': 'Escalated', 'color': '#e11d48'},
 ]
 
-# Tags multiselect options
+# Tags multiselect options (many options to test scrolling)
 TAG_OPTIONS = [
     {'value': 'urgent', 'label': 'Urgent', 'color': '#ef4444'},
     {'value': 'important', 'label': 'Important', 'color': '#f59e0b'},
     {'value': 'low', 'label': 'Low Priority', 'color': '#22c55e'},
     {'value': 'followup', 'label': 'Follow Up', 'color': '#3b82f6'},
     {'value': 'archived', 'label': 'Archived', 'color': '#6b7280'},
+    {'value': 'bug', 'label': 'Bug', 'color': '#dc2626'},
+    {'value': 'feature', 'label': 'Feature', 'color': '#8b5cf6'},
+    {'value': 'enhancement', 'label': 'Enhancement', 'color': '#06b6d4'},
+    {'value': 'documentation', 'label': 'Documentation', 'color': '#64748b'},
+    {'value': 'testing', 'label': 'Testing', 'color': '#14b8a6'},
+    {'value': 'design', 'label': 'Design', 'color': '#ec4899'},
+    {'value': 'backend', 'label': 'Backend', 'color': '#f97316'},
+    {'value': 'frontend', 'label': 'Frontend', 'color': '#a855f7'},
+    {'value': 'devops', 'label': 'DevOps', 'color': '#0ea5e9'},
+    {'value': 'security', 'label': 'Security', 'color': '#b91c1c'},
 ]
 
 # Generate sample data with custom cell types
