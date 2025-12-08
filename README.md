@@ -5,6 +5,7 @@ A high-performance data grid component for Plotly Dash, wrapping [Glide Data Gri
 ## Features
 
 - **High Performance** - Canvas-based rendering handles millions of rows
+- **Fully Free & Open Source** - MIT-licensed so you can use in commercial projects for free
 - **Rich Cell Types** - Text, numbers, booleans, markdown, images, dropdowns, multi-select
 - **Excel-like Editing** - Fill handle, copy/paste, undo/redo
 - **Flexible Selection** - Cell, row, column, and range selection
