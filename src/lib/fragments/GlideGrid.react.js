@@ -4,9 +4,23 @@ import DataEditor, { GridCellKind, CompactSelection } from '@glideapps/glide-dat
 import '@glideapps/glide-data-grid/dist/index.css';
 import { allCells } from '@glideapps/glide-data-grid-cells';
 import '@glideapps/glide-data-grid-cells/dist/index.css';
+import DropdownCellRenderer from '../cells/DropdownCellRenderer';
+import MultiSelectCellRenderer from '../cells/MultiSelectCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
+
+// Custom cell renderers: replace library's dropdown/multiselect with fixed versions
+// that include menuPosition="fixed" and menuShouldScrollIntoView={false}
+const customRenderers = [
+    ...allCells.filter(
+        (c) =>
+            !c.isMatch?.({ data: { kind: 'dropdown-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'multi-select-cell' } })
+    ),
+    DropdownCellRenderer,
+    MultiSelectCellRenderer,
+];
 
 /**
  * Draw hamburger icon (three horizontal lines) for header menu
@@ -2189,7 +2203,7 @@ const GlideGrid = (props) => {
                 coercePasteValue={handleCoercePasteValue}
                 getRowThemeOverride={handleGetRowThemeOverride}
                 drawCell={handleDrawCell}
-                customRenderers={allCells}
+                customRenderers={customRenderers}
                 width="100%"
                 height="100%"
             />
