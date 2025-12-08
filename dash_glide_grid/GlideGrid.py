@@ -349,14 +349,12 @@ Keyword arguments:
     (double-click, Enter, etc.) before typing will enter edit mode.
     Default: True.
 
-- editorScrollBehavior (a value equal to: 'default', 'close-dropdown-on-scroll', 'close-overlay-on-scroll', 'lock-scroll'; default 'default'):
+- editorScrollBehavior (a value equal to: 'default', 'close-overlay-on-scroll', 'lock-scroll'; default 'default'):
     Controls how the grid behaves when the user scrolls while an
     editor is open. - \"default\": Editor stays at original position
-    (standard Glide behavior) - \"close-dropdown-on-scroll\": Only
-    dropdown menus close on scroll, overlay stays open -
-    \"close-overlay-on-scroll\": Entire editor overlay closes on
-    scroll - \"lock-scroll\": Scrolling is prevented while editor is
-    open Default: \"default\".
+    (standard Glide behavior) - \"close-overlay-on-scroll\": Entire
+    editor overlay closes on scroll - \"lock-scroll\": Scrolling is
+    prevented while editor is open Default: \"default\".
 
 - enableCopyPaste (boolean; default True):
     Enable copy/paste functionality. Default: True.
@@ -1566,7 +1564,7 @@ Keyword arguments:
         headerMenuItemClicked: typing.Optional["HeaderMenuItemClicked"] = None,
         hoverRow: typing.Optional[bool] = None,
         cellActivationBehavior: typing.Optional[Literal["double-click", "second-click", "single-click"]] = None,
-        editorScrollBehavior: typing.Optional[Literal["default", "close-dropdown-on-scroll", "close-overlay-on-scroll", "lock-scroll"]] = None,
+        editorScrollBehavior: typing.Optional[Literal["default", "close-overlay-on-scroll", "lock-scroll"]] = None,
         editOnType: typing.Optional[bool] = None,
         rangeSelectionColumnSpanning: typing.Optional[bool] = None,
         trapFocus: typing.Optional[bool] = None,

@@ -786,55 +786,6 @@ const GlideGrid = (props) => {
         return () => observer.disconnect();
     }, [isEditorOpen]);
 
-    // "close-dropdown-on-scroll" behavior: close just the dropdown menu on scroll (not the overlay)
-    useEffect(() => {
-        if (editorScrollBehavior !== 'close-dropdown-on-scroll' || !isEditorOpen) return;
-
-        const closeDropdown = () => {
-            const portal = document.getElementById('portal');
-            if (portal) {
-                // Check for open react-select menu (matches __menu class from react-select)
-                const openMenu = portal.querySelector('[class*="menu"]:not([class*="menu-list"])') ||
-                                 portal.querySelector('[class*="__menu"]');
-                if (openMenu) {
-                    // Dispatch Escape to the input to close just the menu
-                    const selectInput = portal.querySelector('input');
-                    if (selectInput) {
-                        const escapeEvent = new KeyboardEvent('keydown', {
-                            key: 'Escape',
-                            code: 'Escape',
-                            keyCode: 27,
-                            which: 27,
-                            bubbles: true,
-                            cancelable: true
-                        });
-                        selectInput.dispatchEvent(escapeEvent);
-                    }
-                }
-            }
-        };
-
-        // Wheel listener with capture phase to catch events before page scrolls
-        const handleWheel = (e) => {
-            const portal = document.getElementById('portal');
-            if (portal && portal.contains(e.target)) {
-                e.preventDefault();
-                e.stopPropagation();
-                closeDropdown();
-            }
-        };
-
-        // Listen to page scroll
-        window.addEventListener('scroll', closeDropdown, true);
-        // Listen to wheel events with capture phase, non-passive to allow preventDefault
-        document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
-
-        return () => {
-            window.removeEventListener('scroll', closeDropdown, true);
-            document.removeEventListener('wheel', handleWheel, { capture: true });
-        };
-    }, [editorScrollBehavior, isEditorOpen]);
-
     // "close-overlay-on-scroll" behavior: close entire editor overlay on scroll
     useEffect(() => {
         if (editorScrollBehavior !== 'close-overlay-on-scroll' || !isEditorOpen) return;
