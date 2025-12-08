@@ -10,7 +10,7 @@ A high-performance data grid component for Plotly Dash, wrapping [Glide Data Gri
 - **Excel-like Editing** - Fill handle, copy/paste, undo/redo
 - **Flexible Selection** - Cell, row, column, and range selection
 - **Sorting & Filtering** - Built-in column sorting and filtering via header menus
-- **Theming** - Full customization with dark mode support
+- **Theming** - Grid, row, column, and cell-based theming options
 
 ## Installation
 
