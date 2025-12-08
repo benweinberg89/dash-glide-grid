@@ -79,7 +79,8 @@ app.layout = html.Div([
             id='scroll-behavior-mode',
             options=[
                 {'label': ' default - Editor stays at original position (standard behavior)', 'value': 'default'},
-                {'label': ' close-on-scroll - Editor closes when page or grid scrolls', 'value': 'close-on-scroll'},
+                {'label': ' close-dropdown-on-scroll - Only dropdown menu closes, overlay stays open', 'value': 'close-dropdown-on-scroll'},
+                {'label': ' close-overlay-on-scroll - Entire editor overlay closes on scroll', 'value': 'close-overlay-on-scroll'},
                 {'label': ' lock-scroll - Scrolling is prevented while editor is open', 'value': 'lock-scroll'},
             ],
             value='default',
@@ -113,9 +114,14 @@ app.layout = html.Div([
                 'from its cell after scrolling.'
             ]),
             html.Li([
-                html.Strong('close-on-scroll'),
-                ': The editor automatically closes when any scroll is detected (page scroll or grid internal scroll). ',
-                'This prevents orphaned editors but means you cannot scroll while editing.'
+                html.Strong('close-dropdown-on-scroll'),
+                ': Only the dropdown menu closes on scroll, but the overlay editor (text input) stays open. ',
+                'Good for dropdown/multiselect cells where you want to close the menu but continue typing.'
+            ]),
+            html.Li([
+                html.Strong('close-overlay-on-scroll'),
+                ': The entire editor overlay closes when any scroll is detected. ',
+                'This prevents orphaned editors completely.'
             ]),
             html.Li([
                 html.Strong('lock-scroll'),
@@ -133,7 +139,8 @@ app.layout = html.Div([
         html.H4('Use cases:'),
         html.Ul([
             html.Li([html.Strong('default'), ': Best when users may need to reference other data while editing']),
-            html.Li([html.Strong('close-on-scroll'), ': Good for preventing confusion from misaligned editors']),
+            html.Li([html.Strong('close-dropdown-on-scroll'), ': Good for dropdown cells where scrolling should close the menu but not the input']),
+            html.Li([html.Strong('close-overlay-on-scroll'), ': Good for preventing confusion from misaligned editors']),
             html.Li([html.Strong('lock-scroll'), ': Best for focused data entry where scroll during edit is not needed']),
         ])
     ], style={'marginTop': '30px', 'color': '#666'}),

@@ -1176,11 +1176,12 @@ GlideGrid.propTypes = {
     /**
      * Controls how the grid behaves when the user scrolls while an editor is open.
      * - "default": Editor stays at original position (standard Glide behavior)
-     * - "close-on-scroll": Editor closes when page or grid scrolls
+     * - "close-dropdown-on-scroll": Only dropdown menus close on scroll, overlay stays open
+     * - "close-overlay-on-scroll": Entire editor overlay closes on scroll
      * - "lock-scroll": Scrolling is prevented while editor is open
      * Default: "default"
      */
-    editorScrollBehavior: PropTypes.oneOf(['default', 'close-on-scroll', 'lock-scroll']),
+    editorScrollBehavior: PropTypes.oneOf(['default', 'close-dropdown-on-scroll', 'close-overlay-on-scroll', 'lock-scroll']),
 
     /**
      * When true, typing on a selected cell will immediately start editing.

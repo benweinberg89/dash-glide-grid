@@ -786,64 +786,86 @@ const GlideGrid = (props) => {
         return () => observer.disconnect();
     }, [isEditorOpen]);
 
-    // "close-on-scroll" behavior: close editor when scroll detected
+    // "close-dropdown-on-scroll" behavior: close just the dropdown menu on scroll
     useEffect(() => {
-        if (editorScrollBehavior !== 'close-on-scroll' || !isEditorOpen) return;
+        if (editorScrollBehavior !== 'close-dropdown-on-scroll' || !isEditorOpen) return;
 
-        const closeEditor = () => {
-            // Try multiple approaches to close the editor
-
-            // 1. Dispatch Escape key to document
-            const escapeEvent = new KeyboardEvent('keydown', {
-                key: 'Escape',
-                code: 'Escape',
-                keyCode: 27,
-                which: 27,
-                bubbles: true,
-                cancelable: true
-            });
-            document.dispatchEvent(escapeEvent);
-
-            // 2. Blur active element in portal
+        const closeDropdown = () => {
+            // Find the react-select input inside the portal and dispatch Escape to it
             const portal = document.getElementById('portal');
             if (portal) {
-                const activeEl = portal.querySelector('input, select, textarea, [contenteditable]');
-                if (activeEl) {
-                    activeEl.blur();
+                // Find react-select menu and close it by clicking outside
+                const menuPortal = document.querySelector('[class*="menu"]');
+                if (menuPortal) {
+                    // Find the react-select input and blur/dispatch escape to it
+                    const selectInput = portal.querySelector('input[class*="select"], input[id*="react-select"]');
+                    if (selectInput) {
+                        const escapeEvent = new KeyboardEvent('keydown', {
+                            key: 'Escape',
+                            code: 'Escape',
+                            keyCode: 27,
+                            which: 27,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        selectInput.dispatchEvent(escapeEvent);
+                    }
                 }
             }
+        };
 
-            // 3. Focus the grid to close editor overlay
-            if (gridRef.current) {
-                gridRef.current.focus();
+        // Listen to page scroll
+        window.addEventListener('scroll', closeDropdown, true);
+
+        // Also listen to wheel events on the grid container
+        const gridContainer = document.querySelector('[data-testid="data-grid-canvas"]')?.parentElement?.parentElement;
+        if (gridContainer) {
+            gridContainer.addEventListener('wheel', closeDropdown, { passive: true });
+        }
+
+        return () => {
+            window.removeEventListener('scroll', closeDropdown, true);
+            if (gridContainer) {
+                gridContainer.removeEventListener('wheel', closeDropdown);
             }
+        };
+    }, [editorScrollBehavior, isEditorOpen]);
 
-            // 4. Clear portal contents directly as last resort
-            if (portal && portal.children.length > 0) {
-                // Small delay to let escape propagate first
-                setTimeout(() => {
-                    if (portal.children.length > 0) {
-                        portal.innerHTML = '';
-                    }
-                }, 50);
+    // "close-overlay-on-scroll" behavior: close entire editor overlay on scroll
+    useEffect(() => {
+        if (editorScrollBehavior !== 'close-overlay-on-scroll' || !isEditorOpen) return;
+
+        const closeOverlay = () => {
+            // Simulate a click on the canvas to trigger "click outside" behavior
+            const canvas = document.querySelector('[data-testid="data-grid-canvas"]');
+            if (canvas) {
+                // Create and dispatch a mousedown event (Glide uses mousedown, not click)
+                const mouseDownEvent = new MouseEvent('mousedown', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: canvas.getBoundingClientRect().left + 10,
+                    clientY: canvas.getBoundingClientRect().top + 10
+                });
+                canvas.dispatchEvent(mouseDownEvent);
             }
 
             setIsEditorOpen(false);
         };
 
         // Listen to page scroll
-        window.addEventListener('scroll', closeEditor, true);
+        window.addEventListener('scroll', closeOverlay, true);
 
-        // Also listen to wheel events on the grid container to catch grid scroll attempts
+        // Also listen to wheel events on the grid container
         const gridContainer = document.querySelector('[data-testid="data-grid-canvas"]')?.parentElement?.parentElement;
         if (gridContainer) {
-            gridContainer.addEventListener('wheel', closeEditor, { passive: true });
+            gridContainer.addEventListener('wheel', closeOverlay, { passive: true });
         }
 
         return () => {
-            window.removeEventListener('scroll', closeEditor, true);
+            window.removeEventListener('scroll', closeOverlay, true);
             if (gridContainer) {
-                gridContainer.removeEventListener('wheel', closeEditor);
+                gridContainer.removeEventListener('wheel', closeOverlay);
             }
         };
     }, [editorScrollBehavior, isEditorOpen]);
