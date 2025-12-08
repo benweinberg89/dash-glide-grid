@@ -1941,6 +1941,12 @@ const GlideGrid = (props) => {
 
     // Handle item hover changes
     const handleItemHovered = useCallback((args) => {
+        // Don't update hover state while editor is open - prevents re-renders
+        // that would reset dropdown scroll position
+        if (isEditorOpen) {
+            return;
+        }
+
         // Update internal hover state for row highlighting
         if (args.kind === 'cell' && args.location) {
             setHoveredRow(args.location[1]);
@@ -1958,7 +1964,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, isEditorOpen]);
 
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {
