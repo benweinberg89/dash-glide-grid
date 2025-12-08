@@ -64,7 +64,8 @@ GlideGrid.defaultProps = {
     enableUndoRedo: false,
     maxUndoSteps: 50,
     canUndo: false,
-    canRedo: false
+    canRedo: false,
+    editorScrollBehavior: 'default'
 };
 
 GlideGrid.propTypes = {
@@ -1171,6 +1172,15 @@ GlideGrid.propTypes = {
      * Default: "second-click"
      */
     cellActivationBehavior: PropTypes.oneOf(['double-click', 'second-click', 'single-click']),
+
+    /**
+     * Controls how the grid behaves when the user scrolls while an editor is open.
+     * - "default": Editor stays at original position (standard Glide behavior)
+     * - "close-overlay-on-scroll": Entire editor overlay closes on scroll
+     * - "lock-scroll": Scrolling is prevented while editor is open
+     * Default: "default"
+     */
+    editorScrollBehavior: PropTypes.oneOf(['default', 'close-overlay-on-scroll', 'lock-scroll']),
 
     /**
      * When true, typing on a selected cell will immediately start editing.

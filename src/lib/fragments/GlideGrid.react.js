@@ -4,9 +4,23 @@ import DataEditor, { GridCellKind, CompactSelection } from '@glideapps/glide-dat
 import '@glideapps/glide-data-grid/dist/index.css';
 import { allCells } from '@glideapps/glide-data-grid-cells';
 import '@glideapps/glide-data-grid-cells/dist/index.css';
+import DropdownCellRenderer from '../cells/DropdownCellRenderer';
+import MultiSelectCellRenderer from '../cells/MultiSelectCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
+
+// Custom cell renderers: replace library's dropdown/multiselect with fixed versions
+// that include menuPosition="fixed" and menuShouldScrollIntoView={false}
+const customRenderers = [
+    ...allCells.filter(
+        (c) =>
+            !c.isMatch?.({ data: { kind: 'dropdown-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'multi-select-cell' } })
+    ),
+    DropdownCellRenderer,
+    MultiSelectCellRenderer,
+];
 
 /**
  * Draw hamburger icon (three horizontal lines) for header menu
@@ -285,6 +299,7 @@ const GlideGrid = (props) => {
         enableUndoRedo,
         maxUndoSteps,
         undoRedoAction,
+        editorScrollBehavior,
         setProps
     } = props;
 
@@ -301,6 +316,10 @@ const GlideGrid = (props) => {
 
     // Local state for sorting (to enable immediate UI updates)
     const [localSortColumns, setLocalSortColumns] = useState(sortColumns || []);
+
+    // Editor scroll behavior state
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const scrollPositionRef = useRef({ x: 0, y: 0 });
 
     // Local state for column filters (synced with Dash prop)
     const [localFilters, setLocalFilters] = useState(columnFilters || {});
@@ -737,7 +756,9 @@ const GlideGrid = (props) => {
                 portalDiv.style.zIndex = '9999';
                 // Add CSS to allow pointer events on children (overlay editors)
                 const style = document.createElement('style');
-                style.textContent = '#portal > * { pointer-events: auto; }';
+                style.textContent = `
+                    #portal > * { pointer-events: auto; }
+                `;
                 document.head.appendChild(style);
 
                 // Append to body per Glide requirements
@@ -746,99 +767,156 @@ const GlideGrid = (props) => {
         }
     }, []);
 
-    // Update dropdown positions when scrolling to keep them aligned with their cells
+    // Detect editor close via MutationObserver (for Escape/click-outside)
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
+        if (!isEditorOpen) return;
 
-        let scrollRAF = null;
-        let lastScrollTime = 0;
+        const portal = document.getElementById('portal');
+        if (!portal) return;
 
-        // Store initial positions of dropdowns when they open
-        const dropdownPositions = new WeakMap();
-
-        const updateDropdownPositions = () => {
-            const portalDiv = document.getElementById('portal');
-            if (!portalDiv) return;
-
-            const allPortalChildren = Array.from(portalDiv.children);
-
-            // Find the main overlay editor (first child)
-            const overlayEditor = allPortalChildren[0];
-            if (!overlayEditor) return;
-
-            // Get the inner gdg-overlay element which has targetx/targety attributes
-            const innerOverlay = overlayEditor.querySelector('[id^="gdg-overlay"]');
-            if (!innerOverlay) return;
-
-            // Read the target position from attributes (updated by Glide during scroll)
-            const targetX = parseFloat(innerOverlay.getAttribute('targetx')) || 0;
-            const targetY = parseFloat(innerOverlay.getAttribute('targety')) || 0;
-
-            // Look for dropdown elements - they are siblings of the overlay editor
-            const dropdownContainers = allPortalChildren.filter((el, index) => index !== 0);
-
-            dropdownContainers.forEach((dropdown) => {
-                // Calculate correct offset for new dropdowns
-                if (!dropdownPositions.has(dropdown)) {
-                    // Get the overlay's dimensions to position dropdown below it
-                    const overlayRect = overlayEditor.getBoundingClientRect();
-
-                    // Position dropdown directly below overlay with a gap
-                    // Add spacing to prevent overlap
-                    dropdownPositions.set(dropdown, {
-                        offsetX: 0,
-                        offsetY: overlayRect.height + 35
-                    });
-                }
-
-                // Apply the stored offset to position the dropdown
-                const storedOffset = dropdownPositions.get(dropdown);
-                if (storedOffset && dropdown instanceof HTMLElement) {
-                    dropdown.style.position = 'fixed';
-                    dropdown.style.left = (targetX + storedOffset.offsetX) + 'px';
-                    dropdown.style.top = (targetY + storedOffset.offsetY) + 'px';
-                }
-            });
-        };
-
-        const handleWheel = () => {
-            lastScrollTime = Date.now();
-
-            if (scrollRAF) cancelAnimationFrame(scrollRAF);
-
-            scrollRAF = requestAnimationFrame(() => {
-                updateDropdownPositions();
-
-                // Continue updating for a short period after scroll stops
-                const checkAndUpdate = () => {
-                    if (Date.now() - lastScrollTime < 100) {
-                        updateDropdownPositions();
-                        requestAnimationFrame(checkAndUpdate);
-                    }
-                };
-                checkAndUpdate();
-            });
-        };
-
-        // Set up a mutation observer to detect when dropdowns are added
-        const observer = new MutationObserver(() => {
-            updateDropdownPositions();
+        const observer = new MutationObserver((mutations) => {
+            // Check if editor overlay was removed
+            const hasEditorChild = portal.querySelector('[class*="overlay-editor"], [class*="gdg-"]');
+            if (!hasEditorChild && portal.children.length === 0) {
+                setIsEditorOpen(false);
+            }
         });
 
-        const portalDiv = document.getElementById('portal');
-        if (portalDiv) {
-            observer.observe(portalDiv, { childList: true, subtree: true });
-        }
+        observer.observe(portal, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, [isEditorOpen]);
 
-        container.addEventListener('wheel', handleWheel, { passive: true });
+    // "close-overlay-on-scroll" behavior: close entire editor overlay on scroll
+    useEffect(() => {
+        if (editorScrollBehavior !== 'close-overlay-on-scroll' || !isEditorOpen) return;
+
+        // Block scrolling at CSS level while editor is open
+        const originalOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+
+        const closeOverlay = () => {
+            const portal = document.getElementById('portal');
+            const escapeEvent = new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                which: 27,
+                bubbles: true,
+                cancelable: true
+            });
+
+            if (portal) {
+                // 1. Dispatch to input (closes react-select dropdown)
+                const input = portal.querySelector('input, textarea, [contenteditable]');
+                if (input) {
+                    input.dispatchEvent(escapeEvent);
+                }
+
+                // 2. Dispatch to overlay container
+                if (portal.firstElementChild) {
+                    portal.firstElementChild.dispatchEvent(escapeEvent);
+                }
+            }
+
+            // 3. Dispatch to document
+            document.dispatchEvent(escapeEvent);
+
+            // 4. Focus the grid to trigger blur on editor
+            if (gridRef.current) {
+                gridRef.current.focus();
+            }
+
+            // MutationObserver will detect when overlay closes and update isEditorOpen
+        };
+
+        const handleWheel = (e) => {
+            // Allow scrolling within dropdown menus (react-select)
+            // The menu is rendered in the portal element
+            const portal = document.getElementById('portal');
+            if (portal && portal.contains(e.target)) {
+                return;
+            }
+
+            // Event is outside dropdown - close the overlay
+            e.preventDefault();
+            e.stopPropagation();
+            closeOverlay();
+        };
+
+        const handleScroll = (e) => {
+            // Ignore scroll events from within the portal (dropdown menu scrolling)
+            const portal = document.getElementById('portal');
+            if (portal && portal.contains(e.target)) {
+                return;
+            }
+            closeOverlay();
+        };
+
+        window.addEventListener('scroll', handleScroll, true);
+        document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
 
         return () => {
-            if (scrollRAF) cancelAnimationFrame(scrollRAF);
-            container.removeEventListener('wheel', handleWheel);
-            observer.disconnect();
+            document.documentElement.style.overflow = originalOverflow;
+            window.removeEventListener('scroll', handleScroll, true);
+            document.removeEventListener('wheel', handleWheel, { capture: true });
         };
-    }, []);
+    }, [editorScrollBehavior, isEditorOpen]);
+
+    // "lock-scroll" behavior: prevent scrolling while editor is open
+    const wheelHandlerRef = useRef(null);
+    const scrollHandlerRef = useRef(null);
+
+    useEffect(() => {
+        if (editorScrollBehavior !== 'lock-scroll') return;
+
+        if (isEditorOpen) {
+            // Save current scroll position
+            scrollPositionRef.current = {
+                x: window.scrollX,
+                y: window.scrollY
+            };
+
+            // Create wheel handler to prevent scroll (but allow dropdown menu scrolling)
+            wheelHandlerRef.current = (e) => {
+                const portal = document.getElementById('portal');
+                if (portal && portal.contains(e.target)) {
+                    // Allow scrolling within dropdown menus
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            // Create scroll handler to restore position if scroll somehow happens
+            scrollHandlerRef.current = () => {
+                window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
+            };
+
+            // Prevent wheel events
+            document.addEventListener('wheel', wheelHandlerRef.current, { passive: false });
+            // Also prevent touchmove for mobile
+            document.addEventListener('touchmove', wheelHandlerRef.current, { passive: false });
+            // Restore scroll position if it changes
+            window.addEventListener('scroll', scrollHandlerRef.current);
+
+            // Set overflow hidden on html element (less layout shift than body fixed)
+            document.documentElement.style.overflow = 'hidden';
+        }
+
+        return () => {
+            // Cleanup
+            document.documentElement.style.overflow = '';
+            if (wheelHandlerRef.current) {
+                document.removeEventListener('wheel', wheelHandlerRef.current);
+                document.removeEventListener('touchmove', wheelHandlerRef.current);
+                wheelHandlerRef.current = null;
+            }
+            if (scrollHandlerRef.current) {
+                window.removeEventListener('scroll', scrollHandlerRef.current);
+                scrollHandlerRef.current = null;
+            }
+        };
+    }, [editorScrollBehavior, isEditorOpen]);
 
     // Transform columns to Glide format (including sort indicators)
     const glideColumns = useMemo(() => {
@@ -976,6 +1054,7 @@ const GlideGrid = (props) => {
 
     // Handle cell edits
     const handleCellEdited = useCallback((cell, newValue) => {
+        setIsEditorOpen(false);
         if (!setProps || readonly) return;
 
         const [col, row] = cell;
@@ -1848,6 +1927,7 @@ const GlideGrid = (props) => {
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
+        setIsEditorOpen(true);
         if (setProps) {
             setProps({
                 cellActivated: {
@@ -1861,6 +1941,12 @@ const GlideGrid = (props) => {
 
     // Handle item hover changes
     const handleItemHovered = useCallback((args) => {
+        // Don't update hover state while editor is open - prevents re-renders
+        // that would reset dropdown scroll position
+        if (isEditorOpen) {
+            return;
+        }
+
         // Update internal hover state for row highlighting
         if (args.kind === 'cell' && args.location) {
             setHoveredRow(args.location[1]);
@@ -1878,10 +1964,30 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, isEditorOpen]);
 
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {
+        // Close editor on grid internal scroll if behavior is set
+        if (editorScrollBehavior === 'close-on-scroll' && isEditorOpen) {
+            const portal = document.getElementById('portal');
+            if (portal && portal.children.length > 0) {
+                const escapeEvent = new KeyboardEvent('keydown', {
+                    key: 'Escape',
+                    code: 'Escape',
+                    keyCode: 27,
+                    which: 27,
+                    bubbles: true,
+                    cancelable: true
+                });
+                portal.dispatchEvent(escapeEvent);
+                if (portal.firstElementChild) {
+                    portal.firstElementChild.dispatchEvent(escapeEvent);
+                }
+            }
+            setIsEditorOpen(false);
+        }
+
         if (setProps) {
             setProps({
                 visibleRegion: {
@@ -1894,7 +2000,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, editorScrollBehavior, isEditorOpen]);
 
     // ========== PHASE 3: ROW/COLUMN REORDERING ==========
 
@@ -2281,7 +2387,7 @@ const GlideGrid = (props) => {
                 coercePasteValue={handleCoercePasteValue}
                 getRowThemeOverride={handleGetRowThemeOverride}
                 drawCell={handleDrawCell}
-                customRenderers={allCells}
+                customRenderers={customRenderers}
                 width="100%"
                 height="100%"
             />
