@@ -3,9 +3,9 @@ Dash Glide Grid - Comprehensive Usage Example
 
 This example demonstrates many key features of the GlideGrid component:
 - Records-based data format (compatible with df.to_dict('records'))
+- All 13 cell types (text, number, boolean, markdown, image, uri, bubble, drilldown, rowid, protected, loading, dropdown, multi-select)
 - Column sorting and filtering
-- Custom theming
-- Row markers and selection
+- Row markers with checkboxes
 - Fill handle for Excel-like data entry
 - Undo/redo support
 - Search functionality
@@ -15,147 +15,197 @@ This example demonstrates many key features of the GlideGrid component:
 import dash
 from dash import html, dcc, Input, Output, callback, ctx
 import dash_glide_grid as dgg
+import random
+import time
 
 app = dash.Dash(__name__)
 
-# Column definitions with sorting and filtering enabled
-COLUMNS = [
-    {"title": "Name", "id": "name", "width": 180, "sortable": True},
-    {"title": "Department", "id": "department", "width": 140, "sortable": True, "filterable": True, "hasMenu": True},
-    {"title": "Role", "id": "role", "width": 160, "sortable": True, "filterable": True, "hasMenu": True},
-    {"title": "Salary", "id": "salary", "width": 120, "sortable": True},
-    {"title": "Start Date", "id": "start_date", "width": 120, "sortable": True},
-    {"title": "Active", "id": "active", "width": 80},
-    {"title": "Rating", "id": "rating", "width": 80, "sortable": True},
+# Status options for dropdown
+status_options = [
+    {"value": "active", "label": "Active", "color": "#10b981"},
+    {"value": "pending", "label": "Pending", "color": "#f59e0b"},
+    {"value": "inactive", "label": "Inactive", "color": "#ef4444"},
+    {"value": "review", "label": "In Review", "color": "#8b5cf6"},
+    {"value": "approved", "label": "Approved", "color": "#06b6d4"},
 ]
 
-# Sample employee data using records format (like pandas df.to_dict('records'))
-DATA = [
-    {"name": "Alice Chen", "department": "Engineering", "role": "Senior Developer", "salary": 125000, "start_date": "2020-03-15", "active": True, "rating": 4.8},
-    {"name": "Bob Martinez", "department": "Engineering", "role": "Tech Lead", "salary": 145000, "start_date": "2018-07-01", "active": True, "rating": 4.9},
-    {"name": "Carol Williams", "department": "Design", "role": "UX Designer", "salary": 95000, "start_date": "2021-01-10", "active": True, "rating": 4.5},
-    {"name": "David Kim", "department": "Engineering", "role": "Junior Developer", "salary": 75000, "start_date": "2023-06-01", "active": True, "rating": 4.2},
-    {"name": "Eva Johnson", "department": "Marketing", "role": "Marketing Manager", "salary": 110000, "start_date": "2019-11-20", "active": True, "rating": 4.7},
-    {"name": "Frank Brown", "department": "Sales", "role": "Sales Director", "salary": 130000, "start_date": "2017-04-05", "active": True, "rating": 4.6},
-    {"name": "Grace Lee", "department": "Design", "role": "Creative Director", "salary": 135000, "start_date": "2016-09-12", "active": True, "rating": 4.9},
-    {"name": "Henry Wilson", "department": "Engineering", "role": "DevOps Engineer", "salary": 115000, "start_date": "2020-08-25", "active": False, "rating": 4.4},
-    {"name": "Iris Taylor", "department": "HR", "role": "HR Manager", "salary": 90000, "start_date": "2019-02-14", "active": True, "rating": 4.3},
-    {"name": "Jack Anderson", "department": "Sales", "role": "Account Executive", "salary": 85000, "start_date": "2022-03-01", "active": True, "rating": 4.1},
-    {"name": "Karen White", "department": "Engineering", "role": "QA Engineer", "salary": 95000, "start_date": "2021-05-15", "active": True, "rating": 4.5},
-    {"name": "Leo Garcia", "department": "Marketing", "role": "Content Strategist", "salary": 80000, "start_date": "2022-09-10", "active": True, "rating": 4.0},
+# Skills options for multi-select
+skill_options = [
+    {"value": "python", "label": "Python", "color": "#3776ab"},
+    {"value": "javascript", "label": "JavaScript", "color": "#f7df1e"},
+    {"value": "react", "label": "React", "color": "#61dafb"},
+    {"value": "sql", "label": "SQL", "color": "#336791"},
+    {"value": "rust", "label": "Rust", "color": "#dea584"},
+    {"value": "go", "label": "Go", "color": "#00add8"},
+    {"value": "typescript", "label": "TypeScript", "color": "#3178c6"},
+    {"value": "docker", "label": "Docker", "color": "#2496ed"},
 ]
 
-# Custom theme
-THEME = {
-    "accentColor": "#3b82f6",
-    "accentLight": "#dbeafe",
-    "bgCell": "#ffffff",
-    "bgHeader": "#f8fafc",
-    "bgHeaderHovered": "#f1f5f9",
-    "textDark": "#1e293b",
-    "textHeader": "#475569",
-    "borderColor": "#e2e8f0",
-    "fontFamily": "system-ui, -apple-system, sans-serif",
+columns = [
+    {"title": "ID", "id": "rowid", "width": 90},
+    {"title": "Name", "id": "name", "width": 150, "sortable": True},
+    {"title": "Avatar", "id": "image", "width": 70},
+    {"title": "Salary", "id": "salary", "width": 100, "sortable": True},
+    {"title": "Active", "id": "active", "width": 70},
+    {"title": "Role", "id": "role", "width": 140, "sortable": True, "filterable": True, "hasMenu": True},
+    {"title": "Profile", "id": "profile", "width": 90},
+    {"title": "Tags", "id": "tags", "width": 160},
+    {"title": "Team", "id": "team", "width": 180},
+    {"title": "Status", "id": "status", "width": 120},
+    {"title": "Skills", "id": "skills", "width": 200},
+]
+
+# Generate 1000 rows of realistic data
+first_names = [
+    "Alice", "Bob", "Carol", "David", "Emma", "Frank", "Grace", "Henry", "Ivy", "Jack",
+    "Kate", "Liam", "Mia", "Noah", "Olivia", "Peter", "Quinn", "Rachel", "Sam", "Tina",
+    "Uma", "Victor", "Wendy", "Xavier", "Yuki", "Zoe", "Aaron", "Bella", "Carlos", "Diana",
+]
+last_names = [
+    "Johnson", "Smith", "White", "Brown", "Davis", "Miller", "Lee", "Wilson", "Chen", "Taylor",
+    "Anderson", "Thomas", "Jackson", "Garcia", "Martinez", "Robinson", "Foster", "Kim", "Wright", "Lopez",
+]
+roles = [
+    "**Lead** Engineer", "*Senior* Developer", "~~Junior~~ **Mid-level**", "`DevOps` Specialist",
+    "**Staff** Engineer", "*Principal* Architect", "**Tech** Lead", "*Senior* Manager",
+]
+teams = [
+    ["Engineering", "Backend"], ["Engineering", "Frontend"], ["Design", "UX"], ["Design", "Product"],
+    ["Data Science", "ML"], ["Infrastructure", "DevOps"], ["Security", "Platform"], ["QA", "Automation"],
+]
+tag_sets = [
+    ["backend", "api"], ["frontend", "ux"], ["data", "ml"], ["devops", "cloud"],
+    ["mobile", "ios"], ["security", "auth"], ["testing", "qa"], ["platform", "infra"],
+]
+statuses = ["active", "pending", "inactive", "review", "approved"]
+skill_sets = [
+    ["python", "rust", "docker"], ["javascript", "react", "typescript"], ["python", "sql"],
+    ["go", "docker", "rust"], ["python", "javascript", "sql"], ["react", "typescript", "docker"],
+    ["go", "sql", "docker"], ["python", "react", "sql"],
+]
+
+random.seed(42)  # Reproducible data
+
+data = []
+for i in range(1000):
+    first = random.choice(first_names)
+    last = random.choice(last_names)
+    name = f"{first} {last}"
+    user_id = f"{first.lower()}{i}"
+    status = random.choice(statuses)
+    skills = random.choice(skill_sets)
+    team_data = random.choice(teams)
+
+    data.append({
+        "image": {"kind": "image", "data": [f"https://i.pravatar.cc/40?u={user_id}"]},
+        "name": name,
+        "salary": random.randint(60, 200) * 1000,
+        "active": random.choice([True, True, True, False]),
+        "role": {"kind": "markdown", "data": random.choice(roles)},
+        "profile": {"kind": "uri", "data": f"https://github.com/{user_id}", "displayData": "GitHub"},
+        "tags": {"kind": "bubble", "data": random.choice(tag_sets)},
+        "team": {
+            "kind": "drilldown",
+            "data": [{"text": t, "img": f"https://i.pravatar.cc/20?u={t.lower()}"} for t in team_data],
+        },
+        "rowid": {"kind": "rowid", "data": f"EMP-{i+1:04d}"},
+        "status": {
+            "kind": "dropdown-cell",
+            "data": {"value": status, "options": status_options, "allowedValues": [o["value"] for o in status_options]},
+            "allowOverlay": True,
+            "copyData": status,
+        },
+        "skills": {
+            "kind": "multi-select-cell",
+            "data": {"values": skills, "options": skill_options, "allowedValues": [o["value"] for o in skill_options], "allowDuplicates": False, "allowCreation": True},
+            "allowOverlay": True,
+            "copyData": ", ".join(skills),
+        },
+    })
+
+# Styles
+button_style = {
+    "padding": "6px 12px",
+    "marginRight": "8px",
+    "border": "1px solid #e2e8f0",
+    "borderRadius": "6px",
+    "backgroundColor": "#f8fafc",
+    "cursor": "pointer",
+    "fontSize": "14px",
 }
+status_row_style = {
+    "display": "flex",
+    "gap": "8px",
+    "marginBottom": "4px",
+    "fontSize": "14px",
+}
+label_style = {"fontWeight": "600", "minWidth": "80px"}
+value_style = {"color": "#64748b"}
 
 app.layout = html.Div([
-    html.H1("Dash Glide Grid", style={"color": "#1e293b", "marginBottom": "8px"}),
-    html.P("A high-performance data grid for Dash applications",
-           style={"color": "#64748b", "marginBottom": "24px"}),
+    html.H1("Dash Glide Grid", style={"color": "#1e293b", "marginBottom": "4px"}),
+    html.P("A high-performance data grid for Dash applications", style={"color": "#64748b", "marginBottom": "24px"}),
 
     # Toolbar
     html.Div([
-        html.Button("Undo", id="undo-btn", n_clicks=0,
-                    style={"marginRight": "8px", "padding": "8px 16px"}),
-        html.Button("Redo", id="redo-btn", n_clicks=0,
-                    style={"marginRight": "16px", "padding": "8px 16px"}),
-        html.Button("Clear Filters", id="clear-filters-btn", n_clicks=0,
-                    style={"padding": "8px 16px"}),
+        html.Button("Undo", id="undo-btn", n_clicks=0, style=button_style),
+        html.Button("Redo", id="redo-btn", n_clicks=0, style=button_style),
+        html.Button("Clear Filters", id="clear-filters-btn", n_clicks=0, style=button_style),
+        html.Button("Search", id="search-btn", n_clicks=0, style=button_style),
     ], style={"marginBottom": "16px"}),
 
-    # The Grid
-    html.Div([
+    # Grid with rounded corners
+    html.Div(
         dgg.GlideGrid(
             id="main-grid",
-            columns=COLUMNS,
-            data=DATA,
+            columns=columns,
+            data=data,
             height=500,
-
-            # Appearance
-            theme=THEME,
             rowHeight=40,
             headerHeight=44,
-
-            # Row markers and selection
-            rowMarkers="clickable-number",
+            rowMarkers="both",
             rowSelect="multi",
-            columnSelect="multi",
+            columnSelect="none",
             rangeSelect="multi-rect",
-
-            # Editing features
             fillHandle=True,
-            enableCopyPaste=True,
-
-            # Column features
-            freezeColumns=1,
-            columnResize=True,
-            minColumnWidth=60,
-            maxColumnWidth=400,
-
-            # Sorting
+            freezeColumns=2,
             sortable=True,
             sortColumns=[],
-
-            # Filtering (via column menus)
             columnFilters={},
-
-            # Search
-            showSearch=True,
-            searchValue="",
-
-            # Visual enhancements
+            showSearch=False,
             hoverRow=True,
-            drawFocusRing=True,
             smoothScrollX=True,
             smoothScrollY=True,
-
-            # Undo/redo
             enableUndoRedo=True,
             maxUndoSteps=50,
         ),
-    ], style={"border": "1px solid #e2e8f0", "borderRadius": "8px", "overflow": "hidden"}),
+        style={"border": "1px solid #e2e8f0", "borderRadius": "8px", "overflow": "hidden"},
+    ),
 
     # Status panel
     html.Div([
-        html.Div([
-            html.Strong("Selection: "),
-            html.Span(id="selection-display", children="None"),
-        ], style={"marginBottom": "8px"}),
-        html.Div([
-            html.Strong("Last Edit: "),
-            html.Span(id="edit-display", children="None"),
-        ], style={"marginBottom": "8px"}),
-        html.Div([
-            html.Strong("Sort: "),
-            html.Span(id="sort-display", children="None"),
-        ], style={"marginBottom": "8px"}),
-        html.Div([
-            html.Strong("Filters: "),
-            html.Span(id="filter-display", children="None"),
-        ]),
+        html.Div([html.Span("Selection:", style=label_style), html.Span(id="selection-display", children="None", style=value_style)], style=status_row_style),
+        html.Div([html.Span("Last Edit:", style=label_style), html.Span(id="edit-display", children="None", style=value_style)], style=status_row_style),
+        html.Div([html.Span("Sort:", style=label_style), html.Span(id="sort-display", children="None", style=value_style)], style=status_row_style),
+        html.Div([html.Span("Filters:", style=label_style), html.Span(id="filter-display", children="None", style=value_style)], style=status_row_style),
     ], style={
         "marginTop": "16px",
         "padding": "16px",
         "backgroundColor": "#f8fafc",
         "borderRadius": "8px",
-        "fontFamily": "monospace",
-        "fontSize": "13px",
+        "border": "1px solid #e2e8f0",
     }),
 
-    # Hidden div for undo/redo trigger
-    dcc.Store(id="undo-redo-trigger"),
+], style={"maxWidth": "1400px", "margin": "40px auto", "padding": "0 20px", "fontFamily": "system-ui, -apple-system, sans-serif"})
 
-], style={"maxWidth": "1200px", "margin": "40px auto", "padding": "0 20px"})
+
+@callback(
+    Output("main-grid", "showSearch"),
+    Input("search-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_search(n_clicks):
+    return (n_clicks or 0) % 2 == 1
 
 
 @callback(
@@ -191,7 +241,7 @@ def update_edit(edit):
 )
 def update_sort(sort_cols):
     if sort_cols:
-        parts = [f"{COLUMNS[s['columnIndex']]['id']} ({s['direction']})" for s in sort_cols]
+        parts = [f"{columns[s['columnIndex']]['id']} ({s['direction']})" for s in sort_cols]
         return ", ".join(parts)
     return "None"
 
@@ -202,7 +252,7 @@ def update_sort(sort_cols):
 )
 def update_filters(filters):
     if filters:
-        parts = [f"{COLUMNS[int(k)]['id']}: {v}" for k, v in filters.items()]
+        parts = [f"{columns[int(k)]['id']}: {v}" for k, v in filters.items()]
         return " | ".join(parts)
     return "None"
 
@@ -223,13 +273,12 @@ def clear_filters(_):
     prevent_initial_call=True,
 )
 def handle_undo_redo(_undo, _redo):
-    import time
     triggered = ctx.triggered_id
     if triggered == "undo-btn":
         return {"action": "undo", "timestamp": int(time.time() * 1000)}
     elif triggered == "redo-btn":
         return {"action": "redo", "timestamp": int(time.time() * 1000)}
-    return dash.no_update
+    return None
 
 
 if __name__ == "__main__":
