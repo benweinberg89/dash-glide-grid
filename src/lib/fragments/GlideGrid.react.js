@@ -791,38 +791,47 @@ const GlideGrid = (props) => {
         if (editorScrollBehavior !== 'close-dropdown-on-scroll' || !isEditorOpen) return;
 
         const closeDropdown = () => {
-            // Find any open react-select menu and close it by simulating a click on the overlay
-            // This closes the menu but keeps the text input overlay open
             const portal = document.getElementById('portal');
             if (portal) {
-                // Look for the overlay container (the wrapper around the editor)
-                const overlayContainer = portal.querySelector('[class*="overlay-editor"], [class*="gdg-"]');
-                if (overlayContainer) {
-                    // Simulate a click on the overlay container (outside the menu)
-                    const clickEvent = new MouseEvent('mousedown', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    });
-                    overlayContainer.dispatchEvent(clickEvent);
+                // Check for open react-select menu (matches __menu class from react-select)
+                const openMenu = portal.querySelector('[class*="menu"]:not([class*="menu-list"])') ||
+                                 portal.querySelector('[class*="__menu"]');
+                if (openMenu) {
+                    // Dispatch Escape to the input to close just the menu
+                    const selectInput = portal.querySelector('input');
+                    if (selectInput) {
+                        const escapeEvent = new KeyboardEvent('keydown', {
+                            key: 'Escape',
+                            code: 'Escape',
+                            keyCode: 27,
+                            which: 27,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        selectInput.dispatchEvent(escapeEvent);
+                    }
                 }
+            }
+        };
+
+        // Wheel listener with capture phase to catch events before page scrolls
+        const handleWheel = (e) => {
+            const portal = document.getElementById('portal');
+            if (portal && portal.contains(e.target)) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeDropdown();
             }
         };
 
         // Listen to page scroll
         window.addEventListener('scroll', closeDropdown, true);
-
-        // Also listen to wheel events on the grid container
-        const gridContainer = document.querySelector('[data-testid="data-grid-canvas"]')?.parentElement?.parentElement;
-        if (gridContainer) {
-            gridContainer.addEventListener('wheel', closeDropdown, { passive: true });
-        }
+        // Listen to wheel events with capture phase, non-passive to allow preventDefault
+        document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
 
         return () => {
             window.removeEventListener('scroll', closeDropdown, true);
-            if (gridContainer) {
-                gridContainer.removeEventListener('wheel', closeDropdown);
-            }
+            document.removeEventListener('wheel', handleWheel, { capture: true });
         };
     }, [editorScrollBehavior, isEditorOpen]);
 
@@ -852,20 +861,24 @@ const GlideGrid = (props) => {
             setIsEditorOpen(false);
         };
 
+        // Wheel listener with capture phase to catch events before page scrolls
+        const handleWheel = (e) => {
+            const portal = document.getElementById('portal');
+            if (portal && portal.contains(e.target)) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeOverlay();
+            }
+        };
+
         // Listen to page scroll
         window.addEventListener('scroll', closeOverlay, true);
-
-        // Also listen to wheel events on the grid container
-        const gridContainer = document.querySelector('[data-testid="data-grid-canvas"]')?.parentElement?.parentElement;
-        if (gridContainer) {
-            gridContainer.addEventListener('wheel', closeOverlay, { passive: true });
-        }
+        // Listen to wheel events with capture phase, non-passive to allow preventDefault
+        document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
 
         return () => {
             window.removeEventListener('scroll', closeOverlay, true);
-            if (gridContainer) {
-                gridContainer.removeEventListener('wheel', closeOverlay);
-            }
+            document.removeEventListener('wheel', handleWheel, { capture: true });
         };
     }, [editorScrollBehavior, isEditorOpen]);
 
