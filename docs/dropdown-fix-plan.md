@@ -105,10 +105,67 @@ No new dependencies needed - uses existing:
 - `@glideapps/glide-data-grid` exports: `getMiddleCenterBias`, `useTheme`, `GridCellKind`, `measureTextCached`, `roundedRect`, `getLuminance`
 
 ## Test Scenarios
-- [ ] Dropdown cell at top of viewport - menu opens below
-- [ ] Dropdown cell at bottom of viewport - menu flips above (no scroll!)
-- [ ] Multiselect cell at bottom - menu flips above (no scroll!)
-- [ ] Page with existing scroll position - no unexpected scroll
-- [ ] Click outside to close editor
-- [ ] Keyboard navigation (Enter, Escape, Tab)
-- [ ] Readonly cells remain uneditable
+- [x] Dropdown cell at top of viewport - menu opens below
+- [x] Dropdown cell at bottom of viewport - menu flips above (no scroll!)
+- [x] Multiselect cell at bottom - menu flips above (no scroll!)
+- [x] Page with existing scroll position - no unexpected scroll
+- [x] Click outside to close editor
+- [x] Keyboard navigation (Enter, Escape, Tab)
+- [x] Readonly cells remain uneditable
+
+---
+
+# Phase 2: `editorScrollBehavior` Prop (Planned)
+
+## Problem Statement
+When editing ANY cell (not just dropdowns), scrolling causes the editor overlay to stay at its original position instead of following the cell. This is an intentional design decision by Glide (Issue #583).
+
+## Proposed Solution
+Add an `editorScrollBehavior` prop to opt into alternative behaviors:
+
+```python
+editorScrollBehavior = 'default' | 'close-on-scroll' | 'lock-scroll'
+```
+
+| Value | Behavior |
+|-------|----------|
+| `'default'` | Current behavior - editor stays at original position during scroll |
+| `'close-on-scroll'` | Close editor when page or grid scrolls |
+| `'lock-scroll'` | Prevent all scrolling while editor is open |
+
+## Implementation
+
+### State Tracking
+```javascript
+const [isEditorOpen, setIsEditorOpen] = useState(false);
+```
+
+### Editor Open Detection
+Use existing `onCellActivated` callback to set `isEditorOpen = true`
+
+### Editor Close Detection
+- `onCellEdited` callback → `isEditorOpen = false`
+- MutationObserver on portal to detect editor removal (for Escape/click-outside)
+
+### "close-on-scroll"
+```javascript
+// Simulate Escape key to close editor
+const portal = document.getElementById('portal');
+portal?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+```
+
+### "lock-scroll"
+```javascript
+// Lock: body position fixed with negative top offset
+document.body.style.position = 'fixed';
+document.body.style.top = `-${window.scrollY}px`;
+
+// Unlock: restore position and scroll
+document.body.style.position = '';
+window.scrollTo(0, savedScrollY);
+```
+
+## Files to Modify
+- `src/lib/fragments/GlideGrid.react.js` - Add prop, state, effects
+- `src/lib/components/GlideGrid.react.js` - Add PropTypes
+- `dash_glide_grid/GlideGrid.py` - Add Python prop definition
