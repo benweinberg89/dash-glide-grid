@@ -839,44 +839,56 @@ const GlideGrid = (props) => {
     useEffect(() => {
         if (editorScrollBehavior !== 'close-overlay-on-scroll' || !isEditorOpen) return;
 
+        // Block scrolling at CSS level while editor is open
+        const originalOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+
         const closeOverlay = () => {
             const portal = document.getElementById('portal');
+            const escapeEvent = new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                which: 27,
+                bubbles: true,
+                cancelable: true
+            });
+
             if (portal) {
-                // Find any input in the portal (works for all cell types)
+                // 1. Dispatch to input (closes react-select dropdown)
                 const input = portal.querySelector('input, textarea, [contenteditable]');
                 if (input) {
-                    // Dispatch Escape to close the overlay
-                    const escapeEvent = new KeyboardEvent('keydown', {
-                        key: 'Escape',
-                        code: 'Escape',
-                        keyCode: 27,
-                        which: 27,
-                        bubbles: true,
-                        cancelable: true
-                    });
                     input.dispatchEvent(escapeEvent);
+                }
+
+                // 2. Dispatch to overlay container
+                if (portal.firstElementChild) {
+                    portal.firstElementChild.dispatchEvent(escapeEvent);
                 }
             }
 
-            setIsEditorOpen(false);
-        };
+            // 3. Dispatch to document
+            document.dispatchEvent(escapeEvent);
 
-        // Wheel listener with capture phase to catch events before page scrolls
-        const handleWheel = (e) => {
-            const portal = document.getElementById('portal');
-            if (portal && portal.contains(e.target)) {
-                e.preventDefault();
-                e.stopPropagation();
-                closeOverlay();
+            // 4. Focus the grid to trigger blur on editor
+            if (gridRef.current) {
+                gridRef.current.focus();
             }
+
+            // MutationObserver will detect when overlay closes and update isEditorOpen
         };
 
-        // Listen to page scroll
+        const handleWheel = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeOverlay();
+        };
+
         window.addEventListener('scroll', closeOverlay, true);
-        // Listen to wheel events with capture phase, non-passive to allow preventDefault
         document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
 
         return () => {
+            document.documentElement.style.overflow = originalOverflow;
             window.removeEventListener('scroll', closeOverlay, true);
             document.removeEventListener('wheel', handleWheel, { capture: true });
         };
