@@ -876,8 +876,13 @@ const GlideGrid = (props) => {
                 y: window.scrollY
             };
 
-            // Create wheel handler to prevent scroll
+            // Create wheel handler to prevent scroll (but allow dropdown menu scrolling)
             wheelHandlerRef.current = (e) => {
+                const portal = document.getElementById('portal');
+                if (portal && portal.contains(e.target)) {
+                    // Allow scrolling within dropdown menus
+                    return;
+                }
                 e.preventDefault();
                 e.stopPropagation();
             };
