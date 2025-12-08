@@ -737,107 +737,15 @@ const GlideGrid = (props) => {
                 portalDiv.style.zIndex = '9999';
                 // Add CSS to allow pointer events on children (overlay editors)
                 const style = document.createElement('style');
-                style.textContent = '#portal > * { pointer-events: auto; }';
+                style.textContent = `
+                    #portal > * { pointer-events: auto; }
+                `;
                 document.head.appendChild(style);
 
                 // Append to body per Glide requirements
                 document.body.appendChild(portalDiv);
             }
         }
-    }, []);
-
-    // Update dropdown positions when scrolling to keep them aligned with their cells
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        let scrollRAF = null;
-        let lastScrollTime = 0;
-
-        // Store initial positions of dropdowns when they open
-        const dropdownPositions = new WeakMap();
-
-        const updateDropdownPositions = () => {
-            const portalDiv = document.getElementById('portal');
-            if (!portalDiv) return;
-
-            const allPortalChildren = Array.from(portalDiv.children);
-
-            // Find the main overlay editor (first child)
-            const overlayEditor = allPortalChildren[0];
-            if (!overlayEditor) return;
-
-            // Get the inner gdg-overlay element which has targetx/targety attributes
-            const innerOverlay = overlayEditor.querySelector('[id^="gdg-overlay"]');
-            if (!innerOverlay) return;
-
-            // Read the target position from attributes (updated by Glide during scroll)
-            const targetX = parseFloat(innerOverlay.getAttribute('targetx')) || 0;
-            const targetY = parseFloat(innerOverlay.getAttribute('targety')) || 0;
-
-            // Look for dropdown elements - they are siblings of the overlay editor
-            const dropdownContainers = allPortalChildren.filter((el, index) => index !== 0);
-
-            dropdownContainers.forEach((dropdown) => {
-                // Calculate correct offset for new dropdowns
-                if (!dropdownPositions.has(dropdown)) {
-                    // Get the overlay's dimensions to position dropdown below it
-                    const overlayRect = overlayEditor.getBoundingClientRect();
-
-                    // Position dropdown directly below overlay with a gap
-                    // Add spacing to prevent overlap
-                    dropdownPositions.set(dropdown, {
-                        offsetX: 0,
-                        offsetY: overlayRect.height + 35
-                    });
-                }
-
-                // Apply the stored offset to position the dropdown
-                const storedOffset = dropdownPositions.get(dropdown);
-                if (storedOffset && dropdown instanceof HTMLElement) {
-                    dropdown.style.position = 'fixed';
-                    dropdown.style.left = (targetX + storedOffset.offsetX) + 'px';
-                    dropdown.style.top = (targetY + storedOffset.offsetY) + 'px';
-                }
-            });
-        };
-
-        const handleWheel = () => {
-            lastScrollTime = Date.now();
-
-            if (scrollRAF) cancelAnimationFrame(scrollRAF);
-
-            scrollRAF = requestAnimationFrame(() => {
-                updateDropdownPositions();
-
-                // Continue updating for a short period after scroll stops
-                const checkAndUpdate = () => {
-                    if (Date.now() - lastScrollTime < 100) {
-                        updateDropdownPositions();
-                        requestAnimationFrame(checkAndUpdate);
-                    }
-                };
-                checkAndUpdate();
-            });
-        };
-
-        // Set up a mutation observer to detect when dropdowns are added
-        const observer = new MutationObserver(() => {
-            updateDropdownPositions();
-        });
-
-        const portalDiv = document.getElementById('portal');
-        if (portalDiv) {
-            observer.observe(portalDiv, { childList: true, subtree: true });
-        }
-
-        container.addEventListener('wheel', handleWheel, { passive: true });
-
-        return () => {
-            if (scrollRAF) cancelAnimationFrame(scrollRAF);
-            container.removeEventListener('wheel', handleWheel);
-            observer.disconnect();
-        };
     }, []);
 
     // Transform columns to Glide format (including sort indicators)
