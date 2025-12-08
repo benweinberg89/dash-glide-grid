@@ -786,30 +786,25 @@ const GlideGrid = (props) => {
         return () => observer.disconnect();
     }, [isEditorOpen]);
 
-    // "close-dropdown-on-scroll" behavior: close just the dropdown menu on scroll
+    // "close-dropdown-on-scroll" behavior: close just the dropdown menu on scroll (not the overlay)
     useEffect(() => {
         if (editorScrollBehavior !== 'close-dropdown-on-scroll' || !isEditorOpen) return;
 
         const closeDropdown = () => {
-            // Find the react-select input inside the portal and dispatch Escape to it
+            // Find any open react-select menu and close it by simulating a click on the overlay
+            // This closes the menu but keeps the text input overlay open
             const portal = document.getElementById('portal');
             if (portal) {
-                // Find react-select menu and close it by clicking outside
-                const menuPortal = document.querySelector('[class*="menu"]');
-                if (menuPortal) {
-                    // Find the react-select input and blur/dispatch escape to it
-                    const selectInput = portal.querySelector('input[class*="select"], input[id*="react-select"]');
-                    if (selectInput) {
-                        const escapeEvent = new KeyboardEvent('keydown', {
-                            key: 'Escape',
-                            code: 'Escape',
-                            keyCode: 27,
-                            which: 27,
-                            bubbles: true,
-                            cancelable: true
-                        });
-                        selectInput.dispatchEvent(escapeEvent);
-                    }
+                // Look for the overlay container (the wrapper around the editor)
+                const overlayContainer = portal.querySelector('[class*="overlay-editor"], [class*="gdg-"]');
+                if (overlayContainer) {
+                    // Simulate a click on the overlay container (outside the menu)
+                    const clickEvent = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    overlayContainer.dispatchEvent(clickEvent);
                 }
             }
         };
@@ -836,18 +831,22 @@ const GlideGrid = (props) => {
         if (editorScrollBehavior !== 'close-overlay-on-scroll' || !isEditorOpen) return;
 
         const closeOverlay = () => {
-            // Simulate a click on the canvas to trigger "click outside" behavior
-            const canvas = document.querySelector('[data-testid="data-grid-canvas"]');
-            if (canvas) {
-                // Create and dispatch a mousedown event (Glide uses mousedown, not click)
-                const mouseDownEvent = new MouseEvent('mousedown', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window,
-                    clientX: canvas.getBoundingClientRect().left + 10,
-                    clientY: canvas.getBoundingClientRect().top + 10
-                });
-                canvas.dispatchEvent(mouseDownEvent);
+            const portal = document.getElementById('portal');
+            if (portal) {
+                // Find any input in the portal (works for all cell types)
+                const input = portal.querySelector('input, textarea, [contenteditable]');
+                if (input) {
+                    // Dispatch Escape to close the overlay
+                    const escapeEvent = new KeyboardEvent('keydown', {
+                        key: 'Escape',
+                        code: 'Escape',
+                        keyCode: 27,
+                        which: 27,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    input.dispatchEvent(escapeEvent);
+                }
             }
 
             setIsEditorOpen(false);
