@@ -281,22 +281,22 @@ JuliaManifest.toml
 
 # Dash component build artifacts (webpack bundles)
 # These are auto-generated and should be rebuilt before publishing
-*.min.js
-*.min.js.map
-async-*.js
-async-*.js.map
+# *.min.js
+# *.min.js.map
+# async-*.js
+# async-*.js.map
 
 # Generated Dash component directories
 # Uncomment these lines if you want to exclude generated Python/R/Julia bindings during development
 # Note: You'll need to build these before publishing to PyPI
-dash_glide_grid/*.js
-dash_glide_grid/*.js.map
-!dash_glide_grid/__init__.py
-!dash_glide_grid/_imports_.py
-!dash_glide_grid/GlideGrid.py
-!dash_glide_grid/metadata.json
-!dash_glide_grid/package-info.json
-deps/*.js
-deps/*.js.map
-inst/deps/*.js
-inst/deps/*.js.map
+# dash_glide_grid/*.js
+# dash_glide_grid/*.js.map
+# !dash_glide_grid/__init__.py
+# !dash_glide_grid/_imports_.py
+# !dash_glide_grid/GlideGrid.py
+# !dash_glide_grid/metadata.json
+# !dash_glide_grid/package-info.json
+# deps/*.js
+# deps/*.js.map
+# inst/deps/*.js
+# inst/deps/*.js.map
