@@ -281,10 +281,10 @@ JuliaManifest.toml
 
 # Dash component build artifacts (webpack bundles)
 # These are auto-generated and should be rebuilt before publishing
-# *.min.js
-# *.min.js.map
-# async-*.js
-# async-*.js.map
+*.min.js
+*.min.js.map
+async-*.js
+async-*.js.map
 
 # Generated Dash component directories
 # Uncomment these lines if you want to exclude generated Python/R/Julia bindings during development

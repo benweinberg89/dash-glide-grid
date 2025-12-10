@@ -60,7 +60,7 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 - **Validation** - Client-side cell validation with visual feedback
 - **Search** - Built-in search
 
-## Installation (Not available on PyPI yet)
+## Installation
 
 ```bash
 pip install dash-glide-grid
