@@ -38,6 +38,7 @@ Then open http://localhost:8050 in your browser.
 | 22 | [persistent_editable_grid.py](22_persistent_editable_grid.py) | Persist edits with session storage |
 | 32 | [edit_on_type.py](32_edit_on_type.py) | Start editing by typing |
 | 37 | [undo_redo.py](37_undo_redo.py) | Undo/redo support (Cmd+Z, Cmd+Shift+Z) |
+| 39 | [copy_paste.py](39_copy_paste.py) | Copy/paste cells, including from Excel |
 
 ### Layout & Structure
 

@@ -199,31 +199,36 @@ dggfuncs.validateByColumn = function(cell, newValue) {
 // ============================================================
 
 /**
- * Parse pasted values with smart type detection
+ * Parse pasted values with smart type detection based on TARGET cell type
  */
 dggfuncs.smartPaste = function(val, cell) {
     const trimmed = val.trim().toLowerCase();
 
-    // Boolean detection
-    if (cell.kind === 'boolean' || trimmed === 'true' || trimmed === 'false' ||
-        trimmed === 'yes' || trimmed === 'no' || trimmed === '1' || trimmed === '0') {
-        const isTrue = trimmed === 'true' || trimmed === 'yes' || trimmed === '1';
-        return {
-            kind: 'boolean',
-            data: isTrue,
-            allowOverlay: true
-        };
+    // Boolean coercion - only when pasting INTO a boolean cell
+    if (cell.kind === 'boolean') {
+        if (trimmed === 'true' || trimmed === 'yes' || trimmed === '1') {
+            return { kind: 'boolean', data: true, allowOverlay: true };
+        }
+        if (trimmed === 'false' || trimmed === 'no' || trimmed === '0') {
+            return { kind: 'boolean', data: false, allowOverlay: true };
+        }
+        // Keep original cell if not a valid boolean string
+        return cell;
     }
 
-    // Number detection
-    const num = parseFloat(val);
-    if (!isNaN(num) && cell.kind === 'number') {
-        return {
-            kind: 'number',
-            data: num,
-            displayData: num.toString(),
-            allowOverlay: true
-        };
+    // Number coercion - only when pasting INTO a number cell
+    if (cell.kind === 'number') {
+        const num = parseFloat(val);
+        if (!isNaN(num)) {
+            return {
+                kind: 'number',
+                data: num,
+                displayData: num.toString(),
+                allowOverlay: true
+            };
+        }
+        // Keep original cell if not a valid number
+        return cell;
     }
 
     // Default: return undefined to use default parsing
