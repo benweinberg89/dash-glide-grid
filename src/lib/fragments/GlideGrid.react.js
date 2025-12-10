@@ -2006,6 +2006,15 @@ const GlideGrid = (props) => {
 
     // Handle column moved (drag reorder)
     const handleColumnMoved = useCallback((startIndex, endIndex) => {
+        // Optimistic update: reorder local columns immediately to prevent jitter
+        setLocalColumns(prevColumns => {
+            const newColumns = [...prevColumns];
+            const [moved] = newColumns.splice(startIndex, 1);
+            newColumns.splice(endIndex, 0, moved);
+            return newColumns;
+        });
+
+        // Notify Dash
         if (setProps) {
             setProps({
                 columnMoved: {
@@ -2019,6 +2028,15 @@ const GlideGrid = (props) => {
 
     // Handle row moved (drag reorder)
     const handleRowMoved = useCallback((startIndex, endIndex) => {
+        // Optimistic update: reorder local data immediately to prevent jitter
+        setLocalData(prevData => {
+            const newData = [...prevData];
+            const [moved] = newData.splice(startIndex, 1);
+            newData.splice(endIndex, 0, moved);
+            return newData;
+        });
+
+        // Notify Dash
         if (setProps) {
             setProps({
                 rowMoved: {
