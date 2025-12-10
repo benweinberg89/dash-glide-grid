@@ -5,6 +5,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Dash 3.3+](https://img.shields.io/badge/dash-3.3+-blue.svg)](https://dash.plotly.com/)
 
+> **Note:** This project is under active development and not yet recommended for production use. Expect breaking changes until v1.0 is released.
+
 A high-performance, fully-featured data grid component for [Plotly Dash](https://dash.plotly.com/), powered by [Glide Data Grid](https://github.com/glideapps/glide-data-grid).
 
 📖 **[Documentation & Interactive Examples](https://dgg-docs.onrender.com/)**
@@ -19,7 +21,7 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 | **License** | MIT | MIT | MIT | Commercial |
 | **Cost** | Free | Free | Free | \$999/developer + \$750/deployment |
 | **Rendering** | Canvas | DOM | DOM | DOM |
-| **Large Data** | 1M cells+ | Good | Good | Good |
+| **Large Data** | 1M+ cells | Good | Good | Good |
 | **Cell Types** | 11 built-in | 3 (text, number, dropdown) | 7 editors | Many |
 | **Fill Handle** | ✅ | ❌ | ❌ | ✅ |
 | **Copy/Paste** | ✅ | ✅ | Limited | ✅ |
@@ -41,13 +43,13 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 - Excel-like editing (fill handle, copy/paste, range selection)
 - Blazing-fast canvas rendering for large datasets (1M+ cells)
 - Rich cell types (markdown, images, multi-select) in a free, MIT-licensed package
-- A modern alternative to the deprecated DataTable
+- A modern alternative to the deprecated Dash DataTable
 
 ## Features
 
 - **High Performance** - Canvas-based rendering handles millions of rows smoothly
 - **Rich Cell Types** - Text, numbers, booleans, markdown, URIs, images, dropdowns, multi-select bubbles, and more
-- **Excel-like Editing** - Fill handle, copy/paste, undo/redo (Cmd+Z / Ctrl+Z)
+- **Excel-like Editing** - Fill handle, copy/paste, undo/redo
 - **Flexible Selection** - Cell, row, column, and range selection modes
 - **Sorting & Filtering** - Built-in column sorting and header filter menus
 - **Theming** - Full theme customization at grid, row, column, and cell level
@@ -56,7 +58,7 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 - **Row/Column Reordering** - Drag-and-drop reordering
 - **Frozen Rows** - Pin rows to the top or bottom
 - **Validation** - Client-side cell validation with visual feedback
-- **Search** - Built-in search (Ctrl+F / Cmd+F)
+- **Search** - Built-in search
 
 ## Installation
 
@@ -126,11 +128,14 @@ data = df.to_dict('records')
 | `columns` | Column definitions with `title`, `id`, `width`, `type`, etc. |
 | `data` | List of row dicts |
 | `height` | Grid height in pixels |
+| `readonly` | Make the entire grid read-only |
 | `theme` | Custom theme object |
 | `fillHandle` | Enable Excel-like fill handle |
+| `copyPaste` | Enable copy/paste support |
 | `rowSelect` | Row selection: `'none'`, `'single'`, `'multi'` |
+| `columnSelect` | Column selection: `'none'`, `'single'`, `'multi'` |
 | `sortable` | Enable column sorting |
-| `showSearch` | Show search box (Ctrl/Cmd+F) |
+| `showSearch` | Show search box |
 | `enableUndoRedo` | Enable undo/redo support |
 | `freezeTrailingRows` | Number of rows to freeze at bottom |
 | `columnGroups` | Group columns under headers |
