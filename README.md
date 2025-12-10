@@ -60,7 +60,7 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 - **Validation** - Client-side cell validation with visual feedback
 - **Search** - Built-in search
 
-## Installation
+## Installation (Not available on PyPI yet)
 
 ```bash
 pip install dash-glide-grid
@@ -156,7 +156,7 @@ uv run examples/01_basic_grid.py
 
 Then open http://localhost:8050 in your browser.
 
-**Highlights:**
+**Highlights**
 - [01_basic_grid.py](examples/01_basic_grid.py) - Simple read-only grid
 - [02_editable_grid.py](examples/02_editable_grid.py) - Cell editing with callbacks
 - [04_large_dataset.py](examples/04_large_dataset.py) - Performance with 10,000+ rows
