@@ -4,6 +4,11 @@ Example 18: Highlight Regions
 Demonstrates the highlightRegions prop for highlighting specific cell ranges.
 Use cases include conditional formatting, search highlights, and validation errors.
 
+Features:
+- Basic highlight regions with colors
+- Border style options: "dashed" (default), "solid", "solid-outline", "no-outline"
+- Dynamic highlighting based on user interaction
+
 Run with: python examples/18_highlight_regions.py
 """
 
@@ -133,6 +138,64 @@ app.layout = html.Div(
             data=data,
             height=400,
             highlightRegions=highlight_regions,
+            rowMarkers="number",
+        ),
+        html.Hr(),
+        html.H2("Border Styles Demo"),
+        html.P(
+            "Highlight regions support different border styles. Compare the four available styles:"
+        ),
+        html.Div(
+            [
+                html.Div([
+                    html.Strong("dashed (default)"),
+                    html.Span(" - Dashed border outline", style={"color": "#666"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Strong("solid"),
+                    html.Span(" - Solid border outline", style={"color": "#666"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Strong("solid-outline"),
+                    html.Span(" - Thicker solid outline with background fill", style={"color": "#666"}),
+                ], style={"marginBottom": "5px"}),
+                html.Div([
+                    html.Strong("no-outline"),
+                    html.Span(" - Background fill only, no border", style={"color": "#666"}),
+                ], style={"marginBottom": "15px"}),
+            ]
+        ),
+        GlideGrid(
+            id="grid-styles",
+            columns=columns,
+            data=data,
+            height=400,
+            highlightRegions=[
+                # Row 0-1: dashed style (default)
+                {
+                    "color": "rgba(59, 130, 246, 0.3)",
+                    "range": {"x": 1, "y": 0, "width": 2, "height": 2},
+                    "style": "dashed",
+                },
+                # Row 0-1: solid style
+                {
+                    "color": "rgba(34, 197, 94, 0.3)",
+                    "range": {"x": 3, "y": 0, "width": 2, "height": 2},
+                    "style": "solid",
+                },
+                # Row 3-4: solid-outline style
+                {
+                    "color": "rgba(239, 68, 68, 0.3)",
+                    "range": {"x": 1, "y": 3, "width": 2, "height": 2},
+                    "style": "solid-outline",
+                },
+                # Row 3-4: no-outline style
+                {
+                    "color": "rgba(147, 51, 234, 0.3)",
+                    "range": {"x": 3, "y": 3, "width": 2, "height": 2},
+                    "style": "no-outline",
+                },
+            ],
             rowMarkers="number",
         ),
         html.Hr(),

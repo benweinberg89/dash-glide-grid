@@ -508,4 +508,108 @@ dggfuncs.formatWithUnits = function(value) {
     return `${value.toFixed(1)} kg`;
 };
 
+// ============================================================
+// CUSTOM DRAW CELL FUNCTIONS
+// ============================================================
+
+/**
+ * Draw an animated progress bar in cells
+ * Used with redrawTrigger for smooth animations
+ * Usage: drawCell={"function": "drawAnimatedProgress(args, cell, row, col, counter)"}
+ */
+dggfuncs.drawAnimatedProgress = function(args, cell, row, col, counter) {
+    // Only draw for the "progress" column (col 1) with number values
+    if (col !== 1 || cell.kind !== 'number') {
+        return false;  // Let default rendering handle it
+    }
+
+    const { ctx, rect, theme } = args;
+    const progress = cell.data;
+
+    // Clear the cell background
+    ctx.fillStyle = theme.bgCell || '#ffffff';
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+    // Calculate progress bar dimensions
+    const padding = 8;
+    const barHeight = 16;
+    const barX = rect.x + padding;
+    const barY = rect.y + (rect.height - barHeight) / 2;
+    const barWidth = rect.width - padding * 2;
+
+    // Draw background track
+    ctx.fillStyle = '#e5e7eb';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 4);
+    ctx.fill();
+
+    // Calculate fill width with subtle animation
+    const baseWidth = (progress / 100) * barWidth;
+    // Add a subtle pulse effect using the counter
+    const pulse = Math.sin(counter * 0.1) * 2;
+    const fillWidth = Math.max(0, Math.min(baseWidth + (progress < 100 ? pulse : 0), barWidth));
+
+    // Choose color based on progress
+    let barColor;
+    if (progress >= 100) {
+        barColor = '#10b981';  // Green for complete
+    } else if (progress >= 50) {
+        barColor = '#3b82f6';  // Blue for in progress
+    } else if (progress >= 20) {
+        barColor = '#f59e0b';  // Orange for started
+    } else {
+        barColor = '#ef4444';  // Red for just started
+    }
+
+    // Draw the progress fill
+    if (fillWidth > 0) {
+        ctx.fillStyle = barColor;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, fillWidth, barHeight, 4);
+        ctx.fill();
+    }
+
+    // Draw percentage text
+    ctx.fillStyle = progress >= 50 ? '#ffffff' : theme.textDark || '#333333';
+    ctx.font = `bold 11px ${theme.fontFamily || 'sans-serif'}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const textX = barX + barWidth / 2;
+    const textY = barY + barHeight / 2;
+    ctx.fillText(`${progress}%`, textX, textY);
+
+    return true;  // We handled the drawing
+};
+
+/**
+ * Draw a cell with a pulsing background (for alerts/notifications)
+ * Usage: drawCell={"function": "drawPulsingCell(args, cell, row, col, counter)"}
+ */
+dggfuncs.drawPulsingCell = function(args, cell, row, col, counter) {
+    const { ctx, rect, theme } = args;
+
+    // Calculate pulse intensity (0 to 1)
+    const pulseIntensity = (Math.sin(counter * 0.15) + 1) / 2;
+
+    // Draw pulsing background
+    const r = 255;
+    const g = Math.floor(200 - pulseIntensity * 100);
+    const b = Math.floor(200 - pulseIntensity * 100);
+    const alpha = 0.3 + pulseIntensity * 0.3;
+
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+    // Draw the text
+    const displayValue = cell.displayData || cell.data || '';
+    ctx.fillStyle = theme.textDark || '#333333';
+    ctx.font = theme.baseFontStyle || '13px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(displayValue.toString(), rect.x + 8, rect.y + rect.height / 2);
+
+    return true;
+};
+
 console.log('[dashGlideGridFunctions] Loaded successfully. Available functions:', Object.keys(dggfuncs));
