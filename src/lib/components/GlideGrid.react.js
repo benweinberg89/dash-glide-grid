@@ -65,7 +65,8 @@ GlideGrid.defaultProps = {
     maxUndoSteps: 50,
     canUndo: false,
     canRedo: false,
-    editorScrollBehavior: 'default'
+    editorScrollBehavior: 'default',
+    redrawTrigger: null
 };
 
 GlideGrid.propTypes = {
@@ -737,6 +738,7 @@ GlideGrid.propTypes = {
      *
      * - color: CSS color string (use rgba for transparency to allow overlapping regions to blend)
      * - range: Rectangle defining the region (x=start column, y=start row, width=columns, height=rows)
+     * - style: Border style - "dashed" (default), "solid", "solid-outline", or "no-outline"
      */
     highlightRegions: PropTypes.arrayOf(PropTypes.shape({
         color: PropTypes.string.isRequired,
@@ -745,7 +747,8 @@ GlideGrid.propTypes = {
             y: PropTypes.number.isRequired,
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired
-        }).isRequired
+        }).isRequired,
+        style: PropTypes.oneOf(["dashed", "solid", "solid-outline", "no-outline"])
     })),
 
     // ========== TRAILING ROW (ADD ROW) ==========
@@ -805,6 +808,13 @@ GlideGrid.propTypes = {
         hAlign: PropTypes.oneOf(['start', 'center', 'end']),
         vAlign: PropTypes.oneOf(['start', 'center', 'end'])
     }),
+
+    /**
+     * Trigger a grid redraw. Change this value (e.g., increment a counter or use timestamp)
+     * to force the grid to re-render. Useful for custom drawCell functions that need
+     * periodic updates (animations, hover effects, etc.)
+     */
+    redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
      * Initial horizontal scroll offset in pixels. Applied on mount.

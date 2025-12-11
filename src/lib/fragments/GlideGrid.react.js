@@ -300,6 +300,7 @@ const GlideGrid = (props) => {
         maxUndoSteps,
         undoRedoAction,
         editorScrollBehavior,
+        redrawTrigger,
         setProps
     } = props;
 
@@ -740,6 +741,15 @@ const GlideGrid = (props) => {
             options
         );
     }, [scrollToCell]);
+
+    // Handle programmatic redraw via redrawTrigger prop
+    useEffect(() => {
+        if (redrawTrigger === undefined || redrawTrigger === null) return;
+
+        // Force full canvas redraw by dispatching resize event
+        // This is more reliable than updateCells([]) which is a no-op with empty array
+        window.dispatchEvent(new Event('resize'));
+    }, [redrawTrigger]);
 
     // Create portal div for Glide Data Grid overlay editor
     useEffect(() => {
@@ -3197,6 +3207,13 @@ GlideGrid.propTypes = {
         hAlign: PropTypes.oneOf(['start', 'center', 'end']),
         vAlign: PropTypes.oneOf(['start', 'center', 'end'])
     }),
+
+    /**
+     * Trigger a grid redraw. Change this value (e.g., increment a counter or use timestamp)
+     * to force the grid to re-render. Useful for custom drawCell functions that need
+     * periodic updates (animations, hover effects, etc.)
+     */
+    redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
      * Initial horizontal scroll offset in pixels.
