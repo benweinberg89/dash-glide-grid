@@ -301,6 +301,7 @@ const GlideGrid = (props) => {
         undoRedoAction,
         editorScrollBehavior,
         redrawTrigger,
+        cellsToUpdate,
         setProps
     } = props;
 
@@ -750,6 +751,12 @@ const GlideGrid = (props) => {
         // This is more reliable than updateCells([]) which is a no-op with empty array
         window.dispatchEvent(new Event('resize'));
     }, [redrawTrigger]);
+
+    // Handle selective cell update via cellsToUpdate prop
+    useEffect(() => {
+        if (!cellsToUpdate || cellsToUpdate.length === 0 || !gridRef.current) return;
+        gridRef.current.updateCells(cellsToUpdate.map(c => ({ cell: c })));
+    }, [cellsToUpdate]);
 
     // Create portal div for Glide Data Grid overlay editor
     useEffect(() => {
@@ -3214,6 +3221,14 @@ GlideGrid.propTypes = {
      * periodic updates (animations, hover effects, etc.)
      */
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+    /**
+     * Array of cell coordinates to update. Each item is a [col, row] tuple.
+     * When this prop changes, only the specified cells are redrawn (much more
+     * efficient than redrawTrigger which redraws the entire canvas).
+     * Example: [[0, 5], [1, 5], [2, 5]]
+     */
+    cellsToUpdate: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
 
     /**
      * Initial horizontal scroll offset in pixels.
