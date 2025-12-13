@@ -300,3 +300,6 @@ JuliaManifest.toml
 # deps/*.js.map
 # inst/deps/*.js
 # inst/deps/*.js.map
+
+# Local dev scripts
+run-example.sh
