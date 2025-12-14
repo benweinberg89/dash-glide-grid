@@ -23,7 +23,7 @@ data = [{f"col_{j}": "" for j in range(NUM_COLS)} for _ in range(NUM_ROWS)]
 
 app.layout = html.Div(
     [
-        html.H1("cellsToUpdate vs redrawTrigger"),
+        html.H1("Selective vs Full Redraw Performance"),
         html.Div(
             [
                 html.P(
@@ -56,11 +56,11 @@ app.layout = html.Div(
                             id="update-method",
                             options=[
                                 {
-                                    "label": " cellsToUpdate (selective)",
+                                    "label": " Selective (only changed cells)",
                                     "value": "selective",
                                 },
                                 {
-                                    "label": " redrawTrigger (full canvas)",
+                                    "label": " Full (all cells)",
                                     "value": "full",
                                 },
                             ],
@@ -184,15 +184,15 @@ app.layout = html.Div(
                 html.Div(
                     [
                         html.H3(
-                            "redrawTrigger (React)",
+                            "Full Redraw (direct)",
                             style={"color": "#f59e0b", "marginTop": "0"},
                         ),
                         html.Ul(
                             [
-                                html.Li("Goes through React setProps"),
-                                html.Li(f"Redraws all {NUM_ROWS * NUM_COLS:,} cells"),
-                                html.Li("~10fps regardless of pulse count"),
-                                html.Li("Use for infrequent full refreshes"),
+                                html.Li("Also calls gridRef.updateCells() directly"),
+                                html.Li(f"But redraws ALL {NUM_ROWS * NUM_COLS:,} cells"),
+                                html.Li("~30-60fps (limited by cell count)"),
+                                html.Li("Use when many cells change at once"),
                             ],
                             style={"marginBottom": "0"},
                         ),
@@ -375,14 +375,22 @@ clientside_callback(
             window._renderTime = now;
 
             // No throttling - run at full RAF speed to demonstrate true performance
-            if (activeCells.length > 0) {
+            if (activeCells.length > 0 && gridRef) {
                 animState.fpsFrameCount++;  // Count actual redraws
-                if (animState.method === "selective" && gridRef) {
-                    // Direct call to updateCells - bypasses React entirely!
+                if (animState.method === "selective") {
+                    // Selective: only redraw changed cells
                     gridRef.updateCells(activeCells.map(c => ({ cell: c })));
                 } else {
-                    // Full redraw via React (will be slower)
-                    setProps({ redrawTrigger: animState.frameCount });
+                    // Full: redraw ALL cells (still bypasses React for fair comparison)
+                    if (!window._allCells) {
+                        window._allCells = [];
+                        for (let row = 0; row < numRows; row++) {
+                            for (let col = 0; col < numCols; col++) {
+                                window._allCells.push({ cell: [col, row] });
+                            }
+                        }
+                    }
+                    gridRef.updateCells(window._allCells);
                 }
             }
 
