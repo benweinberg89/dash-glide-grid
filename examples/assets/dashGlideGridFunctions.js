@@ -8,42 +8,39 @@ var dggfuncs = window.dashGlideGridFunctions = window.dashGlideGridFunctions || 
 // Track pulsing cells: { "col,row": { startTime, duration } }
 window.pulsingCells = window.pulsingCells || {};
 
-// Animation duration in ms
-var PULSE_DURATION = 800;
+// Cached render time - set ONCE per frame before setProps, used by all cells
+window._renderTime = 0;
 
 /**
- * Custom drawCell function that renders a pulse/glow effect on clicked cells.
- * The pulse state is tracked in window.pulsingCells.
+ * Custom drawCell function that renders a pulse/glow effect on cells.
+ * Uses window._renderTime (cached once per frame) instead of Date.now() per cell.
  */
 dggfuncs.drawPulsingCell = function(ctx, cell, theme, rect, col, row, hoverAmount, highlighted, cellData, rowData, drawContent) {
     var key = col + "," + row;
     var pulse = window.pulsingCells[key];
 
     if (pulse) {
-        var now = Date.now();
+        // Use cached time (set once per frame in animation loop)
+        var now = window._renderTime;
         var elapsed = now - pulse.startTime;
-        var progress = Math.min(1, elapsed / pulse.duration);
+        var progress = elapsed / pulse.duration;
 
         if (progress >= 1) {
-            // Animation complete - remove from tracking
             delete window.pulsingCells[key];
         } else {
-            // Calculate intensity using sine wave (0 -> 1 -> 0)
-            var intensity = Math.sin(progress * Math.PI);
+            // Simple fade: start bright, fade to dark
+            var intensity = 1 - progress;
+            // Direct color calculation (no string parsing)
+            var r = Math.round(59 + (30 - 59) * progress);  // 59 -> 30
+            var g = Math.round(130 + (41 - 130) * progress); // 130 -> 41
+            var b = Math.round(246 + (59 - 246) * progress); // 246 -> 59
+            var alpha = 0.3 + intensity * 0.7;
 
-            // Draw glowing background
-            var r = 59, g = 130, b = 246; // Blue color
-            ctx.fillStyle = "rgba(" + r + "," + g + "," + b + "," + (intensity * 0.6) + ")";
+            ctx.fillStyle = "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
             ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-
-            // Draw a border glow too
-            ctx.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + (intensity * 0.9) + ")";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
         }
     }
 
-    // Return false to continue with default cell rendering
     return false;
 };
 
@@ -54,8 +51,8 @@ dggfuncs.drawPulsingCell = function(ctx, cell, theme, rect, col, row, hoverAmoun
 window.startCellPulse = function(col, row) {
     var key = col + "," + row;
     window.pulsingCells[key] = {
-        startTime: Date.now(),
-        duration: PULSE_DURATION
+        startTime: performance.now(),
+        duration: 800
     };
 };
 
@@ -65,7 +62,7 @@ window.startCellPulse = function(col, row) {
  */
 window.getAnimatingCells = function() {
     var cells = [];
-    var now = Date.now();
+    var now = performance.now();
 
     for (var key in window.pulsingCells) {
         var pulse = window.pulsingCells[key];

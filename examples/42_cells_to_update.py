@@ -14,11 +14,11 @@ from dash_glide_grid import GlideGrid
 
 app = Dash(__name__, assets_folder="assets")
 
-# Larger grid to show performance difference
-NUM_ROWS = 500
-NUM_COLS = 100
+# Grid size - 100k cells is too many for 120fps, try smaller
+NUM_ROWS = 150
+NUM_COLS = 300
 
-columns = [{"title": "", "width": 12, "id": f"col_{i}"} for i in range(NUM_COLS)]
+columns = [{"title": "", "width": 4, "id": f"col_{i}"} for i in range(NUM_COLS)]
 data = [{f"col_{j}": "" for j in range(NUM_COLS)} for _ in range(NUM_ROWS)]
 
 app.layout = html.Div(
@@ -48,12 +48,21 @@ app.layout = html.Div(
             [
                 html.Div(
                     [
-                        html.Label("Method:", style={"fontWeight": "bold", "marginRight": "10px"}),
+                        html.Label(
+                            "Method:",
+                            style={"fontWeight": "bold", "marginRight": "10px"},
+                        ),
                         dcc.RadioItems(
                             id="update-method",
                             options=[
-                                {"label": " cellsToUpdate (selective)", "value": "selective"},
-                                {"label": " redrawTrigger (full canvas)", "value": "full"},
+                                {
+                                    "label": " cellsToUpdate (selective)",
+                                    "value": "selective",
+                                },
+                                {
+                                    "label": " redrawTrigger (full canvas)",
+                                    "value": "full",
+                                },
                             ],
                             value="selective",
                             inline=True,
@@ -65,7 +74,10 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [
-                        html.Label("New pulses per frame:", style={"fontWeight": "bold", "marginRight": "10px"}),
+                        html.Label(
+                            "New pulses per frame:",
+                            style={"fontWeight": "bold", "marginRight": "10px"},
+                        ),
                         dcc.Slider(
                             id="pulses-per-frame",
                             min=1,
@@ -80,7 +92,12 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [
-                        html.Button("Start", id="start-btn", n_clicks=0, style={"marginRight": "10px"}),
+                        html.Button(
+                            "Start",
+                            id="start-btn",
+                            n_clicks=0,
+                            style={"marginRight": "10px"},
+                        ),
                         html.Button("Stop", id="stop-btn", n_clicks=0),
                     ],
                 ),
@@ -110,7 +127,11 @@ app.layout = html.Div(
                 html.Strong("Method: "),
                 html.Span(id="current-method", children="selective"),
             ],
-            style={"fontFamily": "monospace", "fontSize": "13px", "marginBottom": "15px"},
+            style={
+                "fontFamily": "monospace",
+                "fontSize": "13px",
+                "marginBottom": "15px",
+            },
         ),
         # Hidden div for output (required by Dash)
         html.Div(id="animation-output", style={"display": "none"}),
@@ -120,10 +141,17 @@ app.layout = html.Div(
             data=data,
             height=600,
             rowMarkers="none",
-            rowHeight=12,
+            rowHeight=4,
             headerHeight=0,
-            theme={"bgCell": "#1e293b", "borderColor": "#334155", "textDark": "#64748b"},
-            drawCell={"function": "drawPulsingCell(ctx, cell, theme, rect, col, row, hoverAmount, highlighted, cellData, rowData, drawContent)"},
+            theme={
+                "bgCell": "#1e293b",
+                "borderColor": "#334155",
+                "textDark": "#64748b",
+            },
+            drawCell={
+                "function": "drawPulsingCell(ctx, cell, theme, rect, col, row, hoverAmount, highlighted, cellData, rowData, drawContent)"
+            },
+            experimental={"disableMinimumCellWidth": True},
         ),
         html.Hr(),
         html.H2("Compare the Methods"),
@@ -131,28 +159,80 @@ app.layout = html.Div(
             [
                 html.Div(
                     [
-                        html.H3("cellsToUpdate", style={"color": "#10b981", "marginTop": "0"}),
-                        html.Ul([
-                            html.Li("Redraws ONLY the pulsing cells"),
-                            html.Li("~20-200 cells per frame"),
-                            html.Li("Smooth animations at full refresh rate"),
-                        ], style={"marginBottom": "0"}),
+                        html.H3(
+                            "cellsToUpdate (direct)",
+                            style={"color": "#10b981", "marginTop": "0"},
+                        ),
+                        html.Ul(
+                            [
+                                html.Li("Calls gridRef.updateCells() directly"),
+                                html.Li("Bypasses React entirely"),
+                                html.Li("~120fps with 1-20 pulses/frame"),
+                                html.Li("~60fps even at 100 pulses/frame"),
+                            ],
+                            style={"marginBottom": "0"},
+                        ),
                     ],
-                    style={"flex": "1", "backgroundColor": "#f0fdf4", "padding": "15px", "borderRadius": "8px", "border": "1px solid #10b981"},
+                    style={
+                        "flex": "1",
+                        "backgroundColor": "#f0fdf4",
+                        "padding": "15px",
+                        "borderRadius": "8px",
+                        "border": "1px solid #10b981",
+                    },
                 ),
                 html.Div(
                     [
-                        html.H3("redrawTrigger", style={"color": "#f59e0b", "marginTop": "0"}),
-                        html.Ul([
-                            html.Li(f"Redraws ALL {NUM_ROWS * NUM_COLS:,} cells"),
-                            html.Li(f"{NUM_ROWS * NUM_COLS:,} cells per frame"),
-                            html.Li("May stutter or drop frames"),
-                        ], style={"marginBottom": "0"}),
+                        html.H3(
+                            "redrawTrigger (React)",
+                            style={"color": "#f59e0b", "marginTop": "0"},
+                        ),
+                        html.Ul(
+                            [
+                                html.Li("Goes through React setProps"),
+                                html.Li(f"Redraws all {NUM_ROWS * NUM_COLS:,} cells"),
+                                html.Li("~10fps regardless of pulse count"),
+                                html.Li("Use for infrequent full refreshes"),
+                            ],
+                            style={"marginBottom": "0"},
+                        ),
                     ],
-                    style={"flex": "1", "backgroundColor": "#fffbeb", "padding": "15px", "borderRadius": "8px", "border": "1px solid #f59e0b"},
+                    style={
+                        "flex": "1",
+                        "backgroundColor": "#fffbeb",
+                        "padding": "15px",
+                        "borderRadius": "8px",
+                        "border": "1px solid #f59e0b",
+                    },
                 ),
             ],
             style={"display": "flex", "gap": "15px"},
+        ),
+        html.Div(
+            [
+                html.H3("How it works", style={"marginTop": "20px"}),
+                html.P(
+                    [
+                        "The key to 120fps animations is bypassing React. GlideGrid exposes ",
+                        html.Code("window._glideGridRefs[id]"),
+                        " which gives direct access to the DataEditor's ",
+                        html.Code("updateCells()"),
+                        " method. This avoids React reconciliation overhead entirely.",
+                    ]
+                ),
+                html.Pre(
+                    "// Direct call - 120fps capable\n"
+                    "const gridRef = window._glideGridRefs['grid'];\n"
+                    "gridRef.updateCells([{cell: [col, row]}, ...]);",
+                    style={
+                        "backgroundColor": "#1e293b",
+                        "color": "#e2e8f0",
+                        "padding": "15px",
+                        "borderRadius": "8px",
+                        "overflow": "auto",
+                    },
+                ),
+            ]
         ),
     ],
     style={"padding": "20px", "maxWidth": "1400px", "margin": "0 auto"},
@@ -167,7 +247,8 @@ clientside_callback(
         if (!window._animState) {
             window._animState = {
                 frameCount: 0,
-                lastFpsUpdate: Date.now(),
+                lastFpsUpdate: performance.now(),
+                lastRedrawTime: 0,
                 fpsFrameCount: 0,
                 currentFps: 0,
                 rafId: null,
@@ -179,8 +260,12 @@ clientside_callback(
         }
 
         const animState = window._animState;
-        const numRows = """ + str(NUM_ROWS) + """;
-        const numCols = """ + str(NUM_COLS) + """;
+        const numRows = """
+    + str(NUM_ROWS)
+    + """;
+        const numCols = """
+    + str(NUM_COLS)
+    + """;
         const pulseDuration = 600;
 
         // Update settings
@@ -213,20 +298,18 @@ clientside_callback(
         }
 
         function animate() {
-            const gridEl = document.getElementById('grid');
-            if (!gridEl) {
-                animState.rafId = requestAnimationFrame(animate);
-                return;
-            }
+            // Get direct grid ref (exposed by GlideGrid component for high-perf access)
+            const gridRef = window._glideGridRefs?.['grid'];
 
-            // Find setProps via React fiber
-            let setProps = gridEl._dashprivate_setProps;
-            if (!setProps) {
-                const key = Object.keys(gridEl).find(k => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
+            // Find setProps for redrawTrigger method (fallback)
+            const gridEl = document.getElementById('grid');
+            let setProps = gridEl?._dashprivate_setProps;
+            if (!setProps && gridEl) {
+                const key = Object.keys(gridEl).find(k => k.startsWith('__reactFiber$'));
                 if (key) {
                     let fiber = gridEl[key];
                     while (fiber) {
-                        if (fiber.memoizedProps && fiber.memoizedProps.setProps) {
+                        if (fiber.memoizedProps?.setProps) {
                             setProps = fiber.memoizedProps.setProps;
                             break;
                         }
@@ -234,7 +317,8 @@ clientside_callback(
                     }
                 }
             }
-            if (!setProps) {
+
+            if (!gridRef && !setProps) {
                 animState.rafId = requestAnimationFrame(animate);
                 return;
             }
@@ -244,17 +328,16 @@ clientside_callback(
                 return;
             }
 
-            const now = Date.now();
+            const now = performance.now();
             animState.frameCount++;
-            animState.fpsFrameCount++;
 
-            // Calculate FPS every second
+            // Calculate FPS every second (counts actual redraws, not RAF frames)
             if (now - animState.lastFpsUpdate >= 1000) {
                 animState.currentFps = animState.fpsFrameCount;
                 animState.fpsFrameCount = 0;
                 animState.lastFpsUpdate = now;
 
-                // Update displays
+                // Update displays directly (faster than Dash callbacks)
                 const fpsEl = document.getElementById('fps-display');
                 const methodEl = document.getElementById('current-method');
                 if (fpsEl) fpsEl.textContent = animState.currentFps;
@@ -282,17 +365,23 @@ clientside_callback(
                 }
             }
 
-            // Update displays
+            // Update displays directly
             const countEl = document.getElementById('pulse-count');
             const frameEl = document.getElementById('frame-count');
             if (countEl) countEl.textContent = activeCells.length;
             if (frameEl) frameEl.textContent = animState.frameCount;
 
-            // Trigger grid update based on method
+            // Cache render time ONCE before setProps (used by all cells in drawPulsingCell)
+            window._renderTime = now;
+
+            // No throttling - run at full RAF speed to demonstrate true performance
             if (activeCells.length > 0) {
-                if (animState.method === "selective") {
-                    setProps({ cellsToUpdate: activeCells });
+                animState.fpsFrameCount++;  // Count actual redraws
+                if (animState.method === "selective" && gridRef) {
+                    // Direct call to updateCells - bypasses React entirely!
+                    gridRef.updateCells(activeCells.map(c => ({ cell: c })));
                 } else {
+                    // Full redraw via React (will be slower)
                     setProps({ redrawTrigger: animState.frameCount });
                 }
             }

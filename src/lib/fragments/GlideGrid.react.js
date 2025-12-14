@@ -758,6 +758,19 @@ const GlideGrid = (props) => {
         gridRef.current.updateCells(cellsToUpdate.map(c => ({ cell: c })));
     }, [cellsToUpdate]);
 
+    // Expose gridRef for direct updateCells access (bypasses React for high-perf animations)
+    useEffect(() => {
+        if (gridRef.current && id) {
+            window._glideGridRefs = window._glideGridRefs || {};
+            window._glideGridRefs[id] = gridRef.current;
+        }
+        return () => {
+            if (id && window._glideGridRefs) {
+                delete window._glideGridRefs[id];
+            }
+        };
+    }, [id, gridRef.current]);
+
     // Create portal div for Glide Data Grid overlay editor
     useEffect(() => {
         if (typeof document !== 'undefined' && containerRef.current) {
