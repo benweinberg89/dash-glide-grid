@@ -1,15 +1,16 @@
 """
-Example 42: High-Performance Cell Updates
+Example 43: Cell Animation with themeOverride
 
-Demonstrates three methods for updating grid cells, comparing their performance:
-1. Selective (direct ref) - Only redraw changed cells (fastest)
-2. Full (direct ref) - Redraw all cells (slower, depends on grid size)
-3. redrawTrigger (React) - Update via React prop (slowest)
+Demonstrates three methods for updating grid cells using themeOverride in cell data,
+similar to the glide-data-grid storybook rapid-updates example.
 
-The animation runs entirely client-side using requestAnimationFrame.
-For best performance, run with a production server (not debug mode).
+This approach:
+- Updates cell DATA with themeOverride for colors
+- Uses the grid's built-in renderer (no custom drawCell)
+- Preserves grid lines automatically
+- Trades some flexibility for simplicity
 
-Run with: python examples/42_high_perf_animations.py
+Run with: python examples/43_theme_override_animation.py
 """
 
 from dash import Dash, html, dcc, Input, Output, clientside_callback, callback
@@ -31,7 +32,11 @@ def generate_grid_data(total_cells):
     """Generate columns and data for a given cell count."""
     rows, cols = get_grid_dimensions(total_cells)
     columns = [{"title": "", "width": 4, "id": f"col_{i}"} for i in range(cols)]
-    data = [{f"col_{j}": "" for j in range(cols)} for _ in range(rows)]
+    # Each cell starts with empty themeOverride - will be updated by animation
+    data = [
+        {f"col_{j}": {"kind": "text", "data": "", "displayData": ""} for j in range(cols)}
+        for _ in range(rows)
+    ]
     return columns, data, rows, cols
 
 
@@ -41,17 +46,18 @@ columns, data, NUM_ROWS, NUM_COLS = generate_grid_data(DEFAULT_CELLS)
 
 app.layout = html.Div(
     [
-        html.H1("High-Performance Cell Updates"),
+        html.H1("Cell Animation with themeOverride"),
         html.Div(
             [
                 html.P(
                     [
                         "Grid: ",
-                        html.Span(id="grid-size-display", children=f"{NUM_ROWS:,} x {NUM_COLS} = {NUM_ROWS * NUM_COLS:,}"),
-                        " cells. Random cells pulse at your display's refresh rate. ",
-                        "Switch between methods to compare performance. ",
-                        html.Strong("Tip: "),
-                        "For best performance, run with a production server (not debug mode).",
+                        html.Span(
+                            id="grid-size-display",
+                            children=f"{NUM_ROWS:,} x {NUM_COLS} = {NUM_ROWS * NUM_COLS:,}",
+                        ),
+                        " cells. This example uses themeOverride per cell instead of custom drawCell. ",
+                        "Grid lines are preserved automatically by the built-in renderer.",
                     ],
                     style={"margin": "0"},
                 ),
@@ -193,30 +199,27 @@ app.layout = html.Div(
             headerHeight=0,
             theme={
                 "bgCell": "#1e293b",
-                "borderColor": "transparent",  # Disabled - grid lines drawn manually in drawPulsingCell
+                "borderColor": "#334155",
                 "textDark": "#64748b",
-            },
-            drawCell={
-                "function": "drawPulsingCell(ctx, cell, theme, rect, col, row, hoverAmount, highlighted, cellData, rowData, drawContent)"
             },
             experimental={"disableMinimumCellWidth": True},
         ),
         html.Hr(),
-        html.H2("Compare the Methods"),
+        html.H2("How themeOverride Works"),
         html.Div(
             [
                 html.Div(
                     [
                         html.H3(
-                            "Selective (direct ref)",
+                            "themeOverride Approach",
                             style={"color": "#10b981", "marginTop": "0"},
                         ),
                         html.Ul(
                             [
-                                html.Li("Calls gridRef.updateCells() directly"),
-                                html.Li("Bypasses React entirely"),
-                                html.Li("Only redraws cells that changed"),
-                                html.Li("60-120fps depending on pulse count"),
+                                html.Li("Cell data includes themeOverride.bgCell"),
+                                html.Li("Grid's built-in renderer handles everything"),
+                                html.Li("Grid lines preserved automatically"),
+                                html.Li("Simpler but less flexible than drawCell"),
                             ],
                             style={"marginBottom": "0"},
                         ),
@@ -232,15 +235,15 @@ app.layout = html.Div(
                 html.Div(
                     [
                         html.H3(
-                            "Full (direct ref)",
+                            "vs Custom drawCell",
                             style={"color": "#f59e0b", "marginTop": "0"},
                         ),
                         html.Ul(
                             [
-                                html.Li("Also calls gridRef.updateCells() directly"),
-                                html.Li("Redraws ALL cells every frame"),
-                                html.Li("FPS depends on grid size"),
-                                html.Li("Use when most cells change at once"),
+                                html.Li("drawCell gives full canvas control"),
+                                html.Li("Can draw anything (gradients, shapes)"),
+                                html.Li("Must handle grid lines manually"),
+                                html.Li("Higher performance ceiling"),
                             ],
                             style={"marginBottom": "0"},
                         ),
@@ -253,49 +256,24 @@ app.layout = html.Div(
                         "border": "1px solid #f59e0b",
                     },
                 ),
-                html.Div(
-                    [
-                        html.H3(
-                            "redrawTrigger (React)",
-                            style={"color": "#ef4444", "marginTop": "0"},
-                        ),
-                        html.Ul(
-                            [
-                                html.Li("Updates via React prop"),
-                                html.Li("Goes through React reconciliation"),
-                                html.Li("Slowest - React overhead"),
-                                html.Li("Simple, but not for animations"),
-                            ],
-                            style={"marginBottom": "0"},
-                        ),
-                    ],
-                    style={
-                        "flex": "1",
-                        "backgroundColor": "#fef2f2",
-                        "padding": "15px",
-                        "borderRadius": "8px",
-                        "border": "1px solid #ef4444",
-                    },
-                ),
             ],
             style={"display": "flex", "gap": "15px"},
         ),
         html.Div(
             [
-                html.H3("How it works", style={"marginTop": "20px"}),
-                html.P(
-                    [
-                        "The key to 120fps animations is bypassing React. GlideGrid exposes ",
-                        html.Code("window._glideGridRefs[id]"),
-                        " which gives direct access to the DataEditor's ",
-                        html.Code("updateCells()"),
-                        " method. This avoids React reconciliation overhead entirely.",
-                    ]
-                ),
+                html.H3("The Pattern", style={"marginTop": "20px"}),
+                html.P("Cell data includes themeOverride for custom background:"),
                 html.Pre(
-                    "// Direct call - 120fps capable\n"
-                    "const gridRef = window._glideGridRefs['grid'];\n"
-                    "gridRef.updateCells([{cell: [col, row]}, ...]);",
+                    """# Python - cell data with themeOverride
+data = [
+    {
+        "col_0": {
+            "kind": "text",
+            "data": "value",
+            "themeOverride": {"bgCell": "#3b82f6"}
+        }
+    }
+]""",
                     style={
                         "backgroundColor": "#1e293b",
                         "color": "#e2e8f0",
@@ -331,11 +309,10 @@ clientside_callback(
     """
     function(startClicks, stopClicks, method, pulsesPerFrame, gridDims) {
         // Initialize animation system once
-        if (!window._animState) {
-            window._animState = {
+        if (!window._animState43) {
+            window._animState43 = {
                 frameCount: 0,
                 lastFpsUpdate: performance.now(),
-                lastRedrawTime: 0,
                 fpsFrameCount: 0,
                 currentFps: 0,
                 rafId: null,
@@ -345,19 +322,19 @@ clientside_callback(
                 numRows: 0,
                 numCols: 0
             };
-            window.pulsingCells = {};
+            window.pulsingCells43 = {};
         }
 
-        const animState = window._animState;
+        const animState = window._animState43;
 
-        // Update grid dimensions from store (reset allCells cache if changed)
+        // Update grid dimensions from store
         const numRows = gridDims?.rows || 100;
         const numCols = gridDims?.cols || 100;
         if (animState.numRows !== numRows || animState.numCols !== numCols) {
             animState.numRows = numRows;
             animState.numCols = numCols;
-            window._allCells = null;  // Reset cache when grid size changes
-            window.pulsingCells = {};  // Clear active pulses
+            window._allCells43 = null;  // Reset cache when grid size changes
+            window.pulsingCells43 = {};
         }
         const pulseDuration = 600;
 
@@ -391,27 +368,30 @@ clientside_callback(
         }
 
         function animate() {
-            // Get direct grid ref (exposed by GlideGrid component for high-perf access)
             const gridRef = window._glideGridRefs?.['grid'];
 
-            // Find setProps for redrawTrigger method (fallback)
+            // Access the component's internal data through React fiber
             const gridEl = document.getElementById('grid');
+            let gridData = null;
             let setProps = gridEl?._dashprivate_setProps;
-            if (!setProps && gridEl) {
+            if (gridEl) {
                 const key = Object.keys(gridEl).find(k => k.startsWith('__reactFiber$'));
                 if (key) {
                     let fiber = gridEl[key];
                     while (fiber) {
+                        if (fiber.memoizedProps?.data) {
+                            gridData = fiber.memoizedProps.data;
+                        }
                         if (fiber.memoizedProps?.setProps) {
                             setProps = fiber.memoizedProps.setProps;
-                            break;
                         }
+                        if (gridData && setProps) break;
                         fiber = fiber.return;
                     }
                 }
             }
 
-            if (!gridRef && !setProps) {
+            if (!gridRef || !gridData) {
                 animState.rafId = requestAnimationFrame(animate);
                 return;
             }
@@ -424,79 +404,100 @@ clientside_callback(
             const now = performance.now();
             animState.frameCount++;
 
-            // Calculate FPS every second (counts actual redraws, not RAF frames)
+            // Calculate FPS every second
             if (now - animState.lastFpsUpdate >= 1000) {
                 animState.currentFps = animState.fpsFrameCount;
                 animState.fpsFrameCount = 0;
                 animState.lastFpsUpdate = now;
 
-                // Update displays directly (faster than Dash callbacks)
                 const fpsEl = document.getElementById('fps-display');
                 const methodEl = document.getElementById('current-method');
                 if (fpsEl) fpsEl.textContent = animState.currentFps;
                 if (methodEl) methodEl.textContent = animState.method;
             }
 
-            // Add new random pulses (use animState dimensions so changes take effect immediately)
+            // Add new random pulses
             for (let i = 0; i < animState.pulsesPerFrame; i++) {
                 const row = Math.floor(Math.random() * animState.numRows);
                 const col = Math.floor(Math.random() * animState.numCols);
                 const key = col + "," + row;
-                window.pulsingCells[key] = { startTime: now, duration: pulseDuration };
+                window.pulsingCells43[key] = { startTime: now, duration: pulseDuration, col, row };
             }
 
-            // Get active pulses and clean up expired ones
-            const activeCells = [];
-            for (const key in window.pulsingCells) {
-                const pulse = window.pulsingCells[key];
+            // Update cell data with themeOverride colors and collect cells to update
+            const cellsToUpdate = [];
+            for (const key in window.pulsingCells43) {
+                const pulse = window.pulsingCells43[key];
                 const elapsed = now - pulse.startTime;
-                if (elapsed < pulse.duration) {
-                    const parts = key.split(",");
-                    activeCells.push([parseInt(parts[0]), parseInt(parts[1])]);
+                const progress = Math.min(elapsed / pulse.duration, 1);
+                const col = pulse.col;
+                const row = pulse.row;
+                const colId = "col_" + col;
+
+                if (progress < 1) {
+                    // Calculate color: bright blue fading to dark background
+                    const intensity = 1 - progress;
+                    const r = Math.round(30 + (59 - 30) * intensity);
+                    const g = Math.round(41 + (130 - 41) * intensity);
+                    const b = Math.round(59 + (246 - 59) * intensity);
+
+                    // Update cell data with themeOverride
+                    if (gridData[row] && gridData[row][colId] !== undefined) {
+                        gridData[row][colId] = {
+                            kind: "text",
+                            data: "",
+                            displayData: "",
+                            themeOverride: { bgCell: "rgb(" + r + "," + g + "," + b + ")" }
+                        };
+                    }
+                    cellsToUpdate.push({ cell: [col, row] });
                 } else {
-                    delete window.pulsingCells[key];
+                    // Expired - reset to default and remove
+                    if (gridData[row] && gridData[row][colId] !== undefined) {
+                        gridData[row][colId] = {
+                            kind: "text",
+                            data: "",
+                            displayData: ""
+                        };
+                    }
+                    cellsToUpdate.push({ cell: [col, row] });
+                    delete window.pulsingCells43[key];
                 }
             }
 
-            // Update displays directly
+            // Update displays
             const countEl = document.getElementById('pulse-count');
             const frameEl = document.getElementById('frame-count');
-            if (countEl) countEl.textContent = activeCells.length;
+            if (countEl) countEl.textContent = Object.keys(window.pulsingCells43).length;
             if (frameEl) frameEl.textContent = animState.frameCount;
 
-            // Cache render time ONCE before setProps (used by all cells in drawPulsingCell)
-            window._renderTime = now;
-
-            // No throttling - run at full RAF speed to demonstrate true performance
-            if (activeCells.length > 0) {
-                animState.fpsFrameCount++;  // Count actual redraws
+            // Trigger redraw based on method
+            if (cellsToUpdate.length > 0) {
+                animState.fpsFrameCount++;
                 if (animState.method === "selective" && gridRef) {
                     // Selective: only redraw changed cells (bypasses React)
-                    gridRef.updateCells(activeCells.map(c => ({ cell: c })));
+                    gridRef.updateCells(cellsToUpdate);
                 } else if (animState.method === "full" && gridRef) {
                     // Full: redraw ALL cells (bypasses React)
-                    if (!window._allCells) {
-                        window._allCells = [];
+                    if (!window._allCells43) {
+                        window._allCells43 = [];
                         for (let row = 0; row < animState.numRows; row++) {
                             for (let col = 0; col < animState.numCols; col++) {
-                                window._allCells.push({ cell: [col, row] });
+                                window._allCells43.push({ cell: [col, row] });
                             }
                         }
                     }
-                    gridRef.updateCells(window._allCells);
+                    gridRef.updateCells(window._allCells43);
                 } else if (animState.method === "react" && setProps) {
                     // React: update via redrawTrigger prop (goes through React)
                     setProps({redrawTrigger: animState.frameCount});
                 }
             }
 
-            // Schedule next frame
             animState.rafId = requestAnimationFrame(animate);
         }
 
-        // Start animation loop
         animState.rafId = requestAnimationFrame(animate);
-
         return "started";
     }
     """,
@@ -510,4 +511,4 @@ clientside_callback(
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8050)
+    app.run(debug=True, port=8051)
