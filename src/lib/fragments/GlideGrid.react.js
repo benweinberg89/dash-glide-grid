@@ -6,17 +6,19 @@ import { allCells } from '@glideapps/glide-data-grid-cells';
 import '@glideapps/glide-data-grid-cells/dist/index.css';
 import DropdownCellRenderer from '../cells/DropdownCellRenderer';
 import MultiSelectCellRenderer from '../cells/MultiSelectCellRenderer';
+import { createButtonCellRenderer } from '../cells/ButtonCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
 
-// Custom cell renderers: replace library's dropdown/multiselect with fixed versions
-// that include menuPosition="fixed" and menuShouldScrollIntoView={false}
-const customRenderers = [
+// Static cell renderers: replace library's dropdown/multiselect/button with custom versions
+// Button renderer is added dynamically inside component to access setProps
+const staticRenderers = [
     ...allCells.filter(
         (c) =>
             !c.isMatch?.({ data: { kind: 'dropdown-cell' } }) &&
-            !c.isMatch?.({ data: { kind: 'multi-select-cell' } })
+            !c.isMatch?.({ data: { kind: 'multi-select-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'button-cell' } })
     ),
     DropdownCellRenderer,
     MultiSelectCellRenderer,
@@ -126,15 +128,15 @@ function transformCellObject(cellObj) {
         'protected': GridCellKind.Protected
     };
 
-    // Handle custom cell types (dropdown, multiselect, etc.)
-    if (cellObj.kind === 'dropdown-cell' || cellObj.kind === 'multi-select-cell') {
+    // Handle custom cell types (dropdown, multiselect, button, etc.)
+    if (cellObj.kind === 'dropdown-cell' || cellObj.kind === 'multi-select-cell' || cellObj.kind === 'button-cell') {
         const result = {
             kind: GridCellKind.Custom,
-            allowOverlay: cellObj.allowOverlay !== false,
-            copyData: cellObj.copyData || '',
+            allowOverlay: cellObj.kind !== 'button-cell' && cellObj.allowOverlay !== false,
+            copyData: cellObj.copyData || cellObj.title || '',
             data: {
                 kind: cellObj.kind,
-                ...cellObj.data
+                ...cellObj
             }
         };
 
@@ -702,6 +704,27 @@ const GlideGrid = (props) => {
 
     // Alias for backwards compatibility - displayIndices now handles both filtering and sorting
     const sortedIndices = displayIndices;
+
+    // Button cell click handler - fires buttonClicked prop to Dash
+    const buttonClickHandler = useCallback((info) => {
+        const actualRow = sortedIndices ? sortedIndices[info.row] : info.row;
+        if (setProps) {
+            setProps({
+                buttonClicked: {
+                    col: info.col,
+                    row: actualRow,
+                    title: info.title,
+                    timestamp: Date.now()
+                }
+            });
+        }
+    }, [setProps, sortedIndices]);
+
+    // Custom renderers including button cell with click handler
+    const customRenderers = useMemo(() => [
+        ...staticRenderers,
+        createButtonCellRenderer(buttonClickHandler)
+    ], [buttonClickHandler]);
 
     // Keep search value ref in sync with state
     useEffect(() => {
@@ -3015,6 +3038,17 @@ GlideGrid.propTypes = {
     cellClicked: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about the last clicked button cell.
+     * Format: {"col": 0, "row": 1, "title": "Button Text", "timestamp": 1234567890}
+     */
+    buttonClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        title: PropTypes.string,
         timestamp: PropTypes.number
     }),
 

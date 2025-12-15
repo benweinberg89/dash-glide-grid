@@ -594,6 +594,17 @@ GlideGrid.propTypes = {
     }),
 
     /**
+     * Information about the last clicked button cell.
+     * Format: {"col": 0, "row": 1, "title": "Button Text", "timestamp": 1234567890}
+     */
+    buttonClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        title: PropTypes.string,
+        timestamp: PropTypes.number
+    }),
+
+    /**
      * Array of column widths (updated when columns are resized).
      * Example: [200, 150, 300]
      */
