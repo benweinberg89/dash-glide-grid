@@ -48,12 +48,23 @@ function RangeEditor({ value, onChange }) {
         const newValue = parseFloat(e.target.value);
         setLocalValue(newValue);
 
+        // Preserve label format (e.g., "75%" -> "80%")
+        const originalLabel = value.data.label;
+        let newLabel = `${newValue}`;
+        if (typeof originalLabel === 'string') {
+            // Check for common suffixes and preserve them
+            const suffixMatch = originalLabel.match(/[\d.]+(.*)$/);
+            if (suffixMatch && suffixMatch[1]) {
+                newLabel = `${newValue}${suffixMatch[1]}`;
+            }
+        }
+
         onChange({
             ...value,
             data: {
                 ...value.data,
                 value: newValue,
-                label: `${newValue}`
+                label: newLabel
             }
         });
     }, [readonly, value, onChange]);
@@ -195,10 +206,21 @@ export function createRangeCellRenderer() {
             }
             const min = data.min || 0;
             const max = data.max || 100;
+            const clampedValue = Math.max(min, Math.min(parsed, max));
+
+            // Preserve label format (e.g., "75%" -> "80%")
+            let newLabel = `${clampedValue}`;
+            if (typeof data.label === 'string') {
+                const suffixMatch = data.label.match(/[\d.]+(.*)$/);
+                if (suffixMatch && suffixMatch[1]) {
+                    newLabel = `${clampedValue}${suffixMatch[1]}`;
+                }
+            }
+
             return {
                 ...data,
-                value: Math.max(min, Math.min(parsed, max)),
-                label: `${Math.max(min, Math.min(parsed, max))}`
+                value: clampedValue,
+                label: newLabel
             };
         }
     };
