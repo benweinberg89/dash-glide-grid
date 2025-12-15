@@ -619,21 +619,310 @@ const GlideGrid = (props) => {
 
     // Helper to get display value from a cell for filtering
     const getCellDisplayValue = useCallback((cellValue) => {
+        // Handle null/undefined/empty
         if (cellValue === null || cellValue === undefined) {
             return '(Blank)';
-        }
-        if (typeof cellValue === 'object' && cellValue.kind) {
-            // Cell object - extract data
-            const data = cellValue.data;
-            if (data === null || data === undefined || data === '') {
-                return '(Blank)';
-            }
-            return data;
         }
         if (cellValue === '') {
             return '(Blank)';
         }
-        return cellValue;
+
+        // Handle primitives directly
+        if (typeof cellValue !== 'object') {
+            return cellValue;
+        }
+
+        // Handle cell objects with kind property
+        const kind = cellValue.kind;
+
+        if (!kind) {
+            // Legacy object without kind
+            const data = cellValue.data;
+            if (data === null || data === undefined || data === '') {
+                return '(Blank)';
+            }
+            if (typeof data !== 'object') {
+                return data;
+            }
+            return JSON.stringify(data);
+        }
+
+        // Handle custom cell types
+        switch (kind) {
+            case 'dropdown-cell': {
+                const value = cellValue.value;
+                if (!value) return '(Blank)';
+                // Try to find matching option with label
+                const options = cellValue.options || cellValue.allowedValues || [];
+                const matchedOption = options.find(opt =>
+                    (typeof opt === 'object' ? opt.value : opt) === value
+                );
+                if (matchedOption && typeof matchedOption === 'object' && matchedOption.label) {
+                    return matchedOption.label;
+                }
+                return value;
+            }
+
+            case 'multi-select-cell': {
+                const values = cellValue.values || [];
+                if (values.length === 0) return '(Blank)';
+                // Try to resolve labels
+                const options = cellValue.options || [];
+                const labels = values.map(v => {
+                    const opt = options.find(o =>
+                        (typeof o === 'object' ? o.value : o) === v
+                    );
+                    return (opt && typeof opt === 'object' && opt.label) ? opt.label : v;
+                });
+                return labels.join(', ');
+            }
+
+            case 'button-cell':
+                return cellValue.title || 'Button';
+
+            case 'tags-cell': {
+                const tags = cellValue.tags || [];
+                if (tags.length === 0) return '(Blank)';
+                return tags.join(', ');
+            }
+
+            case 'user-profile-cell':
+                return cellValue.name || '(Blank)';
+
+            case 'spinner-cell':
+                return '(Loading)';
+
+            case 'star-cell': {
+                const rating = cellValue.rating || 0;
+                const maxStars = cellValue.maxStars || 5;
+                return `${rating}/${maxStars}`;
+            }
+
+            case 'date-picker-cell': {
+                if (cellValue.displayDate) return cellValue.displayDate;
+                if (!cellValue.date) return '(Blank)';
+                try {
+                    const d = new Date(cellValue.date);
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString();
+                    }
+                } catch {
+                    // Fall through
+                }
+                return cellValue.date;
+            }
+
+            case 'range-cell': {
+                if (cellValue.label !== undefined && cellValue.label !== null) {
+                    return String(cellValue.label);
+                }
+                return cellValue.value ?? 0;
+            }
+
+            case 'links-cell': {
+                const links = cellValue.links || [];
+                if (links.length === 0) return '(Blank)';
+                const titles = links.map(l => l.title || l.href || 'Link');
+                return titles.join(', ');
+            }
+
+            case 'sparkline-cell': {
+                const values = cellValue.values || [];
+                if (values.length === 0) return '(Blank)';
+                const sum = values.reduce((a, b) => a + (b || 0), 0);
+                return `Sparkline (${sum.toFixed(1)})`;
+            }
+
+            case 'tree-view-cell':
+                return cellValue.text || '(Blank)';
+
+            // Built-in cell types
+            case 'markdown':
+                return cellValue.data || '(Blank)';
+
+            case 'uri':
+                // Use displayData if available, otherwise the URL
+                return cellValue.displayData || cellValue.data || '(Blank)';
+
+            case 'image': {
+                // Image data is an array of URLs
+                const images = cellValue.data || [];
+                if (images.length === 0) return '(Blank)';
+                return `${images.length} image${images.length > 1 ? 's' : ''}`;
+            }
+
+            case 'bubble': {
+                // Bubble data is an array of strings
+                const bubbles = cellValue.data || [];
+                if (bubbles.length === 0) return '(Blank)';
+                return bubbles.join(', ');
+            }
+
+            case 'drilldown': {
+                // Drilldown data is an array of objects with text property
+                const items = cellValue.data || [];
+                if (items.length === 0) return '(Blank)';
+                return items.map(item => item.text || '').filter(Boolean).join(', ');
+            }
+
+            case 'loading':
+                return '(Loading)';
+
+            case 'rowid':
+                return cellValue.data || '(Blank)';
+
+            case 'protected':
+                return '(Protected)';
+
+            default: {
+                // Unknown cell type - try data property
+                const innerData = cellValue.data;
+                if (innerData === null || innerData === undefined || innerData === '') {
+                    return '(Blank)';
+                }
+                if (typeof innerData !== 'object') {
+                    return innerData;
+                }
+                return JSON.stringify(innerData);
+            }
+        }
+    }, []);
+
+    // Helper to extract a sortable value from any cell type
+    const extractSortValue = useCallback((cellValue) => {
+        // Handle null/undefined
+        if (cellValue === null || cellValue === undefined) {
+            return { value: null, type: 'string' };
+        }
+
+        // Handle primitives directly
+        if (typeof cellValue !== 'object') {
+            if (typeof cellValue === 'number') {
+                return { value: cellValue, type: 'number' };
+            }
+            if (typeof cellValue === 'boolean') {
+                return { value: cellValue ? 1 : 0, type: 'number' };
+            }
+            return { value: String(cellValue), type: 'string' };
+        }
+
+        // Handle cell objects with kind property
+        const kind = cellValue.kind;
+
+        if (!kind) {
+            // Legacy object without kind - try to extract meaningful value
+            if (cellValue.data !== undefined) {
+                return extractSortValue(cellValue.data);
+            }
+            // Fallback to JSON stringification
+            try {
+                return { value: JSON.stringify(cellValue), type: 'string' };
+            } catch {
+                return { value: '', type: 'string' };
+            }
+        }
+
+        // Handle custom cell types
+        switch (kind) {
+            case 'dropdown-cell':
+                return { value: cellValue.value || '', type: 'string' };
+
+            case 'multi-select-cell': {
+                const values = cellValue.values || [];
+                return { value: [...values].sort().join(', '), type: 'string' };
+            }
+
+            case 'button-cell':
+                // Buttons are not meaningfully sortable
+                return { value: null, type: 'unsortable' };
+
+            case 'tags-cell': {
+                const tags = cellValue.tags || [];
+                return { value: [...tags].sort().join(', '), type: 'string' };
+            }
+
+            case 'user-profile-cell':
+                return { value: cellValue.name || '', type: 'string' };
+
+            case 'spinner-cell':
+                // Spinners are not sortable (loading state)
+                return { value: null, type: 'unsortable' };
+
+            case 'star-cell':
+                return { value: cellValue.rating || 0, type: 'number' };
+
+            case 'date-picker-cell':
+                // ISO date strings sort correctly with localeCompare
+                return { value: cellValue.date || '', type: 'date' };
+
+            case 'range-cell':
+                return { value: cellValue.value ?? 0, type: 'number' };
+
+            case 'links-cell': {
+                const links = cellValue.links || [];
+                if (links.length === 0) return { value: '', type: 'string' };
+                return { value: links[0]?.title || links[0]?.href || '', type: 'string' };
+            }
+
+            case 'sparkline-cell': {
+                const sparkValues = cellValue.values || [];
+                const sum = sparkValues.reduce((acc, v) => acc + (v || 0), 0);
+                return { value: sum, type: 'number' };
+            }
+
+            case 'tree-view-cell':
+                return { value: cellValue.text || '', type: 'string' };
+
+            // Built-in cell types
+            case 'markdown':
+                return { value: cellValue.data || '', type: 'string' };
+
+            case 'uri':
+                // Sort by displayData if available, otherwise URL
+                return { value: cellValue.displayData || cellValue.data || '', type: 'string' };
+
+            case 'image': {
+                // Sort by number of images
+                const images = cellValue.data || [];
+                return { value: images.length, type: 'number' };
+            }
+
+            case 'bubble': {
+                // Sort by joined bubble values
+                const bubbles = cellValue.data || [];
+                return { value: [...bubbles].sort().join(', '), type: 'string' };
+            }
+
+            case 'drilldown': {
+                // Sort by first item's text
+                const items = cellValue.data || [];
+                if (items.length === 0) return { value: '', type: 'string' };
+                return { value: items[0]?.text || '', type: 'string' };
+            }
+
+            case 'loading':
+                // Loading cells are not meaningfully sortable
+                return { value: null, type: 'unsortable' };
+
+            case 'rowid':
+                return { value: cellValue.data || '', type: 'string' };
+
+            case 'protected':
+                // Protected cells are not meaningfully sortable
+                return { value: null, type: 'unsortable' };
+
+            default: {
+                // Unknown custom cell - try to extract data property
+                if (cellValue.data !== undefined) {
+                    return extractSortValue(cellValue.data);
+                }
+                try {
+                    return { value: JSON.stringify(cellValue), type: 'string' };
+                } catch {
+                    return { value: '', type: 'string' };
+                }
+            }
+        }
     }, []);
 
     // Compute unique values for a column (for filter menu)
@@ -704,20 +993,35 @@ const GlideGrid = (props) => {
                     // Get column id to access dict key
                     const columnDef = localColumns?.[columnIndex];
                     const columnId = columnDef?.id || columnDef?.title;
-                    const valA = localData[a]?.[columnId];
-                    const valB = localData[b]?.[columnId];
 
-                    // Handle null/undefined
+                    // Extract sortable values using our helper
+                    const extractedA = extractSortValue(localData[a]?.[columnId]);
+                    const extractedB = extractSortValue(localData[b]?.[columnId]);
+
+                    const valA = extractedA.value;
+                    const valB = extractedB.value;
+                    const typeA = extractedA.type;
+                    const typeB = extractedB.type;
+
+                    // Skip unsortable cells (treat as equal)
+                    if (typeA === 'unsortable' && typeB === 'unsortable') continue;
+                    if (typeA === 'unsortable') return direction === 'asc' ? 1 : -1;
+                    if (typeB === 'unsortable') return direction === 'asc' ? -1 : 1;
+
+                    // Handle null/undefined (nulls sort to end)
                     if (valA == null && valB == null) continue;
                     if (valA == null) return direction === 'asc' ? 1 : -1;
                     if (valB == null) return direction === 'asc' ? -1 : 1;
 
-                    // Compare based on type
+                    // Compare based on extracted type
                     let comparison = 0;
-                    if (typeof valA === 'number' && typeof valB === 'number') {
+
+                    if (typeA === 'number' && typeB === 'number') {
+                        // Numeric comparison
                         comparison = valA - valB;
-                    } else if (typeof valA === 'boolean' && typeof valB === 'boolean') {
-                        comparison = (valA === valB) ? 0 : (valA ? -1 : 1);
+                    } else if (typeA === 'date' && typeB === 'date') {
+                        // Date comparison (ISO strings compare correctly with localeCompare)
+                        comparison = String(valA).localeCompare(String(valB));
                     } else {
                         // String comparison (case-insensitive)
                         const strA = String(valA).toLowerCase();
@@ -741,7 +1045,7 @@ const GlideGrid = (props) => {
         }
 
         return indices;
-    }, [localData, localColumns, localFilters, sortable, localSortColumns, getCellDisplayValue]);
+    }, [localData, localColumns, localFilters, sortable, localSortColumns, getCellDisplayValue, extractSortValue]);
 
     // Alias for backwards compatibility - displayIndices now handles both filtering and sorting
     const sortedIndices = displayIndices;
