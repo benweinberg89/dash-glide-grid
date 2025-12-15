@@ -1,36 +1,57 @@
 """
-Example 42: cellsToUpdate vs redrawTrigger Performance Test
+Example 42: High-Performance Cell Updates
 
-Demonstrates the performance difference between cellsToUpdate and redrawTrigger
-using requestAnimationFrame for true 60fps animations. The animation runs entirely
-client-side to eliminate server round-trip overhead.
+Demonstrates three methods for updating grid cells, comparing their performance:
+1. Selective (direct ref) - Only redraw changed cells (fastest)
+2. Full (direct ref) - Redraw all cells (slower, depends on grid size)
+3. redrawTrigger (React) - Update via React prop (slowest)
 
-Run with: python examples/42_cells_to_update.py
+The animation runs entirely client-side using requestAnimationFrame.
+For best performance, run with a production server (not debug mode).
+
+Run with: python examples/42_high_perf_animations.py
 """
 
-from dash import Dash, html, dcc, Input, Output, clientside_callback
+from dash import Dash, html, dcc, Input, Output, clientside_callback, callback
+import math
 
 from dash_glide_grid import GlideGrid
 
 app = Dash(__name__, assets_folder="assets")
 
-# Grid size - 100k cells is too many for 120fps, try smaller
-NUM_ROWS = 150
-NUM_COLS = 300
 
-columns = [{"title": "", "width": 4, "id": f"col_{i}"} for i in range(NUM_COLS)]
-data = [{f"col_{j}": "" for j in range(NUM_COLS)} for _ in range(NUM_ROWS)]
+def get_grid_dimensions(total_cells):
+    """Calculate rows/cols for a given cell count (roughly 2:1 aspect ratio)."""
+    cols = int(math.sqrt(total_cells * 2))
+    rows = total_cells // cols
+    return rows, cols
+
+
+def generate_grid_data(total_cells):
+    """Generate columns and data for a given cell count."""
+    rows, cols = get_grid_dimensions(total_cells)
+    columns = [{"title": "", "width": 4, "id": f"col_{i}"} for i in range(cols)]
+    data = [{f"col_{j}": "" for j in range(cols)} for _ in range(rows)]
+    return columns, data, rows, cols
+
+
+# Default grid size
+DEFAULT_CELLS = 10000
+columns, data, NUM_ROWS, NUM_COLS = generate_grid_data(DEFAULT_CELLS)
 
 app.layout = html.Div(
     [
-        html.H1("Selective vs Full Redraw Performance"),
+        html.H1("High-Performance Cell Updates"),
         html.Div(
             [
                 html.P(
                     [
-                        f"Grid: {NUM_ROWS:,} x {NUM_COLS} = {NUM_ROWS * NUM_COLS:,} cells. ",
-                        "Random cells pulse at your display's refresh rate. ",
-                        "Switch between methods to compare performance.",
+                        "Grid: ",
+                        html.Span(id="grid-size-display", children=f"{NUM_ROWS:,} x {NUM_COLS} = {NUM_ROWS * NUM_COLS:,}"),
+                        " cells. Random cells pulse at your display's refresh rate. ",
+                        "Switch between methods to compare performance. ",
+                        html.Strong("Tip: "),
+                        "For best performance, run with a production server (not debug mode).",
                     ],
                     style={"margin": "0"},
                 ),
@@ -56,12 +77,16 @@ app.layout = html.Div(
                             id="update-method",
                             options=[
                                 {
-                                    "label": " Selective (only changed cells)",
+                                    "label": " Selective (direct ref)",
                                     "value": "selective",
                                 },
                                 {
-                                    "label": " Full (all cells)",
+                                    "label": " Full (direct ref)",
                                     "value": "full",
+                                },
+                                {
+                                    "label": " redrawTrigger (React)",
+                                    "value": "react",
                                 },
                             ],
                             value="selective",
@@ -71,6 +96,28 @@ app.layout = html.Div(
                         ),
                     ],
                     style={"marginBottom": "10px"},
+                ),
+                html.Div(
+                    [
+                        html.Label(
+                            "Grid cells:",
+                            style={"fontWeight": "bold", "marginRight": "10px"},
+                        ),
+                        dcc.Dropdown(
+                            id="cell-count",
+                            options=[
+                                {"label": "100", "value": 100},
+                                {"label": "1,000", "value": 1000},
+                                {"label": "10,000", "value": 10000},
+                                {"label": "50,000", "value": 50000},
+                                {"label": "100,000", "value": 100000},
+                            ],
+                            value=DEFAULT_CELLS,
+                            clearable=False,
+                            style={"width": "120px"},
+                        ),
+                    ],
+                    style={"display": "flex", "alignItems": "center"},
                 ),
                 html.Div(
                     [
@@ -133,8 +180,9 @@ app.layout = html.Div(
                 "marginBottom": "15px",
             },
         ),
-        # Hidden div for output (required by Dash)
+        # Hidden elements for state
         html.Div(id="animation-output", style={"display": "none"}),
+        dcc.Store(id="grid-dims", data={"rows": NUM_ROWS, "cols": NUM_COLS}),
         GlideGrid(
             id="grid",
             columns=columns,
@@ -160,15 +208,15 @@ app.layout = html.Div(
                 html.Div(
                     [
                         html.H3(
-                            "cellsToUpdate (direct)",
+                            "Selective (direct ref)",
                             style={"color": "#10b981", "marginTop": "0"},
                         ),
                         html.Ul(
                             [
                                 html.Li("Calls gridRef.updateCells() directly"),
                                 html.Li("Bypasses React entirely"),
-                                html.Li("~120fps with 1-20 pulses/frame"),
-                                html.Li("~60fps even at 100 pulses/frame"),
+                                html.Li("Only redraws cells that changed"),
+                                html.Li("60-120fps depending on pulse count"),
                             ],
                             style={"marginBottom": "0"},
                         ),
@@ -184,15 +232,15 @@ app.layout = html.Div(
                 html.Div(
                     [
                         html.H3(
-                            "Full Redraw (direct)",
+                            "Full (direct ref)",
                             style={"color": "#f59e0b", "marginTop": "0"},
                         ),
                         html.Ul(
                             [
                                 html.Li("Also calls gridRef.updateCells() directly"),
-                                html.Li(f"But redraws ALL {NUM_ROWS * NUM_COLS:,} cells"),
-                                html.Li("~30-60fps (limited by cell count)"),
-                                html.Li("Use when many cells change at once"),
+                                html.Li("Redraws ALL cells every frame"),
+                                html.Li("FPS depends on grid size"),
+                                html.Li("Use when most cells change at once"),
                             ],
                             style={"marginBottom": "0"},
                         ),
@@ -203,6 +251,30 @@ app.layout = html.Div(
                         "padding": "15px",
                         "borderRadius": "8px",
                         "border": "1px solid #f59e0b",
+                    },
+                ),
+                html.Div(
+                    [
+                        html.H3(
+                            "redrawTrigger (React)",
+                            style={"color": "#ef4444", "marginTop": "0"},
+                        ),
+                        html.Ul(
+                            [
+                                html.Li("Updates via React prop"),
+                                html.Li("Goes through React reconciliation"),
+                                html.Li("Slowest - React overhead"),
+                                html.Li("Simple, but not for animations"),
+                            ],
+                            style={"marginBottom": "0"},
+                        ),
+                    ],
+                    style={
+                        "flex": "1",
+                        "backgroundColor": "#fef2f2",
+                        "padding": "15px",
+                        "borderRadius": "8px",
+                        "border": "1px solid #ef4444",
                     },
                 ),
             ],
@@ -239,10 +311,25 @@ app.layout = html.Div(
 )
 
 
+# Callback to update grid size when dropdown changes
+@callback(
+    Output("grid", "columns"),
+    Output("grid", "data"),
+    Output("grid-dims", "data"),
+    Output("grid-size-display", "children"),
+    Input("cell-count", "value"),
+)
+def update_grid_size(total_cells):
+    columns, data, rows, cols = generate_grid_data(total_cells)
+    dims = {"rows": rows, "cols": cols}
+    display = f"{rows:,} x {cols} = {rows * cols:,}"
+    return columns, data, dims, display
+
+
 # Single callback to handle start/stop and animation
 clientside_callback(
     """
-    function(startClicks, stopClicks, method, pulsesPerFrame) {
+    function(startClicks, stopClicks, method, pulsesPerFrame, gridDims) {
         // Initialize animation system once
         if (!window._animState) {
             window._animState = {
@@ -254,18 +341,24 @@ clientside_callback(
                 rafId: null,
                 running: false,
                 method: "selective",
-                pulsesPerFrame: 20
+                pulsesPerFrame: 20,
+                numRows: 0,
+                numCols: 0
             };
             window.pulsingCells = {};
         }
 
         const animState = window._animState;
-        const numRows = """
-    + str(NUM_ROWS)
-    + """;
-        const numCols = """
-    + str(NUM_COLS)
-    + """;
+
+        // Update grid dimensions from store (reset allCells cache if changed)
+        const numRows = gridDims?.rows || 100;
+        const numCols = gridDims?.cols || 100;
+        if (animState.numRows !== numRows || animState.numCols !== numCols) {
+            animState.numRows = numRows;
+            animState.numCols = numCols;
+            window._allCells = null;  // Reset cache when grid size changes
+            window.pulsingCells = {};  // Clear active pulses
+        }
         const pulseDuration = 600;
 
         // Update settings
@@ -344,10 +437,10 @@ clientside_callback(
                 if (methodEl) methodEl.textContent = animState.method;
             }
 
-            // Add new random pulses
+            // Add new random pulses (use animState dimensions so changes take effect immediately)
             for (let i = 0; i < animState.pulsesPerFrame; i++) {
-                const row = Math.floor(Math.random() * numRows);
-                const col = Math.floor(Math.random() * numCols);
+                const row = Math.floor(Math.random() * animState.numRows);
+                const col = Math.floor(Math.random() * animState.numCols);
                 const key = col + "," + row;
                 window.pulsingCells[key] = { startTime: now, duration: pulseDuration };
             }
@@ -375,22 +468,25 @@ clientside_callback(
             window._renderTime = now;
 
             // No throttling - run at full RAF speed to demonstrate true performance
-            if (activeCells.length > 0 && gridRef) {
+            if (activeCells.length > 0) {
                 animState.fpsFrameCount++;  // Count actual redraws
-                if (animState.method === "selective") {
-                    // Selective: only redraw changed cells
+                if (animState.method === "selective" && gridRef) {
+                    // Selective: only redraw changed cells (bypasses React)
                     gridRef.updateCells(activeCells.map(c => ({ cell: c })));
-                } else {
-                    // Full: redraw ALL cells (still bypasses React for fair comparison)
+                } else if (animState.method === "full" && gridRef) {
+                    // Full: redraw ALL cells (bypasses React)
                     if (!window._allCells) {
                         window._allCells = [];
-                        for (let row = 0; row < numRows; row++) {
-                            for (let col = 0; col < numCols; col++) {
+                        for (let row = 0; row < animState.numRows; row++) {
+                            for (let col = 0; col < animState.numCols; col++) {
                                 window._allCells.push({ cell: [col, row] });
                             }
                         }
                     }
                     gridRef.updateCells(window._allCells);
+                } else if (animState.method === "react" && setProps) {
+                    // React: update via redrawTrigger prop (goes through React)
+                    setProps({redrawTrigger: animState.frameCount});
                 }
             }
 
@@ -409,6 +505,7 @@ clientside_callback(
     Input("stop-btn", "n_clicks"),
     Input("update-method", "value"),
     Input("pulses-per-frame", "value"),
+    Input("grid-dims", "data"),
 )
 
 
