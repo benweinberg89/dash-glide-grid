@@ -10,6 +10,9 @@ import { createButtonCellRenderer } from '../cells/ButtonCellRenderer';
 import { createTagsCellRenderer } from '../cells/TagsCellRenderer';
 import { createUserProfileCellRenderer } from '../cells/UserProfileCellRenderer';
 import { createSpinnerCellRenderer } from '../cells/SpinnerCellRenderer';
+import { createStarCellRenderer } from '../cells/StarCellRenderer';
+import { createDatePickerCellRenderer } from '../cells/DatePickerCellRenderer';
+import { createRangeCellRenderer } from '../cells/RangeCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
@@ -24,13 +27,19 @@ const staticRenderers = [
             !c.isMatch?.({ data: { kind: 'button-cell' } }) &&
             !c.isMatch?.({ data: { kind: 'tags-cell' } }) &&
             !c.isMatch?.({ data: { kind: 'user-profile-cell' } }) &&
-            !c.isMatch?.({ data: { kind: 'spinner-cell' } })
+            !c.isMatch?.({ data: { kind: 'spinner-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'star-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'date-picker-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'range-cell' } })
     ),
     DropdownCellRenderer,
     MultiSelectCellRenderer,
     createTagsCellRenderer(),
     createUserProfileCellRenderer(),
     createSpinnerCellRenderer(),
+    createStarCellRenderer(),
+    createDatePickerCellRenderer(),
+    createRangeCellRenderer(),
 ];
 
 /**
@@ -145,6 +154,9 @@ function transformCellObject(cellObj) {
         'tags-cell',
         'user-profile-cell',
         'spinner-cell',
+        'star-cell',
+        'date-picker-cell',
+        'range-cell',
     ];
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
