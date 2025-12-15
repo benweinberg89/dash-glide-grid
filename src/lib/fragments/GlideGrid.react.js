@@ -13,6 +13,9 @@ import { createSpinnerCellRenderer } from '../cells/SpinnerCellRenderer';
 import { createStarCellRenderer } from '../cells/StarCellRenderer';
 import { createDatePickerCellRenderer } from '../cells/DatePickerCellRenderer';
 import { createRangeCellRenderer } from '../cells/RangeCellRenderer';
+import { createLinksCellRenderer } from '../cells/LinksCellRenderer';
+import { createSparklineCellRenderer } from '../cells/SparklineCellRenderer';
+import { createTreeViewCellRenderer } from '../cells/TreeViewCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
@@ -30,7 +33,10 @@ const staticRenderers = [
             !c.isMatch?.({ data: { kind: 'spinner-cell' } }) &&
             !c.isMatch?.({ data: { kind: 'star-cell' } }) &&
             !c.isMatch?.({ data: { kind: 'date-picker-cell' } }) &&
-            !c.isMatch?.({ data: { kind: 'range-cell' } })
+            !c.isMatch?.({ data: { kind: 'range-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'links-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'sparkline-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'tree-view-cell' } })
     ),
     DropdownCellRenderer,
     MultiSelectCellRenderer,
@@ -40,6 +46,7 @@ const staticRenderers = [
     createStarCellRenderer(),
     createDatePickerCellRenderer(),
     createRangeCellRenderer(),
+    createSparklineCellRenderer(),
 ];
 
 /**
@@ -157,10 +164,13 @@ function transformCellObject(cellObj) {
         'star-cell',
         'date-picker-cell',
         'range-cell',
+        'links-cell',
+        'sparkline-cell',
+        'tree-view-cell',
     ];
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
-        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell'];
+        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell'];
         const result = {
             kind: GridCellKind.Custom,
             allowOverlay: !readOnlyCellKinds.includes(cellObj.kind) && cellObj.allowOverlay !== false,
@@ -751,11 +761,47 @@ const GlideGrid = (props) => {
         }
     }, [setProps, sortedIndices]);
 
-    // Custom renderers including button cell with click handler
+    // Link cell click handler - fires linkClicked prop to Dash
+    const linkClickHandler = useCallback((info) => {
+        const actualRow = sortedIndices ? sortedIndices[info.row] : info.row;
+        if (setProps) {
+            setProps({
+                linkClicked: {
+                    col: info.col,
+                    row: actualRow,
+                    href: info.href,
+                    title: info.title,
+                    linkIndex: info.linkIndex,
+                    timestamp: Date.now()
+                }
+            });
+        }
+    }, [setProps, sortedIndices]);
+
+    // Tree node toggle handler - fires treeNodeToggled prop to Dash
+    const treeNodeToggleHandler = useCallback((info) => {
+        const actualRow = sortedIndices ? sortedIndices[info.row] : info.row;
+        if (setProps) {
+            setProps({
+                treeNodeToggled: {
+                    col: info.col,
+                    row: actualRow,
+                    isOpen: info.isOpen,
+                    depth: info.depth,
+                    text: info.text,
+                    timestamp: Date.now()
+                }
+            });
+        }
+    }, [setProps, sortedIndices]);
+
+    // Custom renderers including button cell, links cell, and tree view cell with click handlers
     const customRenderers = useMemo(() => [
         ...staticRenderers,
-        createButtonCellRenderer(buttonClickHandler)
-    ], [buttonClickHandler]);
+        createButtonCellRenderer(buttonClickHandler),
+        createLinksCellRenderer(linkClickHandler),
+        createTreeViewCellRenderer(treeNodeToggleHandler)
+    ], [buttonClickHandler, linkClickHandler, treeNodeToggleHandler]);
 
     // Keep search value ref in sync with state
     useEffect(() => {
@@ -3077,6 +3123,32 @@ GlideGrid.propTypes = {
         col: PropTypes.number,
         row: PropTypes.number,
         title: PropTypes.string,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about the last clicked link in a links cell.
+     * Format: {"col": 0, "row": 1, "href": "https://example.com", "title": "Link", "linkIndex": 0, "timestamp": 1234567890}
+     */
+    linkClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        href: PropTypes.string,
+        title: PropTypes.string,
+        linkIndex: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about the last toggled tree node.
+     * Format: {"col": 0, "row": 1, "isOpen": true, "depth": 0, "text": "Node", "timestamp": 1234567890}
+     */
+    treeNodeToggled: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        isOpen: PropTypes.bool,
+        depth: PropTypes.number,
+        text: PropTypes.string,
         timestamp: PropTypes.number
     }),
 

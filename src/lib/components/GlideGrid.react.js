@@ -605,6 +605,32 @@ GlideGrid.propTypes = {
     }),
 
     /**
+     * Information about the last clicked link in a links cell.
+     * Format: {"col": 0, "row": 1, "href": "https://example.com", "title": "Link", "linkIndex": 0, "timestamp": 1234567890}
+     */
+    linkClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        href: PropTypes.string,
+        title: PropTypes.string,
+        linkIndex: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about the last toggled tree node.
+     * Format: {"col": 0, "row": 1, "isOpen": true, "depth": 0, "text": "Node", "timestamp": 1234567890}
+     */
+    treeNodeToggled: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        isOpen: PropTypes.bool,
+        depth: PropTypes.number,
+        text: PropTypes.string,
+        timestamp: PropTypes.number
+    }),
+
+    /**
      * Array of column widths (updated when columns are resized).
      * Example: [200, 150, 300]
      */
