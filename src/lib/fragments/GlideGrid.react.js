@@ -7,21 +7,30 @@ import '@glideapps/glide-data-grid-cells/dist/index.css';
 import DropdownCellRenderer from '../cells/DropdownCellRenderer';
 import MultiSelectCellRenderer from '../cells/MultiSelectCellRenderer';
 import { createButtonCellRenderer } from '../cells/ButtonCellRenderer';
+import { createTagsCellRenderer } from '../cells/TagsCellRenderer';
+import { createUserProfileCellRenderer } from '../cells/UserProfileCellRenderer';
+import { createSpinnerCellRenderer } from '../cells/SpinnerCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
 
-// Static cell renderers: replace library's dropdown/multiselect/button with custom versions
+// Static cell renderers: replace library's versions with custom versions
 // Button renderer is added dynamically inside component to access setProps
 const staticRenderers = [
     ...allCells.filter(
         (c) =>
             !c.isMatch?.({ data: { kind: 'dropdown-cell' } }) &&
             !c.isMatch?.({ data: { kind: 'multi-select-cell' } }) &&
-            !c.isMatch?.({ data: { kind: 'button-cell' } })
+            !c.isMatch?.({ data: { kind: 'button-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'tags-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'user-profile-cell' } }) &&
+            !c.isMatch?.({ data: { kind: 'spinner-cell' } })
     ),
     DropdownCellRenderer,
     MultiSelectCellRenderer,
+    createTagsCellRenderer(),
+    createUserProfileCellRenderer(),
+    createSpinnerCellRenderer(),
 ];
 
 /**
@@ -128,12 +137,22 @@ function transformCellObject(cellObj) {
         'protected': GridCellKind.Protected
     };
 
-    // Handle custom cell types (dropdown, multiselect, button, etc.)
-    if (cellObj.kind === 'dropdown-cell' || cellObj.kind === 'multi-select-cell' || cellObj.kind === 'button-cell') {
+    // Handle custom cell types (dropdown, multiselect, button, tags, user-profile, spinner, etc.)
+    const customCellKinds = [
+        'dropdown-cell',
+        'multi-select-cell',
+        'button-cell',
+        'tags-cell',
+        'user-profile-cell',
+        'spinner-cell',
+    ];
+    if (customCellKinds.includes(cellObj.kind)) {
+        // Read-only cell types that don't need overlay editors
+        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell'];
         const result = {
             kind: GridCellKind.Custom,
-            allowOverlay: cellObj.kind !== 'button-cell' && cellObj.allowOverlay !== false,
-            copyData: cellObj.copyData || cellObj.title || '',
+            allowOverlay: !readOnlyCellKinds.includes(cellObj.kind) && cellObj.allowOverlay !== false,
+            copyData: cellObj.copyData || cellObj.title || cellObj.name || '',
             data: {
                 kind: cellObj.kind,
                 ...cellObj
@@ -1126,14 +1145,11 @@ const GlideGrid = (props) => {
         // Preserve format (object vs simple value)
         let newCellValue;
         if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
-            // Handle custom cells (dropdown, multiselect, etc.)
+            // Handle custom cells (dropdown, multiselect, tags, etc.)
             if (newValue.kind === GridCellKind.Custom) {
-                // For custom cells, update the entire data object
-                newCellValue = {
-                    ...oldValue,
-                    data: newValue.data,
-                    copy_data: newValue.copyData
-                };
+                // For custom cells, newValue.data IS the cell value
+                // (e.g., {kind: "tags-cell", tags: [...], possibleTags: [...]})
+                newCellValue = newValue.data;
             } else {
                 // Update the data property while preserving the object structure
                 newCellValue = { ...oldValue, data: newValue.data };
