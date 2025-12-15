@@ -1,18 +1,22 @@
 /**
  * Custom TagsCellRenderer for Dash integration.
  *
- * Displays colored tags as pill-shaped badges. Read-only.
+ * Displays colored tags as pill-shaped badges with an editable checkbox dropdown.
  *
  * Data structure:
  * {
  *   kind: "tags-cell",
- *   tags: [
- *     { tag: "python", color: "#3776ab" },
- *     { tag: "react", color: "#61dafb" }
- *   ]
+ *   tags: ["Feature", "Assigned"],           // Currently selected tag names
+ *   possibleTags: [                          // All available options with colors
+ *     { tag: "Bug", color: "#ef4444" },
+ *     { tag: "Feature", color: "#8b5cf6" },
+ *     { tag: "Assigned", color: "#22c55e" }
+ *   ],
+ *   readonly: false                          // Optional
  * }
  */
-import { GridCellKind, getMiddleCenterBias } from "@glideapps/glide-data-grid";
+import { useCallback } from "react";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 
 /**
  * Draw a rounded rectangle on canvas
@@ -32,6 +36,123 @@ function roundRect(ctx, x, y, width, height, radius) {
 }
 
 /**
+ * Get contrasting text color (white or black) based on background
+ */
+function getContrastColor(hexColor) {
+    if (!hexColor) return "#ffffff";
+    const hex = hexColor.replace("#", "");
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? "#000000" : "#ffffff";
+}
+
+/**
+ * Editor component for tags cell - shows checkboxes for each possible tag
+ */
+function TagsEditor({ value, onChange }) {
+    const { tags = [], possibleTags = [], readonly } = value.data;
+
+    const handleToggle = useCallback((tagName) => {
+        if (readonly) return;
+
+        const currentTags = new Set(tags);
+        if (currentTags.has(tagName)) {
+            currentTags.delete(tagName);
+        } else {
+            currentTags.add(tagName);
+        }
+
+        onChange({
+            ...value,
+            data: {
+                ...value.data,
+                tags: Array.from(currentTags)
+            }
+        });
+    }, [tags, readonly, value, onChange]);
+
+    if (possibleTags.length === 0) {
+        return (
+            <div style={{ padding: 8, color: "#6b7280", fontSize: 13 }}>
+                No options defined
+            </div>
+        );
+    }
+
+    return (
+        <div style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: 8,
+            gap: 2,
+            minWidth: 150,
+        }}>
+            {possibleTags.map((tagOption) => {
+                const isSelected = tags.includes(tagOption.tag);
+                const tagColor = tagOption.color || "#6b7280";
+
+                return (
+                    <label
+                        key={tagOption.tag}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            cursor: readonly ? "default" : "pointer",
+                        }}
+                    >
+                        {!readonly && (
+                            <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggle(tagOption.tag)}
+                                style={{
+                                    width: 16,
+                                    height: 16,
+                                    accentColor: tagColor,
+                                    cursor: "pointer",
+                                }}
+                            />
+                        )}
+                        <span
+                            className="tags-cell-pill"
+                            style={{
+                                display: "inline-block",
+                                padding: "2px 10px",
+                                borderRadius: 10,
+                                backgroundColor: isSelected ? tagColor : "transparent",
+                                color: isSelected ? getContrastColor(tagColor) : tagColor,
+                                fontSize: 13,
+                                fontWeight: 500,
+                                opacity: isSelected ? 1 : 0.8,
+                                transition: "all 0.15s",
+                                boxShadow: readonly ? "none" : undefined,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!readonly) {
+                                    e.currentTarget.style.boxShadow = "0 1px 4px rgba(0, 0, 0, 0.15)";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!readonly) {
+                                    e.currentTarget.style.boxShadow = "none";
+                                }
+                            }}
+                        >
+                            {tagOption.tag}
+                        </span>
+                    </label>
+                );
+            })}
+        </div>
+    );
+}
+
+/**
  * Factory function to create a TagsCellRenderer
  */
 export function createTagsCellRenderer() {
@@ -41,9 +162,15 @@ export function createTagsCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect } = args;
-            const { tags } = cell.data;
+            const { tags = [], possibleTags = [] } = cell.data;
 
-            if (!tags || tags.length === 0) {
+            // Build a map of tag -> color from possibleTags
+            const colorMap = new Map();
+            for (const pt of possibleTags) {
+                colorMap.set(pt.tag, pt.color);
+            }
+
+            if (tags.length === 0) {
                 return true;
             }
 
@@ -54,58 +181,48 @@ export function createTagsCellRenderer() {
             const tagRadius = tagHeight / 2;
             const verticalPadding = 4;
 
-            // Calculate vertical centering for single row
             const startY = rect.y + (rect.height - tagHeight) / 2;
             let currentX = rect.x + padding;
             let currentY = startY;
             const maxX = rect.x + rect.width - padding;
 
-            // Set up text style
             ctx.font = `12px ${theme.fontFamily}`;
             ctx.textBaseline = "middle";
 
-            for (const tagData of tags) {
-                const tagText = tagData.tag || "";
-                const tagColor = tagData.color || theme.accentColor || "#3b82f6";
+            for (const tagName of tags) {
+                const tagColor = colorMap.get(tagName) || theme.accentColor || "#6b7280";
 
-                // Measure text
-                const textWidth = ctx.measureText(tagText).width;
+                const textWidth = ctx.measureText(tagName).width;
                 const tagWidth = textWidth + tagPaddingX * 2;
 
-                // Check if we need to wrap to next row
                 if (currentX + tagWidth > maxX && currentX > rect.x + padding) {
                     currentX = rect.x + padding;
                     currentY += tagHeight + verticalPadding;
 
-                    // Stop if we've exceeded the cell height
                     if (currentY + tagHeight > rect.y + rect.height - verticalPadding) {
                         break;
                     }
                 }
 
-                // Draw tag background
                 roundRect(ctx, currentX, currentY, tagWidth, tagHeight, tagRadius);
                 ctx.fillStyle = tagColor;
                 ctx.fill();
 
-                // Draw tag text (white or dark based on background)
                 const textColor = getContrastColor(tagColor);
                 ctx.fillStyle = textColor;
                 ctx.textAlign = "center";
-                ctx.fillText(tagText, currentX + tagWidth / 2, currentY + tagHeight / 2);
+                ctx.fillText(tagName, currentX + tagWidth / 2, currentY + tagHeight / 2);
 
                 currentX += tagWidth + tagSpacing;
             }
 
-            // Reset text align
             ctx.textAlign = "start";
-
             return true;
         },
 
         measure: (ctx, cell, theme) => {
-            const { tags } = cell.data;
-            if (!tags || tags.length === 0) {
+            const { tags = [] } = cell.data;
+            if (tags.length === 0) {
                 return 50;
             }
 
@@ -114,51 +231,38 @@ export function createTagsCellRenderer() {
             const tagSpacing = 6;
 
             let totalWidth = theme.cellHorizontalPadding;
-            for (const tagData of tags) {
-                const textWidth = ctx.measureText(tagData.tag || "").width;
+            for (const tagName of tags) {
+                const textWidth = ctx.measureText(tagName).width;
                 totalWidth += textWidth + tagPaddingX * 2 + tagSpacing;
             }
 
             return totalWidth + theme.cellHorizontalPadding;
         },
 
-        // No click handling - read only
         onClick: () => undefined,
 
-        // No editor - read only
-        provideEditor: undefined,
+        provideEditor: () => ({
+            editor: TagsEditor,
+            disablePadding: true,
+            deletedValue: (v) => ({
+                ...v,
+                data: { ...v.data, tags: [] }
+            }),
+        }),
 
-        // Copy tags as comma-separated string
         onPaste: (val, data) => {
-            // Parse comma-separated tags
-            const newTags = val.split(",").map(t => t.trim()).filter(t => t);
+            // Parse comma-separated tags, only keep those in possibleTags
+            const possibleTagNames = new Set((data.possibleTags || []).map(pt => pt.tag));
+            const newTags = val
+                .split(",")
+                .map(t => t.trim())
+                .filter(t => t && possibleTagNames.has(t));
             return {
                 ...data,
-                tags: newTags.map(tag => ({ tag, color: "#6b7280" }))
+                tags: newTags
             };
         }
     };
-}
-
-/**
- * Get contrasting text color (white or black) based on background
- */
-function getContrastColor(hexColor) {
-    // Default to white if no color
-    if (!hexColor) return "#ffffff";
-
-    // Remove # if present
-    const hex = hexColor.replace("#", "");
-
-    // Parse RGB
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-
-    // Calculate luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-    return luminance > 0.5 ? "#000000" : "#ffffff";
 }
 
 export default createTagsCellRenderer;

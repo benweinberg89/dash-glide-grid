@@ -148,7 +148,7 @@ function transformCellObject(cellObj) {
     ];
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
-        const readOnlyCellKinds = ['button-cell', 'tags-cell', 'user-profile-cell', 'spinner-cell'];
+        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell'];
         const result = {
             kind: GridCellKind.Custom,
             allowOverlay: !readOnlyCellKinds.includes(cellObj.kind) && cellObj.allowOverlay !== false,
@@ -1145,14 +1145,11 @@ const GlideGrid = (props) => {
         // Preserve format (object vs simple value)
         let newCellValue;
         if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
-            // Handle custom cells (dropdown, multiselect, etc.)
+            // Handle custom cells (dropdown, multiselect, tags, etc.)
             if (newValue.kind === GridCellKind.Custom) {
-                // For custom cells, update the entire data object
-                newCellValue = {
-                    ...oldValue,
-                    data: newValue.data,
-                    copy_data: newValue.copyData
-                };
+                // For custom cells, newValue.data IS the cell value
+                // (e.g., {kind: "tags-cell", tags: [...], possibleTags: [...]})
+                newCellValue = newValue.data;
             } else {
                 // Update the data property while preserving the object structure
                 newCellValue = { ...oldValue, data: newValue.data };
