@@ -508,7 +508,7 @@ app.layout = html.Div(
                         html.Li("Rating (stars): 1, 2, 3, 4, 5"),
                         html.Li("Due Date: Jan, Feb, Mar, Jun, Dec"),
                         html.Li("Progress: 10%, 25%, 50%, 85%, 100%"),
-                        html.Li("Trend (sparkline by sum): 24, 49, 105, 120, 280"),
+                        html.Li("Trend (sparkline by avg): 4.8, 9.8, 21, 24, 56"),
                         html.Li("Button/Spinner: Should NOT sort (unsortable)"),
                     ],
                     id="expected-list",

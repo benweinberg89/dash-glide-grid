@@ -730,7 +730,8 @@ const GlideGrid = (props) => {
                 const values = cellValue.values || [];
                 if (values.length === 0) return '(Blank)';
                 const sum = values.reduce((a, b) => a + (b || 0), 0);
-                return `Sparkline (${sum.toFixed(1)})`;
+                const avg = sum / values.length;
+                return `Sparkline (avg: ${avg.toFixed(1)})`;
             }
 
             case 'tree-view-cell':
@@ -866,8 +867,10 @@ const GlideGrid = (props) => {
 
             case 'sparkline-cell': {
                 const sparkValues = cellValue.values || [];
+                if (sparkValues.length === 0) return { value: 0, type: 'number' };
                 const sum = sparkValues.reduce((acc, v) => acc + (v || 0), 0);
-                return { value: sum, type: 'number' };
+                const avg = sum / sparkValues.length;
+                return { value: avg, type: 'number' };
             }
 
             case 'tree-view-cell':
