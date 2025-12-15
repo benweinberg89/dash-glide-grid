@@ -179,30 +179,63 @@ export function createTagsCellRenderer() {
             const tagPaddingX = 8;
             const tagSpacing = 6;
             const tagRadius = tagHeight / 2;
-            const verticalPadding = 4;
 
             const startY = rect.y + (rect.height - tagHeight) / 2;
-            let currentX = rect.x + padding;
-            let currentY = startY;
-            const maxX = rect.x + rect.width - padding;
+            const availableWidth = rect.width - padding * 2;
 
             ctx.font = `12px ${theme.fontFamily}`;
             ctx.textBaseline = "middle";
 
-            for (const tagName of tags) {
-                const tagColor = colorMap.get(tagName) || theme.accentColor || "#6b7280";
-
+            // Pre-calculate tag widths
+            const tagWidths = tags.map(tagName => {
                 const textWidth = ctx.measureText(tagName).width;
-                const tagWidth = textWidth + tagPaddingX * 2;
+                return textWidth + tagPaddingX * 2;
+            });
 
-                if (currentX + tagWidth > maxX && currentX > rect.x + padding) {
-                    currentX = rect.x + padding;
-                    currentY += tagHeight + verticalPadding;
+            // Calculate total width needed
+            const totalWidth = tagWidths.reduce((sum, w) => sum + w + tagSpacing, 0) - tagSpacing;
 
-                    if (currentY + tagHeight > rect.y + rect.height - verticalPadding) {
+            // Determine if we need overflow indicator
+            let tagsToShow = tags.length;
+            let showOverflow = false;
+            let overflowCount = 0;
+
+            if (totalWidth > availableWidth) {
+                // Calculate how many tags fit with overflow indicator
+                // Reserve space for "+N" badge (estimate max width for "+99")
+                const overflowBadgeWidth = ctx.measureText("+99").width + tagPaddingX * 2;
+                const maxWidthWithOverflow = availableWidth - overflowBadgeWidth - tagSpacing;
+
+                let usedWidth = 0;
+                tagsToShow = 0;
+
+                for (let i = 0; i < tags.length; i++) {
+                    const newWidth = usedWidth + tagWidths[i] + (i > 0 ? tagSpacing : 0);
+                    if (newWidth <= maxWidthWithOverflow) {
+                        usedWidth = newWidth;
+                        tagsToShow++;
+                    } else {
                         break;
                     }
                 }
+
+                // Ensure at least some indication if no tags fit
+                if (tagsToShow === 0 && tags.length > 0) {
+                    tagsToShow = 0;
+                }
+
+                overflowCount = tags.length - tagsToShow;
+                showOverflow = overflowCount > 0;
+            }
+
+            // Draw visible tags
+            let currentX = rect.x + padding;
+            const currentY = startY;
+
+            for (let i = 0; i < tagsToShow; i++) {
+                const tagName = tags[i];
+                const tagColor = colorMap.get(tagName) || theme.accentColor || "#6b7280";
+                const tagWidth = tagWidths[i];
 
                 roundRect(ctx, currentX, currentY, tagWidth, tagHeight, tagRadius);
                 ctx.fillStyle = tagColor;
@@ -214,6 +247,25 @@ export function createTagsCellRenderer() {
                 ctx.fillText(tagName, currentX + tagWidth / 2, currentY + tagHeight / 2);
 
                 currentX += tagWidth + tagSpacing;
+            }
+
+            // Draw overflow indicator
+            if (showOverflow) {
+                const overflowText = `+${overflowCount}`;
+                const overflowTextWidth = ctx.measureText(overflowText).width;
+                const overflowWidth = overflowTextWidth + tagPaddingX * 2;
+
+                // Use theme colors for light/dark mode compatibility
+                const overflowBgColor = theme.bgBubble || theme.bgCellMedium || "#e5e7eb";
+                const overflowTextColor = theme.textMedium || theme.textDark || "#6b7280";
+
+                roundRect(ctx, currentX, currentY, overflowWidth, tagHeight, tagRadius);
+                ctx.fillStyle = overflowBgColor;
+                ctx.fill();
+
+                ctx.fillStyle = overflowTextColor;
+                ctx.textAlign = "center";
+                ctx.fillText(overflowText, currentX + overflowWidth / 2, currentY + tagHeight / 2);
             }
 
             ctx.textAlign = "start";
