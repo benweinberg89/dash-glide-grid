@@ -855,11 +855,19 @@ GlideGrid.propTypes = {
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
-     * Enable cell flash effect when cells are edited, pasted, or affected by undo/redo.
+     * Enable cell flash effect when cells are changed.
      * When enabled, cells will briefly highlight and fade out to indicate changes.
-     * Default is false.
+     * Can be:
+     * - true: Flash on all operations (edit, paste, undo, redo)
+     * - false: No flash (default)
+     * - Array of strings: Flash only on specified operations.
+     *   Valid values: "edit", "paste", "undo", "redo"
+     *   Example: ["paste", "undo", "redo"] to flash on paste and undo/redo but not regular edits
      */
-    showCellFlash: PropTypes.bool,
+    showCellFlash: PropTypes.oneOfType([
+        PropTypes.bool,
+        PropTypes.arrayOf(PropTypes.oneOf(["edit", "paste", "undo", "redo"]))
+    ]),
 
     /**
      * Initial horizontal scroll offset in pixels. Applied on mount.

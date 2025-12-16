@@ -889,10 +889,14 @@ Keyword arguments:
     selections. Useful for preventing selection of row label columns.
     Default: 0 (no restriction).
 
-- showCellFlash (boolean; default False):
-    Enable cell flash effect when cells are edited, pasted, or
-    affected by undo/redo. When enabled, cells will briefly highlight
-    and fade out to indicate changes. Default is False.
+- showCellFlash (boolean | list of a value equal to: "edit", "paste", "undo", "redo"s; default False):
+    Enable cell flash effect when cells are changed. When enabled,
+    cells will briefly highlight and fade out to indicate changes. Can
+    be: - True: Flash on all operations (edit, paste, undo, redo) -
+    False: No flash (default) - Array of strings: Flash only on
+    specified operations.   Valid values: \"edit\", \"paste\",
+    \"undo\", \"redo\"   Example: [\"paste\", \"undo\", \"redo\"] to
+    flash on paste and undo/redo but not regular edits.
 
 - showSearch (boolean; default False):
     Show/hide the built-in search interface. When enabled, displays a
@@ -1649,7 +1653,7 @@ Keyword arguments:
         rowAppended: typing.Optional["RowAppended"] = None,
         scrollToCell: typing.Optional["ScrollToCell"] = None,
         redrawTrigger: typing.Optional[typing.Union[NumberType, str]] = None,
-        showCellFlash: typing.Optional[bool] = None,
+        showCellFlash: typing.Optional[typing.Union[bool, typing.Sequence[Literal["edit", "paste", "undo", "redo"]]]] = None,
         scrollOffsetX: typing.Optional[NumberType] = None,
         scrollOffsetY: typing.Optional[NumberType] = None,
         keybindings: typing.Optional[dict] = None,

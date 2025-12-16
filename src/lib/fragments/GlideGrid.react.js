@@ -421,6 +421,14 @@ const GlideGrid = (props) => {
     // Map of "row,col" -> timestamp (performance.now())
     const [lastUpdatedCells, setLastUpdatedCells] = useState({});
 
+    // Helper to check if flash should be triggered for a specific operation
+    const shouldFlash = useCallback((operation) => {
+        if (showCellFlash === true) return true;
+        if (showCellFlash === false || !showCellFlash) return false;
+        if (Array.isArray(showCellFlash)) return showCellFlash.includes(operation);
+        return false;
+    }, [showCellFlash]);
+
     // ========== UNDO/REDO STATE ==========
     // Undo/redo history stacks
     const [undoStack, setUndoStack] = useState([]);  // Array of edit batches
@@ -528,7 +536,7 @@ const GlideGrid = (props) => {
         setRedoStack(prev => [...prev, batch]);
 
         // Set lastUpdated timestamps for flash effect on all affected cells
-        if (showCellFlash) {
+        if (shouldFlash('undo')) {
             const now = performance.now();
             const updatedCells = {};
             for (const edit of batch) {
@@ -583,7 +591,7 @@ const GlideGrid = (props) => {
         setUndoStack(prev => [...prev, batch]);
 
         // Set lastUpdated timestamps for flash effect on all affected cells
-        if (showCellFlash) {
+        if (shouldFlash('redo')) {
             const now = performance.now();
             const updatedCells = {};
             for (const edit of batch) {
@@ -1592,7 +1600,7 @@ const GlideGrid = (props) => {
         lastSentData.current = newData;
 
         // Set lastUpdated timestamp for flash effect
-        if (showCellFlash) {
+        if (shouldFlash('edit')) {
             const cellKey = `${actualRow},${col}`;
             setLastUpdatedCells(prev => ({ ...prev, [cellKey]: performance.now() }));
         }
@@ -1687,7 +1695,7 @@ const GlideGrid = (props) => {
         }
 
         // Set lastUpdated timestamps for flash effect on all pasted cells
-        if (showCellFlash) {
+        if (shouldFlash('paste')) {
             const now = performance.now();
             const updatedCells = {};
             for (let i = 0; i < values.length; i++) {
@@ -3742,11 +3750,19 @@ GlideGrid.propTypes = {
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
-     * Enable cell flash effect when cells are edited, pasted, or affected by undo/redo.
+     * Enable cell flash effect when cells are changed.
      * When enabled, cells will briefly highlight and fade out to indicate changes.
-     * Default is false.
+     * Can be:
+     * - true: Flash on all operations (edit, paste, undo, redo)
+     * - false: No flash (default)
+     * - Array of strings: Flash only on specified operations.
+     *   Valid values: "edit", "paste", "undo", "redo"
+     *   Example: ["paste", "undo", "redo"] to flash on paste and undo/redo but not regular edits
      */
-    showCellFlash: PropTypes.bool,
+    showCellFlash: PropTypes.oneOfType([
+        PropTypes.bool,
+        PropTypes.arrayOf(PropTypes.oneOf(["edit", "paste", "undo", "redo"]))
+    ]),
 
     /**
      * Initial horizontal scroll offset in pixels.

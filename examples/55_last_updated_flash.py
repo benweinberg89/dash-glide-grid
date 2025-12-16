@@ -2,11 +2,12 @@
 Example: Cell Flash Effect (lastUpdated)
 
 Demonstrates the lastUpdated feature that highlights cells when they change:
-- Cells flash when edited
-- Cells flash when undo/redo is performed
-- Cells flash when data is pasted
+- Cells flash when edited, undo/redo, or pasted
 - The flash effect fades out over 500ms
 - Flash color can be customized via theme.bgSearchResult
+- Can control which operations trigger flash:
+  - showCellFlash=True  (all operations)
+  - showCellFlash=["paste", "undo", "redo"]  (only specific operations)
 """
 
 import dash
@@ -37,16 +38,17 @@ columns = [
 
 app.layout = html.Div([
     html.H1("Cell Flash Effect Demo"),
-    html.P("When you edit a cell, it will briefly flash to show it was updated."),
+    html.P("Cells flash to show they were updated. This example only flashes on paste/undo/redo (not regular edits)."),
     html.Ul([
-        html.Li("Double-click a cell to edit it - the cell will flash when you finish"),
-        html.Li("Use Cmd+Z / Cmd+Shift+Z to undo/redo - affected cells will flash"),
-        html.Li("Copy cells (Cmd+C) and paste (Cmd+V) - pasted cells will flash"),
+        html.Li("Double-click a cell to edit it - NO flash (edit not in list)"),
+        html.Li("Use Cmd+Z / Cmd+Shift+Z to undo/redo - cells WILL flash"),
+        html.Li("Copy cells (Cmd+C) and paste (Cmd+V) - cells WILL flash"),
     ]),
     html.P([
-        "Flash color is set via ",
-        html.Code("theme={'bgSearchResult': '#00ff0055'}"),
-        " (green in this example)"
+        "Config: ",
+        html.Code("showCellFlash=['paste', 'undo', 'redo']"),
+        " | Color: ",
+        html.Code("theme={'bgSearchResult': '#00ff0055'}")
     ], style={"fontSize": "14px", "color": "#666"}),
 
     html.Div([
@@ -62,7 +64,7 @@ app.layout = html.Div([
         height=350,
         enableUndoRedo=True,
         enableCopyPaste=True,
-        showCellFlash=True,
+        showCellFlash=["paste", "undo", "redo"],  # Only flash on these operations
         theme={
             "bgSearchResult": "#00ff0055"  # Green flash color (with alpha)
         }
