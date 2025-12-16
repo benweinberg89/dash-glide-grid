@@ -2507,9 +2507,10 @@ const GlideGrid = (props) => {
                 }
             });
         }
-        // Return true to let the grid handle the edits normally
-        // (our onPaste/onFillPattern handlers will update the data)
-        return true;
+        // Return undefined to allow onCellEdited to still be called for single edits.
+        // Our onCellEdited/onPaste/onFillPattern handlers do the actual data updates.
+        // Returning true would prevent onCellEdited from firing.
+        return undefined;
     }, [setProps]);
 
     // Handle delete key press
