@@ -357,6 +357,7 @@ const GlideGrid = (props) => {
         editorScrollBehavior,
         redrawTrigger,
         showCellFlash,
+        allowDelete,
         setProps
     } = props;
 
@@ -2472,6 +2473,94 @@ const GlideGrid = (props) => {
         }
     }, [setProps, isEditorOpen]);
 
+    // Handle mouse move events (raw mouse movement, fires on every move)
+    const handleMouseMove = useCallback((args) => {
+        if (setProps) {
+            setProps({
+                mouseMove: {
+                    col: args.location ? args.location[0] : undefined,
+                    row: args.location ? args.location[1] : undefined,
+                    kind: args.kind,
+                    localEventX: args.localEventX,
+                    localEventY: args.localEventY,
+                    timestamp: Date.now()
+                }
+            });
+        }
+    }, [setProps]);
+
+    // Handle batch cell edits (paste/fill operations affecting multiple cells)
+    const handleCellsEdited = useCallback((edits) => {
+        if (setProps) {
+            // Transform edits to a Dash-friendly format
+            const editsList = edits.map(edit => ({
+                col: edit.location[0],
+                row: edit.location[1],
+                value: edit.value?.data ?? edit.value
+            }));
+
+            setProps({
+                cellsEdited: {
+                    edits: editsList,
+                    count: editsList.length,
+                    timestamp: Date.now()
+                }
+            });
+        }
+        // Return true to let the grid handle the edits normally
+        // (our onPaste/onFillPattern handlers will update the data)
+        return true;
+    }, [setProps]);
+
+    // Handle delete key press
+    const handleDelete = useCallback((selection) => {
+        if (setProps) {
+            // Extract selection info for Dash
+            const selectedCells = [];
+            const selectedRowIndices = [];
+            const selectedColIndices = [];
+
+            // Get selected rows
+            if (selection.rows) {
+                for (const row of selection.rows) {
+                    selectedRowIndices.push(row);
+                }
+            }
+
+            // Get selected columns
+            if (selection.columns) {
+                for (const col of selection.columns) {
+                    selectedColIndices.push(col);
+                }
+            }
+
+            // Get selected cell/range
+            if (selection.current) {
+                const range = selection.current.range;
+                if (range) {
+                    for (let row = range.y; row < range.y + range.height; row++) {
+                        for (let col = range.x; col < range.x + range.width; col++) {
+                            selectedCells.push({ col, row });
+                        }
+                    }
+                }
+            }
+
+            setProps({
+                deletePressed: {
+                    cells: selectedCells,
+                    rows: selectedRowIndices,
+                    columns: selectedColIndices,
+                    timestamp: Date.now()
+                }
+            });
+        }
+
+        // Return based on allowDelete prop
+        // false = prevent deletion, true = allow deletion
+        return allowDelete !== false;
+    }, [setProps, allowDelete]);
+
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {
         // Close editor on grid internal scroll if behavior is set
@@ -2893,6 +2982,9 @@ const GlideGrid = (props) => {
                 scrollToActiveCell={scrollToActiveCell}
                 columnSelectionMode={columnSelectionMode}
                 onItemHovered={handleItemHovered}
+                onMouseMove={handleMouseMove}
+                onCellsEdited={handleCellsEdited}
+                onDelete={!readonly ? handleDelete : undefined}
                 onVisibleRegionChanged={handleVisibleRegionChanged}
                 onColumnMoved={columnMovable !== false ? handleColumnMoved : undefined}
                 onRowMoved={rowMovable !== false ? handleRowMoved : undefined}
@@ -2991,6 +3083,7 @@ GlideGrid.defaultProps = {
     canUndo: false,
     canRedo: false,
     showCellFlash: false,
+    allowDelete: true,
 };
 
 GlideGrid.propTypes = {
@@ -3629,6 +3722,50 @@ GlideGrid.propTypes = {
         kind: PropTypes.string,
         timestamp: PropTypes.number
     }),
+
+    /**
+     * Information about mouse movement over the grid.
+     * Fires on every mouse move, providing raw position data.
+     */
+    mouseMove: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        kind: PropTypes.string,
+        localEventX: PropTypes.number,
+        localEventY: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about batch cell edits (paste or fill operations).
+     */
+    cellsEdited: PropTypes.shape({
+        edits: PropTypes.arrayOf(PropTypes.shape({
+            col: PropTypes.number,
+            row: PropTypes.number,
+            value: PropTypes.any
+        })),
+        count: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about delete key press events.
+     */
+    deletePressed: PropTypes.shape({
+        cells: PropTypes.arrayOf(PropTypes.shape({
+            col: PropTypes.number,
+            row: PropTypes.number
+        })),
+        rows: PropTypes.arrayOf(PropTypes.number),
+        columns: PropTypes.arrayOf(PropTypes.number),
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Controls whether the Delete key clears cell contents.
+     */
+    allowDelete: PropTypes.bool,
 
     // ========== VISIBLE REGION ==========
 

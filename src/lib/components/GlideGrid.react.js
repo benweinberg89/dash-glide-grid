@@ -67,7 +67,8 @@ GlideGrid.defaultProps = {
     canRedo: false,
     editorScrollBehavior: 'default',
     redrawTrigger: null,
-    showCellFlash: false
+    showCellFlash: false,
+    allowDelete: true
 };
 
 GlideGrid.propTypes = {
@@ -721,6 +722,61 @@ GlideGrid.propTypes = {
         kind: PropTypes.string,
         timestamp: PropTypes.number
     }),
+
+    /**
+     * Information about mouse movement over the grid.
+     * Fires on every mouse move, providing raw position data.
+     * More granular than itemHovered - useful for custom tooltips or highlighting.
+     * Format: {"col": 0, "row": 1, "kind": "cell", "localEventX": 150, "localEventY": 75, "timestamp": 1234567890}
+     */
+    mouseMove: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        kind: PropTypes.string,
+        localEventX: PropTypes.number,
+        localEventY: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about batch cell edits (paste or fill operations).
+     * Fires when multiple cells are edited at once, such as when pasting
+     * data or using the fill handle.
+     * Format: {"edits": [{"col": 0, "row": 0, "value": "x"}, ...], "count": 5, "timestamp": 1234567890}
+     */
+    cellsEdited: PropTypes.shape({
+        edits: PropTypes.arrayOf(PropTypes.shape({
+            col: PropTypes.number,
+            row: PropTypes.number,
+            value: PropTypes.any
+        })),
+        count: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Information about delete key press events.
+     * Fires when user presses Delete/Backspace on selected cells.
+     * Use with allowDelete prop to control whether deletion is allowed.
+     * Format: {"cells": [{"col": 0, "row": 0}, ...], "rows": [0, 1], "columns": [2], "timestamp": 1234567890}
+     */
+    deletePressed: PropTypes.shape({
+        cells: PropTypes.arrayOf(PropTypes.shape({
+            col: PropTypes.number,
+            row: PropTypes.number
+        })),
+        rows: PropTypes.arrayOf(PropTypes.number),
+        columns: PropTypes.arrayOf(PropTypes.number),
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Controls whether the Delete key clears cell contents.
+     * When true (default), pressing Delete clears selected cells.
+     * When false, Delete key is disabled and deletePressed still fires for custom handling.
+     * Default: true
+     */
+    allowDelete: PropTypes.bool,
 
     // ========== VISIBLE REGION ==========
 
