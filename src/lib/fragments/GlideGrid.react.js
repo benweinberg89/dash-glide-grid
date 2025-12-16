@@ -171,9 +171,12 @@ function transformCellObject(cellObj) {
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
         const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell'];
-        // Cells that use nested data structure (legacy format)
+        // Cells that support both nested (data: {}) and flat formats
         const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
-        const cellData = nestedDataCells.includes(cellObj.kind) ? (cellObj.data || {}) : cellObj;
+        // Use nested data if present, otherwise use flat format
+        const cellData = nestedDataCells.includes(cellObj.kind) && cellObj.data
+            ? cellObj.data  // nested: {"kind": "dropdown-cell", "data": {"value": "x"}}
+            : cellObj;      // flat: {"kind": "dropdown-cell", "value": "x"}
         const result = {
             kind: GridCellKind.Custom,
             allowOverlay: !readOnlyCellKinds.includes(cellObj.kind) && cellObj.allowOverlay !== false,
