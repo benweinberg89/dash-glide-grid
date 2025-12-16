@@ -89,18 +89,38 @@ function toInputValue(dateStr, format) {
 }
 
 /**
+ * Detect if a color is dark by calculating luminance.
+ * Handles hex (#rgb, #rrggbb) and rgba/rgb formats.
+ */
+function isDarkColor(color) {
+    if (!color) return false;
+    let r, g, b;
+
+    const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (rgbaMatch) {
+        [, r, g, b] = rgbaMatch.map(Number);
+    } else if (color.startsWith('#')) {
+        const hex = color.slice(1);
+        r = parseInt(hex.length === 3 ? hex[0]+hex[0] : hex.slice(0,2), 16);
+        g = parseInt(hex.length === 3 ? hex[1]+hex[1] : hex.slice(2,4), 16);
+        b = parseInt(hex.length === 3 ? hex[2]+hex[2] : hex.slice(4,6), 16);
+    } else {
+        return false;
+    }
+
+    // ITU-R BT.709 luminance formula
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
+}
+
+/**
  * Editor component for date picker cell - native HTML5 input
  */
 function DatePickerEditor({ value, onChange, theme }) {
     const { date, format = "date", min, max, step, readonly } = value.data;
     const inputRef = useRef(null);
 
-    // Detect dark mode from theme
-    const isDark = theme?.bgCell && (
-        theme.bgCell.startsWith("#1") ||
-        theme.bgCell.startsWith("#2") ||
-        theme.bgCell.startsWith("#0")
-    );
+    // Detect dark mode for native browser controls (colorScheme)
+    const isDark = isDarkColor(theme?.bgCell);
 
     // Auto-focus on mount
     useEffect(() => {
@@ -146,7 +166,7 @@ function DatePickerEditor({ value, onChange, theme }) {
             alignItems: "center",
             padding: "8px 12px",
             minWidth: format === "datetime-local" ? 240 : 180,
-            backgroundColor: isDark ? "#1f2937" : "#ffffff",
+            backgroundColor: theme?.bgCell || "#ffffff",
             colorScheme: isDark ? "dark" : "light",
         }}>
             <input
@@ -162,12 +182,12 @@ function DatePickerEditor({ value, onChange, theme }) {
                     flex: 1,
                     padding: "4px 8px",
                     fontSize: 14,
-                    border: `1px solid ${isDark ? "#4b5563" : "#d1d5db"}`,
+                    border: `1px solid ${theme?.borderColor || theme?.bgCellMedium || "#d1d5db"}`,
                     borderRadius: 4,
                     outline: "none",
                     cursor: readonly ? "default" : "pointer",
-                    backgroundColor: isDark ? "#374151" : "#ffffff",
-                    color: isDark ? "#f3f4f6" : "#111827",
+                    backgroundColor: theme?.bgCell || "#ffffff",
+                    color: theme?.textDark || "#111827",
                     colorScheme: isDark ? "dark" : "light",
                 }}
             />
