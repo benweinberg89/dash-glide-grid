@@ -194,6 +194,9 @@ function transformCellObject(cellObj) {
         if (cellObj.themeOverride) {
             result.themeOverride = cellObj.themeOverride;
         }
+        if (cellObj.lastUpdated !== undefined) {
+            result.lastUpdated = cellObj.lastUpdated;
+        }
 
         return result;
     }
@@ -223,6 +226,9 @@ function transformCellObject(cellObj) {
     }
     if (cellObj.allowWrapping !== undefined) {
         result.allowWrapping = cellObj.allowWrapping;
+    }
+    if (cellObj.lastUpdated !== undefined) {
+        result.lastUpdated = cellObj.lastUpdated;
     }
 
     // Handle specific cell type properties
@@ -350,6 +356,7 @@ const GlideGrid = (props) => {
         undoRedoAction,
         editorScrollBehavior,
         redrawTrigger,
+        showCellFlash,
         setProps
     } = props;
 
@@ -408,6 +415,11 @@ const GlideGrid = (props) => {
 
     // Ref for the DataEditor to control scroll position
     const gridRef = useRef(null);
+
+    // ========== LAST UPDATED STATE ==========
+    // Track lastUpdated timestamps for cells (for flash effect on edit/undo/redo)
+    // Map of "row,col" -> timestamp (performance.now())
+    const [lastUpdatedCells, setLastUpdatedCells] = useState({});
 
     // ========== UNDO/REDO STATE ==========
     // Undo/redo history stacks
@@ -515,6 +527,16 @@ const GlideGrid = (props) => {
         setUndoStack(prev => prev.slice(0, -1));
         setRedoStack(prev => [...prev, batch]);
 
+        // Set lastUpdated timestamps for flash effect on all affected cells
+        if (showCellFlash) {
+            const now = performance.now();
+            const updatedCells = {};
+            for (const edit of batch) {
+                updatedCells[`${edit.row},${edit.col}`] = now;
+            }
+            setLastUpdatedCells(prev => ({ ...prev, ...updatedCells }));
+        }
+
         // Sync with Dash
         if (setProps) {
             setProps({
@@ -559,6 +581,16 @@ const GlideGrid = (props) => {
         // Move batch to undo stack
         setRedoStack(prev => prev.slice(0, -1));
         setUndoStack(prev => [...prev, batch]);
+
+        // Set lastUpdated timestamps for flash effect on all affected cells
+        if (showCellFlash) {
+            const now = performance.now();
+            const updatedCells = {};
+            for (const edit of batch) {
+                updatedCells[`${edit.row},${edit.col}`] = now;
+            }
+            setLastUpdatedCells(prev => ({ ...prev, ...updatedCells }));
+        }
 
         // Sync with Dash
         if (setProps) {
@@ -1471,8 +1503,17 @@ const GlideGrid = (props) => {
             }
         }
 
+        // Apply lastUpdated timestamp if this cell was recently edited
+        const cellKey = `${actualRow},${col}`;
+        if (lastUpdatedCells[cellKey]) {
+            cellResult = {
+                ...cellResult,
+                lastUpdated: lastUpdatedCells[cellKey]
+            };
+        }
+
         return cellResult;
-    }, [localData, localColumns, sortedIndices]);
+    }, [localData, localColumns, sortedIndices, lastUpdatedCells]);
 
     // Handle cell clicks
     const handleCellClicked = useCallback((cell) => {
@@ -1549,6 +1590,12 @@ const GlideGrid = (props) => {
 
         // Store this data so we can ignore it when it comes back from Dash
         lastSentData.current = newData;
+
+        // Set lastUpdated timestamp for flash effect
+        if (showCellFlash) {
+            const cellKey = `${actualRow},${col}`;
+            setLastUpdatedCells(prev => ({ ...prev, [cellKey]: performance.now() }));
+        }
 
         // Sync with Dash (report actualRow so it matches data array indices)
         setProps({
@@ -1637,6 +1684,24 @@ const GlideGrid = (props) => {
                     newValue: newCellValue
                 });
             }
+        }
+
+        // Set lastUpdated timestamps for flash effect on all pasted cells
+        if (showCellFlash) {
+            const now = performance.now();
+            const updatedCells = {};
+            for (let i = 0; i < values.length; i++) {
+                const displayRow = targetRow + i;
+                if (displayRow >= newData.length) break;
+                const actualPasteRow = sortedIndices ? sortedIndices[displayRow] : displayRow;
+                if (actualPasteRow >= newData.length) break;
+                for (let j = 0; j < values[i].length; j++) {
+                    const pasteCol = targetCol + j;
+                    if (pasteCol >= currentColumns.length) break;
+                    updatedCells[`${actualPasteRow},${pasteCol}`] = now;
+                }
+            }
+            setLastUpdatedCells(prev => ({ ...prev, ...updatedCells }));
         }
 
         // Update local state immediately (optimistic update)
@@ -2917,6 +2982,7 @@ GlideGrid.defaultProps = {
     maxUndoSteps: 50,
     canUndo: false,
     canRedo: false,
+    showCellFlash: false,
 };
 
 GlideGrid.propTypes = {
@@ -3674,6 +3740,13 @@ GlideGrid.propTypes = {
      * periodic updates (animations, hover effects, etc.)
      */
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+    /**
+     * Enable cell flash effect when cells are edited, pasted, or affected by undo/redo.
+     * When enabled, cells will briefly highlight and fade out to indicate changes.
+     * Default is false.
+     */
+    showCellFlash: PropTypes.bool,
 
     /**
      * Initial horizontal scroll offset in pixels.

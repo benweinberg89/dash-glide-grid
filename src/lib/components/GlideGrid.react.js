@@ -66,7 +66,8 @@ GlideGrid.defaultProps = {
     canUndo: false,
     canRedo: false,
     editorScrollBehavior: 'default',
-    redrawTrigger: null
+    redrawTrigger: null,
+    showCellFlash: false
 };
 
 GlideGrid.propTypes = {
@@ -852,6 +853,13 @@ GlideGrid.propTypes = {
      * periodic updates (animations, hover effects, etc.)
      */
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+    /**
+     * Enable cell flash effect when cells are edited, pasted, or affected by undo/redo.
+     * When enabled, cells will briefly highlight and fade out to indicate changes.
+     * Default is false.
+     */
+    showCellFlash: PropTypes.bool,
 
     /**
      * Initial horizontal scroll offset in pixels. Applied on mount.
