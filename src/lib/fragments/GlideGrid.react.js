@@ -2474,8 +2474,9 @@ const GlideGrid = (props) => {
     }, [setProps, isEditorOpen]);
 
     // Handle mouse move events (raw mouse movement, fires on every move)
+    // Skip when editor is open to prevent re-renders that interfere with text input
     const handleMouseMove = useCallback((args) => {
-        if (setProps) {
+        if (setProps && !isEditorOpen) {
             setProps({
                 mouseMove: {
                     col: args.location ? args.location[0] : undefined,
@@ -2487,7 +2488,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, isEditorOpen]);
 
     // Handle batch cell edits (paste/fill operations affecting multiple cells)
     const handleCellsEdited = useCallback((edits) => {
