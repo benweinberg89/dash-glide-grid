@@ -144,9 +144,14 @@ export function createButtonCellRenderer(onButtonClick) {
         onPointerEnter: () => ({ cursor: "pointer" }),
         onPointerLeave: () => undefined,
 
-        // Prevent cell selection when clicking button - must call preventDefault
+        // Only prevent cell selection when clicking directly on the button
         onSelect: (args) => {
-            args.preventDefault();
+            const { posX, posY, bounds, theme } = args;
+            // Check if click is within button bounds
+            if (isPointInButton(posX, posY, bounds, theme)) {
+                args.preventDefault();
+            }
+            // Otherwise allow selection
         },
 
         // No editor for buttons
