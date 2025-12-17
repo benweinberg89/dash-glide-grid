@@ -178,22 +178,52 @@ export function createLinksCellRenderer(onLinkClick) {
         onPointerEnter: () => ({ cursor: "pointer" }),
         onPointerLeave: () => undefined,
 
-        // Prevent cell selection when clicking links
+        // Only prevent cell selection when clicking directly on a link
         onSelect: (args) => {
-            args.preventDefault();
+            const { cell, posX } = args;
+            const { links = [] } = cell.data;
+
+            // Check if click is on a link (same logic as onClick)
+            const padding = 8;
+            const separator = ", ";
+
+            let relativeX = padding;
+            for (let i = 0; i < links.length; i++) {
+                const link = links[i];
+                const title = link.title || link.href || "Link";
+                const textWidth = title.length * 7;
+
+                if (posX >= relativeX && posX <= relativeX + textWidth) {
+                    // Clicking on a link - prevent selection
+                    args.preventDefault();
+                    return;
+                }
+
+                relativeX += textWidth;
+                if (i < links.length - 1) {
+                    relativeX += separator.length * 7;
+                }
+            }
+            // Not clicking on a link - allow selection
         },
 
         // No editor for links
         provideEditor: undefined,
 
-        // Copy link URLs
+        // Parse pasted links - supports markdown format [title](url) or plain URLs
         onPaste: (val, data) => {
-            // Parse comma-separated URLs
-            const urls = val.split(",").map(u => u.trim()).filter(u => u);
-            return {
-                ...data,
-                links: urls.map(url => ({ title: url, href: url }))
-            };
+            // Parse comma-separated, supporting [title](url) markdown format
+            const parts = val.split(",").map(p => p.trim()).filter(p => p);
+            const links = parts.map(part => {
+                // Check for markdown link format [title](url)
+                const match = part.match(/^\[([^\]]*)\]\(([^)]*)\)$/);
+                if (match) {
+                    return { title: match[1], href: match[2] };
+                }
+                // Plain URL - use as both title and href
+                return { title: part, href: part };
+            });
+            return { ...data, links };
         }
     };
 }

@@ -195,8 +195,14 @@ function transformCellObject(cellObj) {
                 case 'range-cell':
                     return cellData.label || (cellData.value != null ? String(cellData.value) : '');
                 case 'links-cell':
+                    // Use markdown format [title](url) to preserve both title and href
                     return Array.isArray(cellData.links)
-                        ? cellData.links.map(l => l.href || l.title || '').join(', ')
+                        ? cellData.links.map(l => {
+                            const title = l.title || l.href || '';
+                            const href = l.href || '';
+                            // Only use markdown if title differs from href
+                            return title === href ? href : `[${title}](${href})`;
+                        }).join(', ')
                         : '';
                 case 'sparkline-cell':
                     return Array.isArray(cellData.values) ? cellData.values.join(', ') : '';

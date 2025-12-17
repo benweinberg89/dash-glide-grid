@@ -16,7 +16,7 @@ Copy behavior (what goes to clipboard):
 - star-cell: rating number
 - date-picker-cell: display date or ISO date
 - range-cell: label or value
-- links-cell: comma-separated URLs
+- links-cell: markdown format [title](url), preserves both title and URL
 - sparkline-cell: comma-separated values
 - tree-view-cell: text
 - user-profile-cell: name
@@ -256,7 +256,7 @@ app.layout = html.Div(
                         html.Tr(
                             [
                                 html.Td("Links"),
-                                html.Td("https://google.com, https://github.com"),
+                                html.Td("[Google](https://google.com), [GitHub](https://github.com)"),
                             ]
                         ),
                         html.Tr([html.Td("Sparkline"), html.Td("10, 25, 15, 40, 30")]),
