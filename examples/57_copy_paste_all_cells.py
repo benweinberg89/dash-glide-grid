@@ -18,7 +18,7 @@ Copy behavior (what goes to clipboard):
 - range-cell: label or value
 - links-cell: markdown format [title](url), preserves both title and URL
 - sparkline-cell: comma-separated values
-- tree-view-cell: text
+- tree-view-cell: text|depth|canOpen|isOpen (preserves tree structure)
 - user-profile-cell: name
 - button-cell: title
 - spinner-cell: empty
@@ -218,6 +218,7 @@ app.layout = html.Div(
             data=DATA,
             height=200,
             enableCopyPaste=True,
+            fillHandle=True,
             rowMarkers="number",
         ),
         html.Div(
@@ -260,7 +261,7 @@ app.layout = html.Div(
                             ]
                         ),
                         html.Tr([html.Td("Sparkline"), html.Td("10, 25, 15, 40, 30")]),
-                        html.Tr([html.Td("Tree"), html.Td("Parent Node")]),
+                        html.Tr([html.Td("Tree"), html.Td("Parent Node|0|true|false")]),
                         html.Tr([html.Td("Profile"), html.Td("Alice Johnson")]),
                         html.Tr([html.Td("Button"), html.Td("Click Me")]),
                         html.Tr([html.Td("Spinner"), html.Td("(empty)")]),

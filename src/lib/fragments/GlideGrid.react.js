@@ -207,7 +207,8 @@ function transformCellObject(cellObj) {
                 case 'sparkline-cell':
                     return Array.isArray(cellData.values) ? cellData.values.join(', ') : '';
                 case 'tree-view-cell':
-                    return cellData.text || '';
+                    // Use pipe-delimited format to preserve tree structure: text|depth|canOpen|isOpen
+                    return `${cellData.text || ''}|${cellData.depth || 0}|${cellData.canOpen || false}|${cellData.isOpen || false}`;
                 case 'user-profile-cell':
                     return cellData.name || '';
                 case 'button-cell':

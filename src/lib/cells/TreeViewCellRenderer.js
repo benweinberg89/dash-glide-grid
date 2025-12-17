@@ -169,11 +169,22 @@ export function createTreeViewCellRenderer(onToggle) {
         // No editor for tree view cells
         provideEditor: undefined,
 
-        // Copy the text
-        onPaste: (val, data) => ({
-            ...data,
-            text: val
-        })
+        // Parse pasted tree data - supports format: text|depth|canOpen|isOpen
+        onPaste: (val, data) => {
+            // Check for pipe-delimited format: text|depth|canOpen|isOpen
+            const parts = val.split('|');
+            if (parts.length >= 4) {
+                return {
+                    ...data,
+                    text: parts[0],
+                    depth: parseInt(parts[1], 10) || 0,
+                    canOpen: parts[2] === 'true',
+                    isOpen: parts[3] === 'true'
+                };
+            }
+            // Plain text - just update the text, keep other properties
+            return { ...data, text: val };
+        }
     };
 }
 
