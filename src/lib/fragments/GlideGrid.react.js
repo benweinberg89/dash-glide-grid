@@ -177,10 +177,45 @@ function transformCellObject(cellObj) {
         const cellData = nestedDataCells.includes(cellObj.kind) && cellObj.data
             ? cellObj.data  // nested: {"kind": "dropdown-cell", "data": {"value": "x"}}
             : cellObj;      // flat: {"kind": "dropdown-cell", "value": "x"}
+
+        // Auto-derive copyData from cell value if not explicitly provided
+        const deriveCopyData = () => {
+            if (cellObj.copyData) return cellObj.copyData;
+            switch (cellObj.kind) {
+                case 'dropdown-cell':
+                    return cellData.value || '';
+                case 'multi-select-cell':
+                    return Array.isArray(cellData.values) ? cellData.values.join(', ') : '';
+                case 'tags-cell':
+                    return Array.isArray(cellData.tags) ? cellData.tags.join(', ') : '';
+                case 'star-cell':
+                    return cellData.rating != null ? String(cellData.rating) : '';
+                case 'date-picker-cell':
+                    return cellData.displayDate || cellData.date || '';
+                case 'range-cell':
+                    return cellData.label || (cellData.value != null ? String(cellData.value) : '');
+                case 'links-cell':
+                    return Array.isArray(cellData.links)
+                        ? cellData.links.map(l => l.href || l.title || '').join(', ')
+                        : '';
+                case 'sparkline-cell':
+                    return Array.isArray(cellData.values) ? cellData.values.join(', ') : '';
+                case 'tree-view-cell':
+                    return cellData.text || '';
+                case 'user-profile-cell':
+                    return cellData.name || '';
+                case 'button-cell':
+                    return cellData.title || '';
+                case 'spinner-cell':
+                default:
+                    return cellObj.title || cellObj.name || '';
+            }
+        };
+
         const result = {
             kind: GridCellKind.Custom,
             allowOverlay: !readOnlyCellKinds.includes(cellObj.kind) && cellObj.allowOverlay !== false,
-            copyData: cellObj.copyData || cellObj.title || cellObj.name || '',
+            copyData: deriveCopyData(),
             data: {
                 kind: cellObj.kind,
                 ...cellData
@@ -440,6 +475,9 @@ const GlideGrid = (props) => {
     const batchTimeoutRef = useRef(null);            // For batching rapid edits
     const currentBatchRef = useRef([]);              // Current batch of edits being collected
     const lastUndoRedoActionRef = useRef(null);      // Track last processed undoRedoAction
+
+    // Ref to hold custom renderers for use in handlePaste
+    const customRenderersRef = useRef(null);
 
     // Keep refs in sync with state
     useEffect(() => {
@@ -1157,6 +1195,11 @@ const GlideGrid = (props) => {
         createTreeViewCellRenderer(treeNodeToggleHandler)
     ], [buttonClickHandler, linkClickHandler, treeNodeToggleHandler]);
 
+    // Keep customRenderers ref in sync for use in handlePaste
+    useEffect(() => {
+        customRenderersRef.current = customRenderers;
+    }, [customRenderers]);
+
     // Keep search value ref in sync with state
     useEffect(() => {
         localSearchValueRef.current = localSearchValue;
@@ -1661,8 +1704,16 @@ const GlideGrid = (props) => {
                 // Preserve format (object vs simple value) and convert pasted string to appropriate type
                 let newCellValue;
                 if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
-                    // Cell object - update data property with type conversion
-                    if (oldValue.kind === 'number') {
+                    // Cell object - check for custom cell renderer with onPaste method
+                    const renderer = customRenderersRef.current?.find(r =>
+                        r.isMatch?.({ data: oldValue })
+                    );
+                    if (renderer?.onPaste) {
+                        // Call custom renderer's onPaste to transform the pasted value
+                        const transformed = renderer.onPaste(pastedValue, oldValue);
+                        // If onPaste returns undefined, keep the old value (reject paste)
+                        newCellValue = transformed !== undefined ? transformed : oldValue;
+                    } else if (oldValue.kind === 'number') {
                         const num = parseFloat(pastedValue);
                         newCellValue = { ...oldValue, data: isNaN(num) ? 0 : num };
                     } else if (oldValue.kind === 'boolean') {
