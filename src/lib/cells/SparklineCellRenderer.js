@@ -287,10 +287,8 @@ export function createSparklineCellRenderer() {
 
         onPaste: (val, data) => {
             const values = val.split(",").map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
-            return {
-                ...data,
-                values
-            };
+            // Keep original if no valid numbers found
+            return values.length > 0 ? { ...data, values } : data;
         }
     };
 }

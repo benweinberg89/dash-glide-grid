@@ -309,10 +309,8 @@ export function createTagsCellRenderer() {
                 .split(",")
                 .map(t => t.trim())
                 .filter(t => t && possibleTagNames.has(t));
-            return {
-                ...data,
-                tags: newTags
-            };
+            // Keep original if no valid tags found
+            return newTags.length > 0 ? { ...data, tags: newTags } : data;
         }
     };
 }
