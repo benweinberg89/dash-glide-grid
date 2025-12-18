@@ -2492,7 +2492,24 @@ const GlideGrid = (props) => {
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
-        setIsEditorOpen(true);
+        // Get the cell content to check if it has an overlay editor
+        const cellContent = getCellContent(cell);
+
+        // Only set isEditorOpen if the cell actually supports overlays
+        // This prevents scroll locking for cells like button, spinner, links, etc.
+        if (cellContent.allowOverlay) {
+            setIsEditorOpen(true);
+
+            // Safety fallback: if portal is still empty after a short delay,
+            // the overlay didn't actually open (e.g., cell renderer has no provideEditor)
+            setTimeout(() => {
+                const portal = document.getElementById('portal');
+                if (portal && portal.children.length === 0) {
+                    setIsEditorOpen(false);
+                }
+            }, 50);
+        }
+
         if (setProps) {
             setProps({
                 cellActivated: {
@@ -2502,7 +2519,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, getCellContent]);
 
     // Handle item hover changes
     const handleItemHovered = useCallback((args) => {
