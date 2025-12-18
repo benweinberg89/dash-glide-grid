@@ -10,7 +10,7 @@
  *   maxStars: 5       // Optional, defaults to 5
  * }
  */
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 
 /**
@@ -38,8 +38,19 @@ function drawStar(ctx, cx, cy, outerRadius, innerRadius) {
 /**
  * Editor component for star cell - shows clickable stars
  */
-function StarEditor({ value, onChange }) {
+function StarEditor({ value, onChange, onFinishedEditing }) {
     const { rating = 0, maxStars = 5, readonly } = value.data;
+
+    // Handle Escape key to close editor
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onFinishedEditing(value, [0, 0]);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [value, onFinishedEditing]);
 
     const handleClick = useCallback((newRating) => {
         if (readonly) return;

@@ -18,7 +18,7 @@ import dash_glide_grid as dgg
 
 app = Dash(__name__)
 
-# Status options for dropdowns
+# Status options for dropdowns (many options to test scrollable dropdown)
 STATUS_OPTIONS = [
     {"value": "active", "label": "Active", "color": "#10b981"},
     {"value": "pending", "label": "Pending", "color": "#f59e0b"},
@@ -28,6 +28,16 @@ STATUS_OPTIONS = [
     {"value": "blocked", "label": "Blocked", "color": "#ef4444"},
     {"value": "deferred", "label": "Deferred", "color": "#a855f7"},
     {"value": "cancelled", "label": "Cancelled", "color": "#78716c"},
+    {"value": "draft", "label": "Draft", "color": "#94a3b8"},
+    {"value": "submitted", "label": "Submitted", "color": "#06b6d4"},
+    {"value": "approved", "label": "Approved", "color": "#22c55e"},
+    {"value": "rejected", "label": "Rejected", "color": "#dc2626"},
+    {"value": "onhold", "label": "On Hold", "color": "#eab308"},
+    {"value": "scheduled", "label": "Scheduled", "color": "#6366f1"},
+    {"value": "inprogress", "label": "In Progress", "color": "#0ea5e9"},
+    {"value": "testing", "label": "Testing", "color": "#f472b6"},
+    {"value": "deployed", "label": "Deployed", "color": "#84cc16"},
+    {"value": "maintenance", "label": "Maintenance", "color": "#fb923c"},
 ]
 
 # Tag definitions
@@ -43,7 +53,7 @@ TAG_DEFS = [
     {"tag": "Frontend", "color": "#a855f7"},
 ]
 
-# Skill options for multi-select
+# Skill options for multi-select (many options to test scrollable dropdown)
 SKILL_OPTIONS = [
     {"value": "python", "label": "Python", "color": "#3776ab"},
     {"value": "javascript", "label": "JavaScript", "color": "#f7df1e"},
@@ -53,6 +63,18 @@ SKILL_OPTIONS = [
     {"value": "typescript", "label": "TypeScript", "color": "#3178c6"},
     {"value": "react", "label": "React", "color": "#61dafb"},
     {"value": "docker", "label": "Docker", "color": "#2496ed"},
+    {"value": "kubernetes", "label": "Kubernetes", "color": "#326ce5"},
+    {"value": "aws", "label": "AWS", "color": "#ff9900"},
+    {"value": "gcp", "label": "GCP", "color": "#4285f4"},
+    {"value": "azure", "label": "Azure", "color": "#0078d4"},
+    {"value": "nodejs", "label": "Node.js", "color": "#339933"},
+    {"value": "java", "label": "Java", "color": "#007396"},
+    {"value": "csharp", "label": "C#", "color": "#239120"},
+    {"value": "cpp", "label": "C++", "color": "#00599c"},
+    {"value": "ruby", "label": "Ruby", "color": "#cc342d"},
+    {"value": "php", "label": "PHP", "color": "#777bb4"},
+    {"value": "swift", "label": "Swift", "color": "#fa7343"},
+    {"value": "kotlin", "label": "Kotlin", "color": "#7f52ff"},
 ]
 
 # Column definitions - all 23 cell types

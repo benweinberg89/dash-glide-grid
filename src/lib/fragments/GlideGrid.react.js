@@ -1333,19 +1333,19 @@ const GlideGrid = (props) => {
             });
 
             if (portal) {
-                // 1. Dispatch to input (closes react-select dropdown)
+                // 1. Dispatch Escape to input (closes react-select dropdown)
                 const input = portal.querySelector('input, textarea, [contenteditable]');
                 if (input) {
                     input.dispatchEvent(escapeEvent);
                 }
 
-                // 2. Dispatch to overlay container
+                // 2. Dispatch Escape to overlay container
                 if (portal.firstElementChild) {
                     portal.firstElementChild.dispatchEvent(escapeEvent);
                 }
             }
 
-            // 3. Dispatch to document
+            // 3. Dispatch Escape to document
             document.dispatchEvent(escapeEvent);
 
             // 4. Focus the grid to trigger blur on editor
@@ -1353,7 +1353,15 @@ const GlideGrid = (props) => {
                 gridRef.current.focus();
             }
 
-            // MutationObserver will detect when overlay closes and update isEditorOpen
+            // 5. Fallback: If overlay still exists after escape attempts, just unlock scroll
+            // Don't manually remove DOM nodes - let React/Glide handle cleanup
+            // This handles built-in Glide overlays (image, drilldown) that don't respond to escape
+            setTimeout(() => {
+                const portalAfter = document.getElementById('portal');
+                if (portalAfter && portalAfter.children.length > 0) {
+                    setIsEditorOpen(false);
+                }
+            }, 50);
         };
 
         const handleWheel = (e) => {
