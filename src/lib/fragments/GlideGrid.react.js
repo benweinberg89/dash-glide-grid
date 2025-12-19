@@ -1735,6 +1735,21 @@ const GlideGrid = (props) => {
                             // Reject paste - keep old value
                             newCellValue = { ...oldValue };
                         }
+                    } else if (oldValue.kind === 'bubble') {
+                        // Bubble data is an array of strings - parse comma-separated values
+                        const bubbles = pastedValue
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(s => s.length > 0);
+                        newCellValue = { ...oldValue, data: bubbles };
+                    } else if (oldValue.kind === 'drilldown') {
+                        // Drilldown data is an array of objects with text property
+                        const items = pastedValue
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(s => s.length > 0)
+                            .map(text => ({ text }));
+                        newCellValue = { ...oldValue, data: items };
                     } else {
                         newCellValue = { ...oldValue, data: pastedValue };
                     }
