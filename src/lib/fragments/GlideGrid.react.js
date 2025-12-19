@@ -253,7 +253,8 @@ function transformCellObject(cellObj) {
 
     // Only set displayData for cell types that use it (not Image, Loading, or Protected cells)
     if (cellKind !== GridCellKind.Image && cellKind !== GridCellKind.Loading && cellKind !== GridCellKind.Protected) {
-        result.displayData = cellObj.displayData || String(cellObj.data || '');
+        // Use ?? instead of || to preserve falsy values like 0 and false
+        result.displayData = cellObj.displayData ?? String(cellObj.data ?? '');
     }
 
     // Add optional properties if present
@@ -1722,7 +1723,8 @@ const GlideGrid = (props) => {
                         newCellValue = transformed !== undefined ? transformed : oldValue;
                     } else if (oldValue.kind === 'number') {
                         const num = parseFloat(pastedValue);
-                        newCellValue = { ...oldValue, data: isNaN(num) ? 0 : num };
+                        // Reject paste if not a valid number - keep old value
+                        newCellValue = isNaN(num) ? oldValue : { ...oldValue, data: num };
                     } else if (oldValue.kind === 'boolean') {
                         newCellValue = { ...oldValue, data: pastedValue.toLowerCase() === 'true' };
                     } else {
@@ -1732,7 +1734,8 @@ const GlideGrid = (props) => {
                     // Simple value - try to preserve type
                     if (typeof oldValue === 'number') {
                         const num = parseFloat(pastedValue);
-                        newCellValue = isNaN(num) ? 0 : num;
+                        // Reject paste if not a valid number - keep old value
+                        newCellValue = isNaN(num) ? oldValue : num;
                     } else if (typeof oldValue === 'boolean') {
                         newCellValue = pastedValue.toLowerCase() === 'true';
                     } else {
