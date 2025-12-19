@@ -1727,9 +1727,9 @@ const GlideGrid = (props) => {
                         newCellValue = isNaN(num) ? oldValue : { ...oldValue, data: num };
                     } else if (oldValue.kind === 'boolean') {
                         const lowerVal = pastedValue.toLowerCase().trim();
-                        if (['true', '1', 'yes'].includes(lowerVal)) {
+                        if (lowerVal === 'true') {
                             newCellValue = { ...oldValue, data: true };
-                        } else if (['false', '0', 'no'].includes(lowerVal)) {
+                        } else if (lowerVal === 'false') {
                             newCellValue = { ...oldValue, data: false };
                         } else {
                             // Reject paste - keep old value
@@ -1746,9 +1746,9 @@ const GlideGrid = (props) => {
                         newCellValue = isNaN(num) ? oldValue : num;
                     } else if (typeof oldValue === 'boolean') {
                         const lowerVal = pastedValue.toLowerCase().trim();
-                        if (['true', '1', 'yes'].includes(lowerVal)) {
+                        if (lowerVal === 'true') {
                             newCellValue = true;
-                        } else if (['false', '0', 'no'].includes(lowerVal)) {
+                        } else if (lowerVal === 'false') {
                             newCellValue = false;
                         } else {
                             // Reject paste - keep old value
