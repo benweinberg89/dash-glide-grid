@@ -22,7 +22,7 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 | **Cost** | Free | Free | Free | \$999/developer + \$750/deployment |
 | **Rendering** | Canvas | DOM | DOM | DOM |
 | **Large Data** | 1M+ cells | Good | Good | Good |
-| **Cell Types** | 11 built-in | 3 (text, number, dropdown) | 7 editors | Many |
+| **Cell Types** | 23  | 3  | 6 | 7 |
 | **Fill Handle** | ✅ | ❌ | ❌ | ✅ |
 | **Copy/Paste** | ✅ | ✅ | Limited | ✅ |
 | **Range Selection** | ✅ | Limited | ❌ | ✅ |
@@ -35,14 +35,14 @@ A high-performance, fully-featured data grid component for [Plotly Dash](https:/
 | **Row Grouping** | ❌ | ❌ | ❌ | ✅ |
 | **Pivoting** | ❌ | ❌ | ❌ | ✅ |
 | **Master/Detail** | ❌ | ❌ | ❌ | ✅ |
-| **Pagination** | ❌ (not needed) | ✅ | ✅ | ✅ |
+| **Pagination** | ❌ | ✅ | ✅ | ✅ |
 | **Custom JS Functions** | ✅ | ❌ | ✅ | ✅ |
 
 
 **Choose Dash Glide Grid when you need:**
 - Excel-like editing (fill handle, copy/paste, range selection)
 - Blazing-fast canvas rendering for large datasets (1M+ cells)
-- Rich cell types (markdown, images, multi-select) in a free, MIT-licensed package
+- Rich cell types (dropdowns, multi-select, range sliders, buttons) in a free, MIT-licensed package
 - A modern alternative to the deprecated Dash DataTable
 
 ## Features
