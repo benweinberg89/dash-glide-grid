@@ -1726,7 +1726,15 @@ const GlideGrid = (props) => {
                         // Reject paste if not a valid number - keep old value
                         newCellValue = isNaN(num) ? oldValue : { ...oldValue, data: num };
                     } else if (oldValue.kind === 'boolean') {
-                        newCellValue = { ...oldValue, data: pastedValue.toLowerCase() === 'true' };
+                        const lowerVal = pastedValue.toLowerCase().trim();
+                        if (['true', '1', 'yes'].includes(lowerVal)) {
+                            newCellValue = { ...oldValue, data: true };
+                        } else if (['false', '0', 'no'].includes(lowerVal)) {
+                            newCellValue = { ...oldValue, data: false };
+                        } else {
+                            // Reject paste - keep old value
+                            newCellValue = { ...oldValue };
+                        }
                     } else {
                         newCellValue = { ...oldValue, data: pastedValue };
                     }
@@ -1737,7 +1745,15 @@ const GlideGrid = (props) => {
                         // Reject paste if not a valid number - keep old value
                         newCellValue = isNaN(num) ? oldValue : num;
                     } else if (typeof oldValue === 'boolean') {
-                        newCellValue = pastedValue.toLowerCase() === 'true';
+                        const lowerVal = pastedValue.toLowerCase().trim();
+                        if (['true', '1', 'yes'].includes(lowerVal)) {
+                            newCellValue = true;
+                        } else if (['false', '0', 'no'].includes(lowerVal)) {
+                            newCellValue = false;
+                        } else {
+                            // Reject paste - keep old value
+                            newCellValue = oldValue;
+                        }
                     } else {
                         newCellValue = pastedValue;
                     }
@@ -1797,7 +1813,8 @@ const GlideGrid = (props) => {
             }
         });
 
-        return true;
+        // Return false to prevent grid from also trying to paste (we handled it)
+        return false;
     }, [setProps, readonly, sortedIndices, addEditToBatch]);
 
     // Handle selection changes
