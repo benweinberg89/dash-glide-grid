@@ -59,10 +59,10 @@ SKILL_OPTIONS = [
 
 DATA = [
     {
-        "id": 1,
-        "text": "Hello World",
-        "number": 42,
-        "boolean": True,
+        "id": {"kind": "number", "data": 1},
+        "text": {"kind": "text", "data": "Hello World"},
+        "number": {"kind": "number", "data": 42},
+        "boolean": {"kind": "boolean", "data": True},
         "dropdown": {
             "kind": "dropdown-cell",
             "value": "active",
@@ -119,10 +119,10 @@ DATA = [
         "spinner": {"kind": "spinner-cell"},
     },
     {
-        "id": 2,
-        "text": "Test Row",
-        "number": 100,
-        "boolean": False,
+        "id": {"kind": "number", "data": 2},
+        "text": {"kind": "text", "data": "Test Row"},
+        "number": {"kind": "number", "data": 100},
+        "boolean": {"kind": "boolean", "data": False},
         "dropdown": {
             "kind": "dropdown-cell",
             "value": "pending",

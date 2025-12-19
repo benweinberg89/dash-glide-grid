@@ -253,7 +253,8 @@ function transformCellObject(cellObj) {
 
     // Only set displayData for cell types that use it (not Image, Loading, or Protected cells)
     if (cellKind !== GridCellKind.Image && cellKind !== GridCellKind.Loading && cellKind !== GridCellKind.Protected) {
-        result.displayData = cellObj.displayData || String(cellObj.data || '');
+        // Use ?? instead of || to preserve falsy values like 0 and false
+        result.displayData = cellObj.displayData ?? String(cellObj.data ?? '');
     }
 
     // Add optional properties if present
@@ -1730,9 +1731,33 @@ const GlideGrid = (props) => {
                         newCellValue = transformed !== undefined ? transformed : oldValue;
                     } else if (oldValue.kind === 'number') {
                         const num = parseFloat(pastedValue);
-                        newCellValue = { ...oldValue, data: isNaN(num) ? 0 : num };
+                        // Reject paste if not a valid number - keep old value
+                        newCellValue = isNaN(num) ? oldValue : { ...oldValue, data: num };
                     } else if (oldValue.kind === 'boolean') {
-                        newCellValue = { ...oldValue, data: pastedValue.toLowerCase() === 'true' };
+                        const lowerVal = pastedValue.toLowerCase().trim();
+                        if (lowerVal === 'true') {
+                            newCellValue = { ...oldValue, data: true };
+                        } else if (lowerVal === 'false') {
+                            newCellValue = { ...oldValue, data: false };
+                        } else {
+                            // Reject paste - keep old value
+                            newCellValue = { ...oldValue };
+                        }
+                    } else if (oldValue.kind === 'bubble') {
+                        // Bubble data is an array of strings - parse comma-separated values
+                        const bubbles = pastedValue
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(s => s.length > 0);
+                        newCellValue = { ...oldValue, data: bubbles };
+                    } else if (oldValue.kind === 'drilldown') {
+                        // Drilldown data is an array of objects with text property
+                        const items = pastedValue
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(s => s.length > 0)
+                            .map(text => ({ text }));
+                        newCellValue = { ...oldValue, data: items };
                     } else {
                         newCellValue = { ...oldValue, data: pastedValue };
                     }
@@ -1740,9 +1765,18 @@ const GlideGrid = (props) => {
                     // Simple value - try to preserve type
                     if (typeof oldValue === 'number') {
                         const num = parseFloat(pastedValue);
-                        newCellValue = isNaN(num) ? 0 : num;
+                        // Reject paste if not a valid number - keep old value
+                        newCellValue = isNaN(num) ? oldValue : num;
                     } else if (typeof oldValue === 'boolean') {
-                        newCellValue = pastedValue.toLowerCase() === 'true';
+                        const lowerVal = pastedValue.toLowerCase().trim();
+                        if (lowerVal === 'true') {
+                            newCellValue = true;
+                        } else if (lowerVal === 'false') {
+                            newCellValue = false;
+                        } else {
+                            // Reject paste - keep old value
+                            newCellValue = oldValue;
+                        }
                     } else {
                         newCellValue = pastedValue;
                     }
@@ -1802,7 +1836,8 @@ const GlideGrid = (props) => {
             }
         });
 
-        return true;
+        // Return false to prevent grid from also trying to paste (we handled it)
+        return false;
     }, [setProps, readonly, sortedIndices, addEditToBatch]);
 
     // Handle selection changes
