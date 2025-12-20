@@ -11,7 +11,9 @@
  *   min: 0,             // Minimum value
  *   max: 100,           // Maximum value
  *   step: 1,            // Step increment (optional, defaults to 1)
- *   label: "75%"        // Optional display label
+ *   label: "75%",       // Optional display label
+ *   measureLabel: "100%", // Optional - used for width calculation (for consistent sizing)
+ *   color: "#22c55e"    // Optional - custom accent color for the bar
  * }
  */
 import { useCallback, useState } from "react";
@@ -39,7 +41,7 @@ function roundRect(ctx, x, y, width, height, radius) {
  * Editor component for range cell - shows slider input
  */
 function RangeEditor({ value, onChange }) {
-    const { value: currentValue = 0, min = 0, max = 100, step = 1, readonly } = value.data;
+    const { value: currentValue = 0, min = 0, max = 100, step = 1, readonly, color } = value.data;
     const [localValue, setLocalValue] = useState(currentValue);
 
     const handleChange = useCallback((e) => {
@@ -89,7 +91,7 @@ function RangeEditor({ value, onChange }) {
                     flex: 1,
                     height: 6,
                     cursor: readonly ? "default" : "pointer",
-                    accentColor: "#8b5cf6",
+                    accentColor: color || "#8b5cf6",
                 }}
             />
             <span style={{
@@ -115,18 +117,20 @@ export function createRangeCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect } = args;
-            const { value = 0, min = 0, max = 100, label } = cell.data;
+            const { value = 0, min = 0, max = 100, label, measureLabel, color } = cell.data;
 
             const padding = theme.cellHorizontalPadding;
             const barHeight = 8;
             const barRadius = barHeight / 2;
 
             // Calculate label width if present
+            // Use measureLabel for sizing if provided, otherwise use label
             let labelWidth = 0;
             const labelSpacing = 8;
             if (label !== undefined && label !== null) {
                 ctx.font = `12px ${theme.fontFamily}`;
-                labelWidth = ctx.measureText(String(label)).width + labelSpacing;
+                const measureText = measureLabel !== undefined ? String(measureLabel) : String(label);
+                labelWidth = ctx.measureText(measureText).width + labelSpacing;
             }
 
             // Calculate bar dimensions
@@ -148,7 +152,7 @@ export function createRangeCellRenderer() {
             // Draw filled portion with gradient
             if (fillWidth > 0) {
                 const gradient = ctx.createLinearGradient(barX, barY, barX + fillWidth, barY);
-                const accentColor = theme.accentColor || "#8b5cf6";
+                const accentColor = color || theme.accentColor || "#8b5cf6";
                 gradient.addColorStop(0, accentColor);
                 gradient.addColorStop(1, accentColor);
 
@@ -175,14 +179,16 @@ export function createRangeCellRenderer() {
         },
 
         measure: (ctx, cell, theme) => {
-            const { label } = cell.data;
+            const { label, measureLabel } = cell.data;
             const minBarWidth = 80;
             const padding = theme.cellHorizontalPadding;
 
             let labelWidth = 0;
             if (label !== undefined && label !== null) {
                 ctx.font = `12px ${theme.fontFamily}`;
-                labelWidth = ctx.measureText(String(label)).width + 8;
+                // Use measureLabel for sizing if provided, otherwise use label
+                const measureText = measureLabel !== undefined ? String(measureLabel) : String(label);
+                labelWidth = ctx.measureText(measureText).width + 8;
             }
 
             return padding * 2 + minBarWidth + labelWidth;

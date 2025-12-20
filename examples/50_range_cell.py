@@ -4,6 +4,10 @@ Example: Range Cell
 Demonstrates the range cell type for displaying and editing numeric values with a slider.
 Click on a range cell to open the slider editor.
 Includes dark/light mode toggle to test theme compatibility.
+
+New props demonstrated:
+- color: Custom accent color for the progress bar
+- measureLabel: Reference string for consistent width calculation
 """
 
 from dash import Dash, html, callback, Input, Output
@@ -49,6 +53,7 @@ LIGHT_THEME = {
 }
 
 # Sample data with range values (some editable, some readonly)
+# Demonstrates color and measureLabel props
 DATA = [
     {
         "task": "Database migration",
@@ -59,6 +64,8 @@ DATA = [
             "max": 100,
             "step": 5,
             "label": "100%",
+            "measureLabel": "100%",  # Ensures consistent width
+            "color": "#22c55e",  # Green for completed
             "readonly": True,  # Completed - locked
         },
         "assignee": "Alice",
@@ -72,6 +79,8 @@ DATA = [
             "max": 100,
             "step": 5,
             "label": "75%",
+            "measureLabel": "100%",  # Reserves space for "100%"
+            "color": "#3b82f6",  # Blue
         },
         "assignee": "Bob",
     },
@@ -84,6 +93,7 @@ DATA = [
             "max": 100,
             "step": 5,
             "label": "50%",
+            "measureLabel": "100%",
         },
         "assignee": "Carol",
     },
@@ -96,6 +106,8 @@ DATA = [
             "max": 100,
             "step": 5,
             "label": "25%",
+            "measureLabel": "100%",
+            "color": "#f59e0b",  # Amber for in-progress
         },
         "assignee": "David",
     },
@@ -108,6 +120,8 @@ DATA = [
             "max": 100,
             "step": 5,
             "label": "10%",
+            "measureLabel": "100%",
+            "color": "#ef4444",  # Red for blocked/on hold
             "readonly": True,  # On hold - locked
         },
         "assignee": "Eve",
@@ -121,6 +135,7 @@ DATA = [
             "max": 100,
             "step": 5,
             "label": "0%",
+            "measureLabel": "100%",
         },
         "assignee": "Frank",
     },
