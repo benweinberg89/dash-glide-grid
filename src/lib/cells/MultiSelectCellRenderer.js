@@ -90,7 +90,7 @@ const CustomMenu = (p) => {
 
 const Editor = (p) => {
     const { value: cell, initialValue, onChange, onFinishedEditing, portalElementRef } = p;
-    const { options: optionsIn, values: valuesIn, allowCreation, allowDuplicates } = cell.data;
+    const { options: optionsIn, values: valuesIn, allowCreation, allowDuplicates, closeMenuOnSelect } = cell.data;
     const theme = useTheme();
     const [value, setValue] = React.useState(valuesIn);
     const [menuOpen, setMenuOpen] = React.useState(true);
@@ -309,7 +309,7 @@ const Editor = (p) => {
             autoFocus: true,
             openMenuOnFocus: true,
             openMenuOnClick: true,
-            closeMenuOnSelect: true,
+            closeMenuOnSelect: closeMenuOnSelect ?? false,
             backspaceRemovesValue: true,
             escapeClearsValue: false,
             styles: colorStyles,

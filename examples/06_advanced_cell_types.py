@@ -15,8 +15,16 @@ COLUMNS = [
     {"title": "Product", "id": "product", "width": 200},
     {"title": "Status", "id": "status", "width": 150},
     {"title": "Priority", "id": "priority", "width": 120},
-    {"title": "Tags", "id": "tags", "width": 250},
+    {"title": "Tags (stays open)", "id": "tags", "width": 200},
+    {"title": "Tags (closes)", "id": "tags_close", "width": 200},
     {"title": "Categories", "id": "categories", "width": 200},
+]
+
+TAG_OPTIONS = [
+    {"value": "frontend", "color": "#ffc38a", "label": "Frontend"},
+    {"value": "backend", "color": "#ebfdea", "label": "Backend"},
+    {"value": "design", "color": "#a8dadc", "label": "Design"},
+    {"value": "testing", "color": "#e63946", "label": "Testing"},
 ]
 
 # Initial data with custom cell types
@@ -45,14 +53,20 @@ DATA = [
             "kind": "multi-select-cell",
             "data": {
                 "values": ["frontend", "design"],
-                "options": [
-                    {"value": "frontend", "color": "#ffc38a", "label": "Frontend"},
-                    {"value": "backend", "color": "#ebfdea", "label": "Backend"},
-                    {"value": "design", "color": "#a8dadc", "label": "Design"},
-                    {"value": "testing", "color": "#e63946", "label": "Testing"},
-                ],
+                "options": TAG_OPTIONS,
                 "allowDuplicates": False,
                 "allowCreation": True,
+            },
+            "copyData": "frontend,design",
+        },
+        "tags_close": {
+            "kind": "multi-select-cell",
+            "data": {
+                "values": ["frontend", "design"],
+                "options": TAG_OPTIONS,
+                "allowDuplicates": False,
+                "allowCreation": True,
+                "closeMenuOnSelect": True,
             },
             "copyData": "frontend,design",
         },
@@ -88,14 +102,20 @@ DATA = [
             "kind": "multi-select-cell",
             "data": {
                 "values": ["backend", "testing"],
-                "options": [
-                    {"value": "frontend", "color": "#ffc38a", "label": "Frontend"},
-                    {"value": "backend", "color": "#ebfdea", "label": "Backend"},
-                    {"value": "design", "color": "#a8dadc", "label": "Design"},
-                    {"value": "testing", "color": "#e63946", "label": "Testing"},
-                ],
+                "options": TAG_OPTIONS,
                 "allowDuplicates": False,
                 "allowCreation": True,
+            },
+            "copyData": "backend,testing",
+        },
+        "tags_close": {
+            "kind": "multi-select-cell",
+            "data": {
+                "values": ["backend", "testing"],
+                "options": TAG_OPTIONS,
+                "allowDuplicates": False,
+                "allowCreation": True,
+                "closeMenuOnSelect": True,
             },
             "copyData": "backend,testing",
         },
@@ -131,14 +151,20 @@ DATA = [
             "kind": "multi-select-cell",
             "data": {
                 "values": ["backend"],
-                "options": [
-                    {"value": "frontend", "color": "#ffc38a", "label": "Frontend"},
-                    {"value": "backend", "color": "#ebfdea", "label": "Backend"},
-                    {"value": "design", "color": "#a8dadc", "label": "Design"},
-                    {"value": "testing", "color": "#e63946", "label": "Testing"},
-                ],
+                "options": TAG_OPTIONS,
                 "allowDuplicates": False,
                 "allowCreation": True,
+            },
+            "copyData": "backend",
+        },
+        "tags_close": {
+            "kind": "multi-select-cell",
+            "data": {
+                "values": ["backend"],
+                "options": TAG_OPTIONS,
+                "allowDuplicates": False,
+                "allowCreation": True,
+                "closeMenuOnSelect": True,
             },
             "copyData": "backend",
         },
@@ -174,14 +200,20 @@ DATA = [
             "kind": "multi-select-cell",
             "data": {
                 "values": ["frontend", "design", "testing"],
-                "options": [
-                    {"value": "frontend", "color": "#ffc38a", "label": "Frontend"},
-                    {"value": "backend", "color": "#ebfdea", "label": "Backend"},
-                    {"value": "design", "color": "#a8dadc", "label": "Design"},
-                    {"value": "testing", "color": "#e63946", "label": "Testing"},
-                ],
+                "options": TAG_OPTIONS,
                 "allowDuplicates": False,
                 "allowCreation": True,
+            },
+            "copyData": "frontend,design,testing",
+        },
+        "tags_close": {
+            "kind": "multi-select-cell",
+            "data": {
+                "values": ["frontend", "design", "testing"],
+                "options": TAG_OPTIONS,
+                "allowDuplicates": False,
+                "allowCreation": True,
+                "closeMenuOnSelect": True,
             },
             "copyData": "frontend,design,testing",
         },
@@ -217,14 +249,20 @@ DATA = [
             "kind": "multi-select-cell",
             "data": {
                 "values": ["backend", "testing"],
-                "options": [
-                    {"value": "frontend", "color": "#ffc38a", "label": "Frontend"},
-                    {"value": "backend", "color": "#ebfdea", "label": "Backend"},
-                    {"value": "design", "color": "#a8dadc", "label": "Design"},
-                    {"value": "testing", "color": "#e63946", "label": "Testing"},
-                ],
+                "options": TAG_OPTIONS,
                 "allowDuplicates": False,
                 "allowCreation": True,
+            },
+            "copyData": "backend,testing",
+        },
+        "tags_close": {
+            "kind": "multi-select-cell",
+            "data": {
+                "values": ["backend", "testing"],
+                "options": TAG_OPTIONS,
+                "allowDuplicates": False,
+                "allowCreation": True,
+                "closeMenuOnSelect": True,
             },
             "copyData": "backend,testing",
         },
@@ -252,10 +290,13 @@ app.layout = html.Div(
                             "Dropdown cells: Click to select from predefined options (Status, Priority columns)"
                         ),
                         html.Li(
-                            "MultiSelect with options: Select multiple items with color-coded badges (Tags column)"
+                            "MultiSelect with options: Select multiple items with color-coded badges (Tags columns)"
                         ),
                         html.Li(
                             "MultiSelect without options: Create custom tags on-the-fly (Categories column)"
+                        ),
+                        html.Li(
+                            "closeMenuOnSelect: 'Tags (stays open)' keeps dropdown open, 'Tags (closes)' closes after each selection"
                         ),
                         html.Li("All cells support copy/paste and editing"),
                     ]
