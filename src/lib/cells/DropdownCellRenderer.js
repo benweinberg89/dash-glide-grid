@@ -46,7 +46,10 @@ const Editor = (p) => {
         maxMenuHeight,
         menuPlacement,
         hideSelectedOptions,
+        selectionIndicator,
     } = cell.data;
+    const showCheckmark = selectionIndicator === "checkmark" || selectionIndicator === "both" || selectionIndicator === undefined;
+    const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
     const [value, setValue] = React.useState(valueIn);
     const [inputValue, setInputValue] = React.useState(initialValue ?? "");
     const theme = useTheme();
@@ -101,15 +104,21 @@ const Editor = (p) => {
                     border: 0,
                     boxShadow: "none",
                 }),
-                option: (base, { isFocused }) => ({
+                option: (base, { isFocused, isSelected }) => ({
                     ...base,
                     fontSize: theme.editorFontSize,
                     fontFamily: theme.fontFamily,
+                    color: theme.textDark,
                     cursor: isFocused ? "pointer" : undefined,
                     paddingLeft: theme.cellHorizontalPadding,
                     paddingRight: theme.cellHorizontalPadding,
                     display: "flex",
                     alignItems: "center",
+                    backgroundColor: isFocused
+                        ? theme.bgBubble
+                        : isSelected && showHighlight
+                          ? theme.accentLight
+                          : "transparent",
                     ":active": {
                         ...base[":active"],
                         color: theme.accentFg,
@@ -169,7 +178,7 @@ const Editor = (p) => {
                     return React.createElement(
                         Option,
                         { ...props },
-                        props.isSelected
+                        props.isSelected && showCheckmark
                             ? React.createElement(
                                   "svg",
                                   {
