@@ -151,16 +151,13 @@ const Editor = (p) => {
                 fontSize: theme.editorFontSize,
                 fontFamily: theme.fontFamily,
                 color: theme.textDark,
-                ...(state.isFocused
-                    ? {
-                          backgroundColor: theme.accentLight,
-                          cursor: "pointer",
-                      }
-                    : {}),
+                backgroundColor: state.isFocused ? theme.bgBubble : "transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
                 ":active": {
                     ...styles[":active"],
-                    color: theme.accentFg,
-                    backgroundColor: theme.accentColor,
+                    backgroundColor: theme.bgBubble,
                 },
             };
         },
@@ -331,6 +328,31 @@ const Editor = (p) => {
             components: {
                 DropdownIndicator: () => null,
                 IndicatorSeparator: () => null,
+                Option: (props) => {
+                    const { Option } = components;
+                    return React.createElement(
+                        Option,
+                        { ...props },
+                        props.isSelected
+                            ? React.createElement(
+                                  "svg",
+                                  {
+                                      width: "14",
+                                      height: "14",
+                                      viewBox: "0 0 24 24",
+                                      fill: "none",
+                                      stroke: theme.textLight,
+                                      strokeWidth: "4",
+                                      strokeLinecap: "round",
+                                      strokeLinejoin: "round",
+                                      style: { marginRight: "6px", flexShrink: 0 },
+                                  },
+                                  React.createElement("polyline", { points: "20 6 9 17 4 12" })
+                              )
+                            : null,
+                        props.label
+                    );
+                },
                 Menu: (props) => {
                     if (menuDisabled) {
                         return null;
