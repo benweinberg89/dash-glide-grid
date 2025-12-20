@@ -38,6 +38,9 @@ DATA = [
             "data": {
                 "allowedValues": ["Not Started", "In Progress", "Review", "Complete"],
                 "value": "In Progress",
+                "isSearchable": True,
+                "isClearable": True,
+                "placeholder": "Select status...",
             },
             "copyData": "In Progress",
         },
@@ -46,6 +49,7 @@ DATA = [
             "data": {
                 "allowedValues": ["Low", "Medium", "High", "Urgent"],
                 "value": "High",
+                "maxMenuHeight": 150,
             },
             "copyData": "High",
         },
@@ -287,7 +291,10 @@ app.layout = html.Div(
                 html.Ul(
                     [
                         html.Li(
-                            "Dropdown cells: Click to select from predefined options (Status, Priority columns)"
+                            "Dropdown cells: Click to select from predefined options with checkmark indicator (Status, Priority columns)"
+                        ),
+                        html.Li(
+                            "Dropdown options: isSearchable, isClearable, placeholder, maxMenuHeight, menuPlacement, hideSelectedOptions"
                         ),
                         html.Li(
                             "MultiSelect with options: Select multiple items with color-coded badges (Tags columns)"
