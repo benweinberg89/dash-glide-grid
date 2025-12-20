@@ -90,7 +90,20 @@ const CustomMenu = (p) => {
 
 const Editor = (p) => {
     const { value: cell, initialValue, onChange, onFinishedEditing, portalElementRef } = p;
-    const { options: optionsIn, values: valuesIn, allowCreation, allowDuplicates, closeMenuOnSelect } = cell.data;
+    const {
+        options: optionsIn,
+        values: valuesIn,
+        allowCreation,
+        allowDuplicates,
+        closeMenuOnSelect,
+        isClearable,
+        isSearchable,
+        placeholder,
+        backspaceRemovesValue,
+        hideSelectedOptions,
+        maxMenuHeight,
+        menuPlacement,
+    } = cell.data;
     const theme = useTheme();
     const [value, setValue] = React.useState(valuesIn);
     const [menuOpen, setMenuOpen] = React.useState(true);
@@ -284,12 +297,12 @@ const Editor = (p) => {
             className: "gdg-multi-select",
             isMulti: true,
             isDisabled: cell.readonly,
-            isClearable: true,
-            isSearchable: true,
+            isClearable: isClearable ?? true,
+            isSearchable: isSearchable ?? true,
             inputValue: inputValue,
             onInputChange: setInputValue,
             options: options,
-            placeholder: cell.readonly ? "" : allowCreation ? "Add..." : undefined,
+            placeholder: placeholder ?? (cell.readonly ? "" : allowCreation ? "Add..." : undefined),
             noOptionsMessage: (input) => {
                 return allowCreation && allowDuplicates && input.inputValue
                     ? `Create "${input.inputValue}"`
@@ -300,7 +313,7 @@ const Editor = (p) => {
             onMenuClose: () => setMenuOpen(false),
             value: resolveValues(value, options, allowDuplicates),
             onKeyDown: cell.readonly ? undefined : handleKeyDown,
-            menuPlacement: "auto",
+            menuPlacement: menuPlacement ?? "auto",
             // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
@@ -310,8 +323,10 @@ const Editor = (p) => {
             openMenuOnFocus: true,
             openMenuOnClick: true,
             closeMenuOnSelect: closeMenuOnSelect ?? false,
-            backspaceRemovesValue: true,
+            backspaceRemovesValue: backspaceRemovesValue ?? true,
             escapeClearsValue: false,
+            hideSelectedOptions: hideSelectedOptions ?? false,
+            maxMenuHeight: maxMenuHeight ?? 300,
             styles: colorStyles,
             components: {
                 DropdownIndicator: () => null,
