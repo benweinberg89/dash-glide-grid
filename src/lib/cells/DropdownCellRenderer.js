@@ -37,7 +37,19 @@ const readOnlyWrapStyle = {
 
 const Editor = (p) => {
     const { value: cell, onFinishedEditing, initialValue, portalElementRef } = p;
-    const { allowedValues, value: valueIn } = cell.data;
+    const {
+        allowedValues,
+        value: valueIn,
+        isClearable,
+        isSearchable,
+        placeholder,
+        maxMenuHeight,
+        menuPlacement,
+        hideSelectedOptions,
+        selectionIndicator,
+    } = cell.data;
+    const showCheckmark = selectionIndicator === "checkmark" || selectionIndicator === "both" || selectionIndicator === undefined;
+    const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
     const [value, setValue] = React.useState(valueIn);
     const [inputValue, setInputValue] = React.useState(initialValue ?? "");
     const theme = useTheme();
@@ -75,7 +87,12 @@ const Editor = (p) => {
             className: "glide-select",
             inputValue: inputValue,
             onInputChange: setInputValue,
-            menuPlacement: "auto",
+            isClearable: isClearable ?? false,
+            isSearchable: isSearchable ?? true,
+            placeholder: placeholder ?? undefined,
+            maxMenuHeight: maxMenuHeight ?? 300,
+            menuPlacement: menuPlacement ?? "auto",
+            hideSelectedOptions: hideSelectedOptions ?? false,
             // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
@@ -87,13 +104,21 @@ const Editor = (p) => {
                     border: 0,
                     boxShadow: "none",
                 }),
-                option: (base, { isFocused }) => ({
+                option: (base, { isFocused, isSelected }) => ({
                     ...base,
                     fontSize: theme.editorFontSize,
                     fontFamily: theme.fontFamily,
+                    color: theme.textDark,
                     cursor: isFocused ? "pointer" : undefined,
                     paddingLeft: theme.cellHorizontalPadding,
                     paddingRight: theme.cellHorizontalPadding,
+                    display: "flex",
+                    alignItems: "center",
+                    backgroundColor: isFocused
+                        ? theme.bgBubble
+                        : isSelected && showHighlight
+                          ? theme.accentLight
+                          : "transparent",
                     ":active": {
                         ...base[":active"],
                         color: theme.accentFg,
@@ -102,6 +127,20 @@ const Editor = (p) => {
                         content: '"&nbsp;"',
                         visibility: "hidden",
                     },
+                }),
+                clearIndicator: (styles) => ({
+                    ...styles,
+                    color: theme.textLight,
+                    ":hover": {
+                        color: theme.textDark,
+                        cursor: "pointer",
+                    },
+                }),
+                placeholder: (styles) => ({
+                    ...styles,
+                    fontSize: theme.editorFontSize,
+                    fontFamily: theme.fontFamily,
+                    color: theme.textLight,
                 }),
             },
             theme: (t) => {
@@ -134,6 +173,31 @@ const Editor = (p) => {
             components: {
                 DropdownIndicator: () => null,
                 IndicatorSeparator: () => null,
+                Option: (props) => {
+                    const { Option } = components;
+                    return React.createElement(
+                        Option,
+                        { ...props },
+                        props.isSelected && showCheckmark
+                            ? React.createElement(
+                                  "svg",
+                                  {
+                                      width: "14",
+                                      height: "14",
+                                      viewBox: "0 0 24 24",
+                                      fill: "none",
+                                      stroke: theme.textLight,
+                                      strokeWidth: "4",
+                                      strokeLinecap: "round",
+                                      strokeLinejoin: "round",
+                                      style: { marginRight: "6px", flexShrink: 0 },
+                                  },
+                                  React.createElement("polyline", { points: "20 6 9 17 4 12" })
+                              )
+                            : null,
+                        props.label
+                    );
+                },
                 Menu: (props) =>
                     React.createElement(
                         "div",
@@ -146,14 +210,14 @@ const Editor = (p) => {
             },
             options: values,
             onChange: async (e) => {
-                if (e === null) return;
-                setValue(e.value);
+                const newValue = e === null ? "" : e.value;
+                setValue(newValue);
                 await new Promise((r) => window.requestAnimationFrame(r));
                 onFinishedEditing({
                     ...cell,
                     data: {
                         ...cell.data,
-                        value: e.value,
+                        value: newValue,
                     },
                 });
             },

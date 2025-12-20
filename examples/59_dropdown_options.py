@@ -1,6 +1,6 @@
 """
-Example 58: MultiSelect Cell Options
-Demonstrates all configurable options for multi-select cells.
+Example 59: Dropdown Cell Options
+Demonstrates all configurable options for dropdown cells.
 Includes dark/light mode toggle.
 """
 
@@ -47,51 +47,72 @@ LIGHT_THEME = {
     "horizontalBorderColor": "#e5e7eb",
 }
 
-TAG_OPTIONS = [
-    {"value": "react", "color": "#61dafb", "label": "React"},
-    {"value": "python", "color": "#3776ab", "label": "Python"},
-    {"value": "javascript", "color": "#f7df1e", "label": "JavaScript"},
-    {"value": "typescript", "color": "#3178c6", "label": "TypeScript"},
-    {"value": "rust", "color": "#dea584", "label": "Rust"},
-    {"value": "go", "color": "#00add8", "label": "Go"},
+STATUS_OPTIONS = [
+    {"value": "not_started", "label": "Not Started"},
+    {"value": "in_progress", "label": "In Progress"},
+    {"value": "review", "label": "Review"},
+    {"value": "blocked", "label": "Blocked"},
+    {"value": "complete", "label": "Complete"},
 ]
+
+PRIORITY_OPTIONS = ["Low", "Medium", "High", "Urgent", "Critical"]
 
 COLUMNS = [
-    {"title": "Project", "id": "project", "width": 150},
-    {"title": "Tags", "id": "tags", "width": 200},
+    {"title": "Task", "id": "task", "width": 180},
+    {"title": "Status", "id": "status", "width": 160},
+    {"title": "Priority", "id": "priority", "width": 140},
 ]
 
 
-def make_multiselect_cell(values, **options):
-    """Helper to create a multi-select cell with custom options."""
+def make_dropdown_cell(value, allowed_values, **options):
+    """Helper to create a dropdown cell with custom options."""
     return {
-        "kind": "multi-select-cell",
+        "kind": "dropdown-cell",
         "data": {
-            "values": values,
-            "options": TAG_OPTIONS,
-            "allowCreation": True,
-            "allowDuplicates": False,
+            "allowedValues": allowed_values,
+            "value": value,
             **options,
         },
-        "copyData": ",".join(values),
+        "copyData": value or "",
     }
 
 
-def get_initial_data(options):
-    """Generate initial data with the given options applied."""
+def get_data(**options):
+    """Generate data with the given options applied."""
     return [
-        {"project": "Frontend App", "tags": make_multiselect_cell(["react", "typescript"], **options)},
-        {"project": "Backend API", "tags": make_multiselect_cell(["python", "rust"], **options)},
-        {"project": "CLI Tool", "tags": make_multiselect_cell(["go"], **options)},
-        {"project": "Full Stack", "tags": make_multiselect_cell(["react", "python", "javascript"], **options)},
+        {
+            "task": "Design mockups",
+            "status": make_dropdown_cell("complete", STATUS_OPTIONS, **options),
+            "priority": make_dropdown_cell("High", PRIORITY_OPTIONS, **options),
+        },
+        {
+            "task": "API integration",
+            "status": make_dropdown_cell("in_progress", STATUS_OPTIONS, **options),
+            "priority": make_dropdown_cell("Urgent", PRIORITY_OPTIONS, **options),
+        },
+        {
+            "task": "Write tests",
+            "status": make_dropdown_cell("not_started", STATUS_OPTIONS, **options),
+            "priority": make_dropdown_cell("Medium", PRIORITY_OPTIONS, **options),
+        },
+        {
+            "task": "Documentation",
+            "status": make_dropdown_cell("review", STATUS_OPTIONS, **options),
+            "priority": make_dropdown_cell("Low", PRIORITY_OPTIONS, **options),
+        },
+        {
+            "task": "Performance audit",
+            "status": make_dropdown_cell("blocked", STATUS_OPTIONS, **options),
+            "priority": make_dropdown_cell("Critical", PRIORITY_OPTIONS, **options),
+        },
     ]
 
 
 app.layout = html.Div(
     id="app-container",
     children=[
-        html.H1("MultiSelect Cell Options", id="title"),
-        html.P("Toggle the options below to see how they affect the multi-select cells. Changes apply immediately.", id="subtitle"),
+        html.H1("Dropdown Cell Options", id="title"),
+        html.P("Toggle the options below to see how they affect the dropdown cells. Changes apply immediately.", id="subtitle"),
         html.Div(
             [
                 html.Div(
@@ -114,19 +135,39 @@ app.layout = html.Div(
                             ],
                             style={"display": "flex", "justifyContent": "space-between", "alignItems": "center"},
                         ),
-                        dcc.Checklist(
-                            id="boolean-options",
-                            options=[
-                                {"label": " closeMenuOnSelect - Close dropdown after each selection", "value": "closeMenuOnSelect"},
-                                {"label": " isClearable - Show X button to clear all values (default: on)", "value": "isClearable"},
-                                {"label": " isSearchable - Enable typing to filter options (default: on)", "value": "isSearchable"},
-                                {"label": " backspaceRemovesValue - Backspace removes last value (default: on)", "value": "backspaceRemovesValue"},
-                                {"label": " hideSelectedOptions - Hide selected options from dropdown", "value": "hideSelectedOptions"},
-                                {"label": " showOverflowCount - Show +N badge when values overflow cell width", "value": "showOverflowCount"},
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="opt-isClearable",
+                                            options=[{"label": " isClearable - Show X button to clear selection", "value": "on"}],
+                                            value=[],
+                                        ),
+                                    ],
+                                    style={"marginBottom": "8px"},
+                                ),
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="opt-isSearchable",
+                                            options=[{"label": " isSearchable - Enable typing to filter options (default: on)", "value": "on"}],
+                                            value=["on"],
+                                        ),
+                                    ],
+                                    style={"marginBottom": "8px"},
+                                ),
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="opt-hideSelectedOptions",
+                                            options=[{"label": " hideSelectedOptions - Hide selected option from dropdown", "value": "on"}],
+                                            value=[],
+                                        ),
+                                    ],
+                                    style={"marginBottom": "16px"},
+                                ),
                             ],
-                            value=["isClearable", "isSearchable", "backspaceRemovesValue"],
-                            style={"marginBottom": "16px"},
-                            labelStyle={"display": "block", "marginBottom": "8px"},
                         ),
                         html.Div(
                             [
@@ -141,7 +182,7 @@ app.layout = html.Div(
                                                 {"label": "both", "value": "both"},
                                             ],
                                             value="checkmark",
-                                            style={"width": "180px"},
+                                            style={"width": "180px", "display": "inline-block"},
                                             clearable=False,
                                         ),
                                     ],
@@ -187,7 +228,7 @@ app.layout = html.Div(
                                                 {"label": "bottom", "value": "bottom"},
                                             ],
                                             value="auto",
-                                            style={"width": "120px"},
+                                            style={"width": "120px", "display": "inline-block"},
                                             clearable=False,
                                         ),
                                     ],
@@ -209,8 +250,8 @@ app.layout = html.Div(
         dgg.GlideGrid(
             id="grid",
             columns=COLUMNS,
-            data=get_initial_data({}),
-            height=300,
+            data=get_data(),
+            height=280,
             rowMarkers="number",
             theme=LIGHT_THEME,
         ),
@@ -219,11 +260,11 @@ app.layout = html.Div(
                 html.H3("Instructions:"),
                 html.Ul(
                     [
-                        html.Li("Click on a Tags cell to open the multi-select editor"),
+                        html.Li("Click on a Status or Priority cell to open the dropdown editor"),
                         html.Li("Toggle options above to see changes immediately"),
-                        html.Li("Try selectionIndicator to change how selected options are shown"),
-                        html.Li("Try typing to filter options (if isSearchable is enabled)"),
-                        html.Li("Try pressing backspace to remove values (if backspaceRemovesValue is enabled)"),
+                        html.Li("Try selectionIndicator to change how selected options are shown (checkmark, highlight, or both)"),
+                        html.Li("Try isClearable to enable clearing the selection with X"),
+                        html.Li("Try hideSelectedOptions to remove the selected item from the list"),
                     ]
                 ),
             ],
@@ -237,42 +278,37 @@ app.layout = html.Div(
 
 @callback(
     Output("grid", "data"),
-    Input("boolean-options", "value"),
+    Input("opt-isClearable", "value"),
+    Input("opt-isSearchable", "value"),
+    Input("opt-hideSelectedOptions", "value"),
     Input("opt-placeholder", "value"),
     Input("opt-maxMenuHeight", "value"),
     Input("opt-menuPlacement", "value"),
     Input("opt-selectionIndicator", "value"),
 )
-def update_grid(boolean_options, placeholder, maxMenuHeight, menuPlacement, selectionIndicator):
+def update_grid(is_clearable, is_searchable, hide_selected, placeholder, max_height, menu_placement, selection_indicator):
     """Update grid when any option changes."""
-    boolean_options = boolean_options or []
     options = {}
 
-    # Handle boolean options
-    if "closeMenuOnSelect" in boolean_options:
-        options["closeMenuOnSelect"] = True
-    if "isClearable" not in boolean_options:
-        options["isClearable"] = False
-    if "isSearchable" not in boolean_options:
+    # Boolean options
+    if is_clearable and "on" in is_clearable:
+        options["isClearable"] = True
+    if not is_searchable or "on" not in is_searchable:
         options["isSearchable"] = False
-    if "backspaceRemovesValue" not in boolean_options:
-        options["backspaceRemovesValue"] = False
-    if "hideSelectedOptions" in boolean_options:
+    if hide_selected and "on" in hide_selected:
         options["hideSelectedOptions"] = True
-    if "showOverflowCount" in boolean_options:
-        options["showOverflowCount"] = True
 
-    # Handle other options
+    # Other options
     if placeholder:
         options["placeholder"] = placeholder
-    if maxMenuHeight and maxMenuHeight != 300:
-        options["maxMenuHeight"] = maxMenuHeight
-    if menuPlacement and menuPlacement != "auto":
-        options["menuPlacement"] = menuPlacement
-    if selectionIndicator and selectionIndicator != "checkmark":
-        options["selectionIndicator"] = selectionIndicator
+    if max_height and max_height != 300:
+        options["maxMenuHeight"] = max_height
+    if menu_placement and menu_placement != "auto":
+        options["menuPlacement"] = menu_placement
+    if selection_indicator and selection_indicator != "checkmark":
+        options["selectionIndicator"] = selection_indicator
 
-    return get_initial_data(options)
+    return get_data(**options)
 
 
 @callback(
@@ -315,4 +351,4 @@ def toggle_theme(n_clicks):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8058)
+    app.run(debug=True, port=8059)
