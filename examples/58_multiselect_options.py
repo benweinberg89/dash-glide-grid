@@ -21,7 +21,7 @@ TAG_OPTIONS = [
 
 COLUMNS = [
     {"title": "Project", "id": "project", "width": 150},
-    {"title": "Tags", "id": "tags", "width": 300},
+    {"title": "Tags", "id": "tags", "width": 200},  # Narrower to demonstrate overflow
 ]
 
 
@@ -79,6 +79,7 @@ app.layout = html.Div(
                                 {"label": " isSearchable - Enable typing to filter options (default: on)", "value": "isSearchable"},
                                 {"label": " backspaceRemovesValue - Backspace removes last value (default: on)", "value": "backspaceRemovesValue"},
                                 {"label": " hideSelectedOptions - Hide selected options from dropdown", "value": "hideSelectedOptions"},
+                                {"label": " showOverflowCount - Show +N badge when values overflow cell width", "value": "showOverflowCount"},
                             ],
                             value=["isClearable", "isSearchable", "backspaceRemovesValue"],
                             style={"marginBottom": "16px"},
@@ -219,6 +220,8 @@ def update_grid(n_clicks, boolean_options, placeholder, maxMenuHeight, menuPlace
         options["backspaceRemovesValue"] = False
     if "hideSelectedOptions" in boolean_options:
         options["hideSelectedOptions"] = True
+    if "showOverflowCount" in boolean_options:
+        options["showOverflowCount"] = True
 
     # Handle other options
     if placeholder:

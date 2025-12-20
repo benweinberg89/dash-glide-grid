@@ -382,8 +382,8 @@ const renderer = {
     isMatch: (c) => c.data.kind === "multi-select-cell",
     draw: (args, cell) => {
         const { ctx, theme, rect, highlighted } = args;
-        const { values, options: optionsIn } = cell.data;
-        if (values === undefined || values === null) {
+        const { values, options: optionsIn, showOverflowCount } = cell.data;
+        if (values === undefined || values === null || values.length === 0) {
             return true;
         }
         const options = prepareOptions(optionsIn ?? []);
@@ -394,40 +394,111 @@ const renderer = {
             height: rect.height - 2 * theme.cellVerticalPadding,
         };
         const rows = Math.max(1, Math.floor(drawArea.height / (theme.bubbleHeight + theme.bubblePadding)));
-        let { x } = drawArea;
-        let row = 1;
-        let y =
+        const startY =
             rows === 1
                 ? drawArea.y + (drawArea.height - theme.bubbleHeight) / 2
                 : drawArea.y +
                   (drawArea.height - rows * theme.bubbleHeight - (rows - 1) * theme.bubblePadding) / 2;
-        for (const value of values) {
+
+        // Pre-calculate bubble widths
+        const bubbleData = values.map((value) => {
             const matchedOption = options.find((t) => t.value === value);
-            const color = matchedOption?.color ?? (highlighted ? theme.bgBubbleSelected : theme.bgBubble);
             const displayText = matchedOption?.label ?? value;
             const metrics = measureTextCached(displayText, ctx);
             const width = metrics.width + theme.bubblePadding * 2;
-            const textY = theme.bubbleHeight / 2;
+            return {
+                value,
+                matchedOption,
+                displayText,
+                width,
+                color: matchedOption?.color ?? (highlighted ? theme.bgBubbleSelected : theme.bgBubble),
+            };
+        });
+
+        // Calculate total width needed
+        const totalWidth = bubbleData.reduce((sum, b) => sum + b.width + theme.bubbleMargin, 0) - theme.bubbleMargin;
+
+        // Determine how many bubbles fit
+        let bubblesToShow = values.length;
+        let overflowCount = 0;
+
+        if (showOverflowCount && totalWidth > drawArea.width) {
+            // Calculate overflow badge width
+            const overflowText = `+${values.length}`;
+            const overflowWidth = measureTextCached(overflowText, ctx).width + theme.bubblePadding * 2;
+            const maxWidthWithOverflow = drawArea.width - overflowWidth - theme.bubbleMargin;
+
+            let usedWidth = 0;
+            bubblesToShow = 0;
+
+            for (let i = 0; i < bubbleData.length; i++) {
+                const newWidth = usedWidth + bubbleData[i].width + (i > 0 ? theme.bubbleMargin : 0);
+                if (newWidth <= maxWidthWithOverflow) {
+                    usedWidth = newWidth;
+                    bubblesToShow++;
+                } else {
+                    break;
+                }
+            }
+
+            overflowCount = values.length - bubblesToShow;
+        }
+
+        // Draw bubbles
+        let x = drawArea.x;
+        let row = 1;
+        let y = startY;
+        const textY = theme.bubbleHeight / 2;
+
+        for (let i = 0; i < bubblesToShow; i++) {
+            const bubble = bubbleData[i];
+            const { width, color, displayText, matchedOption } = bubble;
+
+            // Check if we need to wrap to next row
             if (x !== drawArea.x && x + width > drawArea.x + drawArea.width && row < rows) {
                 row++;
                 y += theme.bubbleHeight + theme.bubblePadding;
                 x = drawArea.x;
             }
+
+            // Draw bubble background
             ctx.fillStyle = color;
             ctx.beginPath();
             roundedRect(ctx, x, y, width, theme.bubbleHeight, theme.roundingRadius ?? theme.bubbleHeight / 2);
             ctx.fill();
+
+            // Draw bubble text
             ctx.fillStyle = matchedOption?.color
                 ? getLuminance(color) > 0.5
                     ? "#000000"
                     : "#ffffff"
                 : theme.textBubble;
             ctx.fillText(displayText, x + theme.bubblePadding, y + textY + getMiddleCenterBias(ctx, theme));
+
             x += width + theme.bubbleMargin;
-            if (x > drawArea.x + drawArea.width + theme.cellHorizontalPadding && row >= rows) {
+
+            // Stop if we've exceeded the drawable area (for non-overflow mode)
+            if (!showOverflowCount && x > drawArea.x + drawArea.width && row >= rows) {
                 break;
             }
         }
+
+        // Draw overflow indicator
+        if (showOverflowCount && overflowCount > 0) {
+            const overflowText = `+${overflowCount}`;
+            const overflowWidth = measureTextCached(overflowText, ctx).width + theme.bubblePadding * 2;
+
+            // Draw overflow bubble
+            ctx.fillStyle = theme.bgBubble;
+            ctx.beginPath();
+            roundedRect(ctx, x, y, overflowWidth, theme.bubbleHeight, theme.roundingRadius ?? theme.bubbleHeight / 2);
+            ctx.fill();
+
+            // Draw overflow text
+            ctx.fillStyle = theme.textMedium ?? theme.textBubble;
+            ctx.fillText(overflowText, x + theme.bubblePadding, y + textY + getMiddleCenterBias(ctx, theme));
+        }
+
         return true;
     },
     measure: (ctx, cell, theme) => {
