@@ -40,7 +40,7 @@ function roundRect(ctx, x, y, width, height, radius) {
 /**
  * Editor component for range cell - shows slider input
  */
-function RangeEditor({ value, onChange }) {
+function RangeEditor({ value, onChange, theme }) {
     const { value: currentValue = 0, min = 0, max = 100, step = 1, readonly, color } = value.data;
     const [localValue, setLocalValue] = useState(currentValue);
 
@@ -96,7 +96,7 @@ function RangeEditor({ value, onChange }) {
             />
             <span style={{
                 fontSize: 13,
-                color: "#374151",
+                color: theme?.textDark || "#374151",
                 minWidth: 40,
                 textAlign: "right",
                 fontVariantNumeric: "tabular-nums",
