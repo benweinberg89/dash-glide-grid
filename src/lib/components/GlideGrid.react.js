@@ -170,6 +170,15 @@ GlideGrid.propTypes = {
      * - `themeOverride`: (object) Custom colors for this cell, e.g. {"bgCell": "#fff"}
      * - `span`: ([start, end]) For merged cells - column indices this cell spans
      *
+     * **Number cell props** (kind: "number"):
+     * - `fixedDecimals`: (number) Fixed number of decimal places in editor
+     * - `allowNegative`: (boolean) Allow negative numbers. Default: true
+     * - `thousandSeparator`: (boolean|string) Add thousand separators. true for default, or custom string
+     * - `decimalSeparator`: (string) Custom decimal separator, e.g. "," for European format
+     *
+     * **Boolean cell props** (kind: "boolean"):
+     * - `maxSize`: (number) Maximum size of the checkbox in pixels
+     *
      * **Dropdown cell example**:
      * ```
      * {

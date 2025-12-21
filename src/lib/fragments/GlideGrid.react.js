@@ -274,6 +274,29 @@ function transformCellObject(cellObj) {
         result.lastUpdated = cellObj.lastUpdated;
     }
 
+    // Handle NumberCell specific properties
+    if (cellKind === GridCellKind.Number) {
+        if (cellObj.fixedDecimals !== undefined) {
+            result.fixedDecimals = cellObj.fixedDecimals;
+        }
+        if (cellObj.allowNegative !== undefined) {
+            result.allowNegative = cellObj.allowNegative;
+        }
+        if (cellObj.thousandSeparator !== undefined) {
+            result.thousandSeparator = cellObj.thousandSeparator;
+        }
+        if (cellObj.decimalSeparator !== undefined) {
+            result.decimalSeparator = cellObj.decimalSeparator;
+        }
+    }
+
+    // Handle BooleanCell specific properties
+    if (cellKind === GridCellKind.Boolean) {
+        if (cellObj.maxSize !== undefined) {
+            result.maxSize = cellObj.maxSize;
+        }
+    }
+
     // Handle specific cell type properties
     if (cellKind === GridCellKind.Uri && cellObj.data) {
         result.data = cellObj.data;

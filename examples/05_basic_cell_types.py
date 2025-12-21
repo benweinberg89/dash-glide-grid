@@ -129,6 +129,28 @@ DATA = [
         "protected": {"kind": "protected"},
         "loading": {"kind": "loading", "skeletonWidth": 80, "skeletonHeight": 20},
     },
+    {
+        # Number cell with formatting options
+        "text": "Formatted number",
+        "number": {
+            "kind": "number",
+            "data": 1234567.89,
+            "displayData": "1,234,567.89",
+            "fixedDecimals": 2,
+            "allowNegative": False,
+            "thousandSeparator": True,
+        },
+        # Boolean with custom maxSize
+        "boolean": {"kind": "boolean", "data": True, "maxSize": 24},
+        "markdown": {"kind": "markdown", "data": "Number & Boolean props demo"},
+        "uri": {"kind": "uri", "data": "https://example.com"},
+        "image": {"kind": "image", "data": ["https://picsum.photos/100/100?random=6"]},
+        "bubble": {"kind": "bubble", "data": ["Formatting"]},
+        "drilldown": {"kind": "drilldown", "data": [{"text": "Props"}]},
+        "rowid": {"kind": "rowid", "data": "ROW-005"},
+        "protected": {"kind": "protected"},
+        "loading": {"kind": "loading", "skeletonWidth": 80, "skeletonHeight": 20},
+    },
 ]
 
 app.layout = html.Div(
@@ -246,6 +268,19 @@ data = [{
     "protected": {"kind": "protected"},
     "loading": {"kind": "loading", "skeletonWidth": 80, "skeletonHeight": 20}
 }]
+
+# Number cell with formatting options:
+"number": {
+    "kind": "number",
+    "data": 1234.56,
+    "fixedDecimals": 2,        # Fixed decimal places in editor
+    "allowNegative": False,     # Disable negative numbers
+    "thousandSeparator": True,  # Add thousand separators
+    "decimalSeparator": ".",    # Custom decimal separator
+}
+
+# Boolean cell with custom size:
+"boolean": {"kind": "boolean", "data": True, "maxSize": 24}
         """,
                     style={
                         "backgroundColor": "#282c34",
