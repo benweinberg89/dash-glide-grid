@@ -785,10 +785,10 @@ const GlideGrid = (props) => {
         // Handle custom cell types
         switch (kind) {
             case 'dropdown-cell': {
-                const value = cellValue.value;
+                const value = cellValue.data?.value;
                 if (!value) return '(Blank)';
                 // Try to find matching option with label
-                const options = cellValue.options || cellValue.allowedValues || [];
+                const options = cellValue.data?.options || cellValue.data?.allowedValues || [];
                 const matchedOption = options.find(opt =>
                     (typeof opt === 'object' ? opt.value : opt) === value
                 );
@@ -799,10 +799,10 @@ const GlideGrid = (props) => {
             }
 
             case 'multi-select-cell': {
-                const values = cellValue.values || [];
+                const values = cellValue.data?.values || [];
                 if (values.length === 0) return '(Blank)';
                 // Try to resolve labels
-                const options = cellValue.options || [];
+                const options = cellValue.data?.options || [];
                 const labels = values.map(v => {
                     const opt = options.find(o =>
                         (typeof o === 'object' ? o.value : o) === v
@@ -961,10 +961,10 @@ const GlideGrid = (props) => {
         // Handle custom cell types
         switch (kind) {
             case 'dropdown-cell':
-                return { value: cellValue.value || '', type: 'string' };
+                return { value: cellValue.data?.value || '', type: 'string' };
 
             case 'multi-select-cell': {
-                const values = cellValue.values || [];
+                const values = cellValue.data?.values || [];
                 return { value: [...values].sort().join(', '), type: 'string' };
             }
 

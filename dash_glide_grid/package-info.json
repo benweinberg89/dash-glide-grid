@@ -1,6 +1,6 @@
 {
   "name": "dash_glide_grid",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "A high-performance data grid component for Plotly Dash",
   "main": "build/index.js",
   "scripts": {
