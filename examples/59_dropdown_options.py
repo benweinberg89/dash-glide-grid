@@ -165,6 +165,16 @@ app.layout = html.Div(
                                             value=[],
                                         ),
                                     ],
+                                    style={"marginBottom": "8px"},
+                                ),
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="opt-allowCreation",
+                                            options=[{"label": " allowCreation - Allow typing custom values not in the list", "value": "on"}],
+                                            value=[],
+                                        ),
+                                    ],
                                     style={"marginBottom": "16px"},
                                 ),
                             ],
@@ -265,6 +275,7 @@ app.layout = html.Div(
                         html.Li("Try selectionIndicator to change how selected options are shown (checkmark, highlight, or both)"),
                         html.Li("Try isClearable to enable clearing the selection with X"),
                         html.Li("Try hideSelectedOptions to remove the selected item from the list"),
+                        html.Li("Try allowCreation to type custom values that aren't in the dropdown list"),
                     ]
                 ),
             ],
@@ -281,12 +292,13 @@ app.layout = html.Div(
     Input("opt-isClearable", "value"),
     Input("opt-isSearchable", "value"),
     Input("opt-hideSelectedOptions", "value"),
+    Input("opt-allowCreation", "value"),
     Input("opt-placeholder", "value"),
     Input("opt-maxMenuHeight", "value"),
     Input("opt-menuPlacement", "value"),
     Input("opt-selectionIndicator", "value"),
 )
-def update_grid(is_clearable, is_searchable, hide_selected, placeholder, max_height, menu_placement, selection_indicator):
+def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, placeholder, max_height, menu_placement, selection_indicator):
     """Update grid when any option changes."""
     options = {}
 
@@ -297,6 +309,8 @@ def update_grid(is_clearable, is_searchable, hide_selected, placeholder, max_hei
         options["isSearchable"] = False
     if hide_selected and "on" in hide_selected:
         options["hideSelectedOptions"] = True
+    if allow_creation and "on" in allow_creation:
+        options["allowCreation"] = True
 
     # Other options
     if placeholder:

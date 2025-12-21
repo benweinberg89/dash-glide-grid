@@ -9,6 +9,7 @@
  */
 import * as React from "react";
 import Select, { components } from "react-select";
+import CreatableSelect from "react-select/creatable";
 import { getMiddleCenterBias, useTheme, GridCellKind, TextCellEntry } from "@glideapps/glide-data-grid";
 
 const CustomMenu = (p) => {
@@ -47,6 +48,7 @@ const Editor = (p) => {
         menuPlacement,
         hideSelectedOptions,
         selectionIndicator,
+        allowCreation,
     } = cell.data;
     const showCheckmark = selectionIndicator === "checkmark" || selectionIndicator === "both" || selectionIndicator === undefined;
     const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
@@ -66,6 +68,8 @@ const Editor = (p) => {
         });
     }, [allowedValues]);
 
+    const SelectComponent = allowCreation ? CreatableSelect : Select;
+
     if (cell.readonly) {
         return React.createElement(
             "div",
@@ -83,16 +87,19 @@ const Editor = (p) => {
     return React.createElement(
         "div",
         { style: wrapStyle },
-        React.createElement(Select, {
+        React.createElement(SelectComponent, {
             className: "glide-select",
             inputValue: inputValue,
             onInputChange: setInputValue,
             isClearable: isClearable ?? false,
             isSearchable: isSearchable ?? true,
-            placeholder: placeholder ?? undefined,
+            placeholder: placeholder ?? (allowCreation ? "Type to search or create..." : undefined),
             maxMenuHeight: maxMenuHeight ?? 300,
             menuPlacement: menuPlacement ?? "auto",
             hideSelectedOptions: hideSelectedOptions ?? false,
+            noOptionsMessage: allowCreation
+                ? (input) => (input.inputValue ? `Create "${input.inputValue}"` : "Type to create...")
+                : undefined,
             // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
@@ -230,14 +237,17 @@ const renderer = {
     isMatch: (c) => c.data.kind === "dropdown-cell",
     draw: (args, cell) => {
         const { ctx, theme, rect } = args;
-        const { value } = cell.data;
+        const { value, allowCreation } = cell.data;
         const foundOption = cell.data.allowedValues.find((opt) => {
             if (typeof opt === "string" || opt === null || opt === undefined) {
                 return opt === value;
             }
             return opt.value === value;
         });
-        const displayText = typeof foundOption === "string" ? foundOption : foundOption?.label ?? "";
+        // If option found, use its label; otherwise if allowCreation, show the raw value
+        const displayText = foundOption
+            ? (typeof foundOption === "string" ? foundOption : foundOption?.label ?? "")
+            : (allowCreation ? value ?? "" : "");
         if (displayText) {
             ctx.fillStyle = theme.textDark;
             ctx.fillText(
@@ -264,16 +274,26 @@ const renderer = {
             },
         }),
     }),
-    onPaste: (v, d) => ({
-        ...d,
-        value: d.allowedValues.some((option) => {
-            if (option === null || option === undefined) return false;
-            if (typeof option === "string") return option === v;
-            return option.value === v;
-        })
-            ? v
-            : d.value,
-    }),
+    onPaste: (v, d) => {
+        // If allowCreation is enabled, accept any pasted value
+        if (d.allowCreation) {
+            return {
+                ...d,
+                value: v,
+            };
+        }
+        // Otherwise, only accept if value is in allowedValues
+        return {
+            ...d,
+            value: d.allowedValues.some((option) => {
+                if (option === null || option === undefined) return false;
+                if (typeof option === "string") return option === v;
+                return option.value === v;
+            })
+                ? v
+                : d.value,
+        };
+    },
 };
 
 export default renderer;
