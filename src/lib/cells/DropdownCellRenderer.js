@@ -117,9 +117,7 @@ const Editor = (p) => {
             menuPlacement: menuPlacement ?? "auto",
             hideSelectedOptions: hideSelectedOptions ?? false,
             controlShouldRenderValue: !shouldPrefill,
-            noOptionsMessage: allowCreation
-                ? (input) => (input.inputValue ? `Create "${input.inputValue}"` : "Type to create...")
-                : () => "No matches",
+            noOptionsMessage: allowCreation ? () => null : () => "No matches",
             // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
