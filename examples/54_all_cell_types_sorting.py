@@ -95,8 +95,10 @@ DATA = [
         # Custom types
         "status": {
             "kind": "dropdown-cell",
-            "value": "active",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "active",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
@@ -124,8 +126,10 @@ DATA = [
         },
         "multi_skills": {
             "kind": "multi-select-cell",
-            "values": ["python", "rust"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["python", "rust"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "links": {
             "kind": "links-cell",
@@ -165,8 +169,10 @@ DATA = [
         "pending_data": {"kind": "loading", "skeletonWidth": 60},
         "status": {
             "kind": "dropdown-cell",
-            "value": "pending",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "pending",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
@@ -194,8 +200,10 @@ DATA = [
         },
         "multi_skills": {
             "kind": "multi-select-cell",
-            "values": ["javascript"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["javascript"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "links": {
             "kind": "links-cell",
@@ -232,8 +240,10 @@ DATA = [
         "pending_data": {"kind": "loading", "skeletonWidth": 60},
         "status": {
             "kind": "dropdown-cell",
-            "value": "completed",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "completed",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
@@ -261,8 +271,10 @@ DATA = [
         },
         "multi_skills": {
             "kind": "multi-select-cell",
-            "values": ["python", "javascript", "sql"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["python", "javascript", "sql"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "links": {
             "kind": "links-cell",
@@ -299,8 +311,10 @@ DATA = [
         "pending_data": {"kind": "loading", "skeletonWidth": 60},
         "status": {
             "kind": "dropdown-cell",
-            "value": "archived",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "archived",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
@@ -328,8 +342,10 @@ DATA = [
         },
         "multi_skills": {
             "kind": "multi-select-cell",
-            "values": ["go", "rust"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["go", "rust"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "links": {
             "kind": "links-cell",
@@ -370,8 +386,10 @@ DATA = [
         "pending_data": {"kind": "loading", "skeletonWidth": 60},
         "status": {
             "kind": "dropdown-cell",
-            "value": "active",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "active",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
@@ -399,8 +417,10 @@ DATA = [
         },
         "multi_skills": {
             "kind": "multi-select-cell",
-            "values": ["sql"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["sql"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "links": {
             "kind": "links-cell",
