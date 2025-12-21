@@ -112,7 +112,7 @@ const Editor = (p) => {
             onInputChange: setInputValue,
             isClearable: isClearable ?? false,
             isSearchable: isSearchable ?? true,
-            placeholder: placeholder ?? (allowCreation ? "Type to search or create..." : undefined),
+            placeholder: placeholder ?? (allowCreation ? "Type to search or create..." : "Select..."),
             maxMenuHeight: maxMenuHeight ?? 300,
             menuPlacement: menuPlacement ?? "auto",
             hideSelectedOptions: hideSelectedOptions ?? false,

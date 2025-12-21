@@ -306,7 +306,7 @@ const Editor = (p) => {
             inputValue: inputValue,
             onInputChange: setInputValue,
             options: options,
-            placeholder: placeholder ?? (cell.readonly ? "" : allowCreation ? "Add..." : undefined),
+            placeholder: placeholder ?? (cell.readonly ? "" : allowCreation ? "Add..." : "Select..."),
             noOptionsMessage: (input) => {
                 return allowCreation && allowDuplicates && input.inputValue
                     ? `Create "${input.inputValue}"`
