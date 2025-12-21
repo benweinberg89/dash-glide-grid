@@ -1675,10 +1675,21 @@ const GlideGrid = (props) => {
                 if (nestedDataCells.includes(newValue.data.kind) && oldValue.data) {
                     // Reconstruct nested format: {kind, data: {...}, copyData}
                     const { kind, ...innerData } = newValue.data;
+
+                    // Derive copyData from the NEW value (editors don't update copyData)
+                    let derivedCopyData = '';
+                    if (kind === 'dropdown-cell') {
+                        derivedCopyData = innerData.value || '';
+                    } else if (kind === 'multi-select-cell') {
+                        derivedCopyData = Array.isArray(innerData.values)
+                            ? innerData.values.join(', ')
+                            : '';
+                    }
+
                     newCellValue = {
                         kind: kind,
                         data: innerData,
-                        copyData: newValue.copyData || ''
+                        copyData: derivedCopyData,
                     };
                 } else {
                     // Other custom cells use flat format
