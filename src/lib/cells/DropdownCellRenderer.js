@@ -55,7 +55,7 @@ const Editor = (p) => {
     const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
     // When prefillSearch is enabled, pre-populate input with current value so users can edit/filter
     const shouldPrefill = prefillSearch && valueIn && !initialValue;
-    const [value, setValue] = React.useState(shouldPrefill ? null : valueIn);
+    const [value, setValue] = React.useState(valueIn);
     const [inputValue, setInputValue] = React.useState(initialValue ?? (shouldPrefill ? valueIn ?? "" : ""));
     const selectRef = React.useRef(null);
     const theme = useTheme();
@@ -116,6 +116,7 @@ const Editor = (p) => {
             maxMenuHeight: maxMenuHeight ?? 300,
             menuPlacement: menuPlacement ?? "auto",
             hideSelectedOptions: hideSelectedOptions ?? false,
+            controlShouldRenderValue: !shouldPrefill,
             noOptionsMessage: allowCreation
                 ? (input) => (input.inputValue ? `Create "${input.inputValue}"` : "Type to create...")
                 : undefined,
