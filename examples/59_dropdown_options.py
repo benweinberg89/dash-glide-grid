@@ -175,6 +175,16 @@ app.layout = html.Div(
                                             value=[],
                                         ),
                                     ],
+                                    style={"marginBottom": "8px"},
+                                ),
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="opt-prefillSearch",
+                                            options=[{"label": " prefillSearch - Pre-fill search with current value (auto-selected)", "value": "on"}],
+                                            value=[],
+                                        ),
+                                    ],
                                     style={"marginBottom": "16px"},
                                 ),
                             ],
@@ -276,6 +286,7 @@ app.layout = html.Div(
                         html.Li("Try isClearable to enable clearing the selection with X"),
                         html.Li("Try hideSelectedOptions to remove the selected item from the list"),
                         html.Li("Try allowCreation to type custom values that aren't in the dropdown list"),
+                        html.Li("Try prefillSearch to pre-fill the search box with the current value (useful for editing similar options)"),
                     ]
                 ),
             ],
@@ -293,12 +304,13 @@ app.layout = html.Div(
     Input("opt-isSearchable", "value"),
     Input("opt-hideSelectedOptions", "value"),
     Input("opt-allowCreation", "value"),
+    Input("opt-prefillSearch", "value"),
     Input("opt-placeholder", "value"),
     Input("opt-maxMenuHeight", "value"),
     Input("opt-menuPlacement", "value"),
     Input("opt-selectionIndicator", "value"),
 )
-def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, placeholder, max_height, menu_placement, selection_indicator):
+def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, prefill_search, placeholder, max_height, menu_placement, selection_indicator):
     """Update grid when any option changes."""
     options = {}
 
@@ -311,6 +323,8 @@ def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, plac
         options["hideSelectedOptions"] = True
     if allow_creation and "on" in allow_creation:
         options["allowCreation"] = True
+    if prefill_search and "on" in prefill_search:
+        options["prefillSearch"] = True
 
     # Other options
     if placeholder:

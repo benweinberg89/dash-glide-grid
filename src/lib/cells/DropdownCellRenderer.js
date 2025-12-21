@@ -49,12 +49,30 @@ const Editor = (p) => {
         hideSelectedOptions,
         selectionIndicator,
         allowCreation,
+        prefillSearch,
     } = cell.data;
     const showCheckmark = selectionIndicator === "checkmark" || selectionIndicator === "both" || selectionIndicator === undefined;
     const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
-    const [value, setValue] = React.useState(valueIn);
-    const [inputValue, setInputValue] = React.useState(initialValue ?? "");
+    // When prefillSearch is enabled, pre-populate input with current value so users can edit/filter
+    const shouldPrefill = prefillSearch && valueIn && !initialValue;
+    const [value, setValue] = React.useState(shouldPrefill ? null : valueIn);
+    const [inputValue, setInputValue] = React.useState(initialValue ?? (shouldPrefill ? valueIn ?? "" : ""));
+    const selectRef = React.useRef(null);
     const theme = useTheme();
+
+    // Auto-select all text when opening editor with pre-populated value
+    React.useEffect(() => {
+        if (shouldPrefill && selectRef.current) {
+            // Small delay to ensure input is mounted and focused
+            const timer = setTimeout(() => {
+                const input = selectRef.current?.inputRef;
+                if (input) {
+                    input.select();
+                }
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+    }, []);
 
     const values = React.useMemo(() => {
         return allowedValues.map((option) => {
@@ -88,6 +106,7 @@ const Editor = (p) => {
         "div",
         { style: wrapStyle },
         React.createElement(SelectComponent, {
+            ref: selectRef,
             className: "glide-select",
             inputValue: inputValue,
             onInputChange: setInputValue,
