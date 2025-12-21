@@ -274,6 +274,8 @@ app.layout = html.Div(
             height=280,
             rowMarkers="number",
             theme=LIGHT_THEME,
+            enableCopyPaste=True,
+            enableUndoRedo=True,
         ),
         html.Div(
             [

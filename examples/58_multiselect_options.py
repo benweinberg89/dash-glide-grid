@@ -217,6 +217,7 @@ app.layout = html.Div(
             rowMarkers="number",
             theme=LIGHT_THEME,
             enableCopyPaste=True,
+            enableUndoRedo=True,
         ),
         html.Div(
             [
