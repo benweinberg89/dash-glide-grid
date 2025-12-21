@@ -169,6 +169,8 @@ GlideGrid.propTypes = {
      * - `readonly`: (boolean) If true, cell cannot be edited even with allowOverlay
      * - `themeOverride`: (object) Custom colors for this cell, e.g. {"bgCell": "#fff"}
      * - `span`: ([start, end]) For merged cells - column indices this cell spans
+     * - `contentAlign`: ("left"|"right"|"center") Text alignment hint for the cell
+     * - `cursor`: (string) CSS cursor override when hovering, e.g. "pointer"
      *
      * **Number cell props** (kind: "number"):
      * - `fixedDecimals`: (number) Fixed number of decimal places in editor
@@ -178,6 +180,13 @@ GlideGrid.propTypes = {
      *
      * **Boolean cell props** (kind: "boolean"):
      * - `maxSize`: (number) Maximum size of the checkbox in pixels
+     *
+     * **Uri cell props** (kind: "uri"):
+     * - `hoverEffect`: (boolean) If true, underline on hover with pointer cursor
+     *
+     * **Image cell props** (kind: "image"):
+     * - `rounding`: (number) Corner radius for rounded images in pixels
+     * - `displayData`: (string[]) Reduced-size image URLs for display (full URLs in data for overlay)
      *
      * **Dropdown cell example**:
      * ```

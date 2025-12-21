@@ -297,15 +297,23 @@ Keyword arguments:
     cannot be edited even with allowOverlay - `themeOverride`:
     (object) Custom colors for this cell, e.g. {\"bgCell\": \"#fff\"}
     - `span`: ([start, end]) For merged cells - column indices this
-    cell spans  **Number cell props** (kind: \"number\"): -
-    `fixedDecimals`: (number) Fixed number of decimal places in editor
-    - `allowNegative`: (boolean) Allow negative numbers. Default: True
-    - `thousandSeparator`: (boolean|string) Add thousand separators.
-    True for default, or custom string - `decimalSeparator`: (string)
-    Custom decimal separator, e.g. \",\" for European format
-    **Boolean cell props** (kind: \"boolean\"): - `maxSize`: (number)
-    Maximum size of the checkbox in pixels  **Dropdown cell example**:
-    ``` {   \"kind\": \"dropdown-cell\",   \"data\": {     \"value\":
+    cell spans - `contentAlign`: (\"left\"|\"right\"|\"center\") Text
+    alignment hint for the cell - `cursor`: (string) CSS cursor
+    override when hovering, e.g. \"pointer\"  **Number cell props**
+    (kind: \"number\"): - `fixedDecimals`: (number) Fixed number of
+    decimal places in editor - `allowNegative`: (boolean) Allow
+    negative numbers. Default: True - `thousandSeparator`:
+    (boolean|string) Add thousand separators. True for default, or
+    custom string - `decimalSeparator`: (string) Custom decimal
+    separator, e.g. \",\" for European format  **Boolean cell props**
+    (kind: \"boolean\"): - `maxSize`: (number) Maximum size of the
+    checkbox in pixels  **Uri cell props** (kind: \"uri\"): -
+    `hoverEffect`: (boolean) If True, underline on hover with pointer
+    cursor  **Image cell props** (kind: \"image\"): - `rounding`:
+    (number) Corner radius for rounded images in pixels -
+    `displayData`: (string[]) Reduced-size image URLs for display
+    (full URLs in data for overlay)  **Dropdown cell example**: ``` {
+    \"kind\": \"dropdown-cell\",   \"data\": {     \"value\":
     \"active\",     \"options\": [{\"value\": \"active\", \"label\":
     \"Active\", \"color\": \"#10b981\"}],     \"allowedValues\":
     [\"active\", \"pending\"]   },   \"allowOverlay\": True,

@@ -273,6 +273,12 @@ function transformCellObject(cellObj) {
     if (cellObj.lastUpdated !== undefined) {
         result.lastUpdated = cellObj.lastUpdated;
     }
+    if (cellObj.contentAlign !== undefined) {
+        result.contentAlign = cellObj.contentAlign;
+    }
+    if (cellObj.cursor !== undefined) {
+        result.cursor = cellObj.cursor;
+    }
 
     // Handle NumberCell specific properties
     if (cellKind === GridCellKind.Number) {
@@ -298,11 +304,24 @@ function transformCellObject(cellObj) {
     }
 
     // Handle specific cell type properties
-    if (cellKind === GridCellKind.Uri && cellObj.data) {
-        result.data = cellObj.data;
+    if (cellKind === GridCellKind.Uri) {
+        if (cellObj.data) {
+            result.data = cellObj.data;
+        }
+        if (cellObj.hoverEffect !== undefined) {
+            result.hoverEffect = cellObj.hoverEffect;
+        }
     }
-    if (cellKind === GridCellKind.Image && cellObj.data) {
-        result.data = Array.isArray(cellObj.data) ? cellObj.data : [cellObj.data];
+    if (cellKind === GridCellKind.Image) {
+        if (cellObj.data) {
+            result.data = Array.isArray(cellObj.data) ? cellObj.data : [cellObj.data];
+        }
+        if (cellObj.displayData) {
+            result.displayData = Array.isArray(cellObj.displayData) ? cellObj.displayData : [cellObj.displayData];
+        }
+        if (cellObj.rounding !== undefined) {
+            result.rounding = cellObj.rounding;
+        }
     }
     if (cellKind === GridCellKind.Bubble && cellObj.data) {
         result.data = Array.isArray(cellObj.data) ? cellObj.data : [cellObj.data];
