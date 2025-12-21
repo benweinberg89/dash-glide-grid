@@ -119,7 +119,7 @@ const Editor = (p) => {
             controlShouldRenderValue: !shouldPrefill,
             noOptionsMessage: allowCreation
                 ? (input) => (input.inputValue ? `Create "${input.inputValue}"` : "Type to create...")
-                : undefined,
+                : () => "No matches",
             // FIX: These props prevent scroll issues
             menuPosition: "fixed",
             menuShouldScrollIntoView: false,
@@ -168,6 +168,14 @@ const Editor = (p) => {
                     fontSize: theme.editorFontSize,
                     fontFamily: theme.fontFamily,
                     color: theme.textLight,
+                }),
+                noOptionsMessage: (styles) => ({
+                    ...styles,
+                    fontSize: theme.editorFontSize,
+                    fontFamily: theme.fontFamily,
+                    color: theme.textLight,
+                    textAlign: "center",
+                    padding: "8px 12px",
                 }),
             },
             theme: (t) => {
