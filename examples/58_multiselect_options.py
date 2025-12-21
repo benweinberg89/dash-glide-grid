@@ -64,12 +64,14 @@ COLUMNS = [
 
 def make_multiselect_cell(values, **options):
     """Helper to create a multi-select cell with custom options."""
+    # allowCreation defaults to True unless explicitly set to False
+    allow_creation = options.pop("allowCreation", True)
     return {
         "kind": "multi-select-cell",
         "data": {
             "values": values,
             "options": TAG_OPTIONS,
-            "allowCreation": True,
+            "allowCreation": allow_creation,
             "allowDuplicates": False,
             **options,
         },
@@ -117,6 +119,7 @@ app.layout = html.Div(
                         dcc.Checklist(
                             id="boolean-options",
                             options=[
+                                {"label": " allowCreation - Allow typing custom values not in the list (default: on)", "value": "allowCreation"},
                                 {"label": " closeMenuOnSelect - Close dropdown after each selection", "value": "closeMenuOnSelect"},
                                 {"label": " isClearable - Show X button to clear all values (default: on)", "value": "isClearable"},
                                 {"label": " isSearchable - Enable typing to filter options (default: on)", "value": "isSearchable"},
@@ -124,7 +127,7 @@ app.layout = html.Div(
                                 {"label": " hideSelectedOptions - Hide selected options from dropdown", "value": "hideSelectedOptions"},
                                 {"label": " showOverflowCount - Show +N badge when values overflow cell width", "value": "showOverflowCount"},
                             ],
-                            value=["isClearable", "isSearchable", "backspaceRemovesValue"],
+                            value=["allowCreation", "isClearable", "isSearchable", "backspaceRemovesValue"],
                             style={"marginBottom": "16px"},
                             labelStyle={"display": "block", "marginBottom": "8px"},
                         ),
@@ -213,6 +216,7 @@ app.layout = html.Div(
             height=300,
             rowMarkers="number",
             theme=LIGHT_THEME,
+            enableCopyPaste=True,
         ),
         html.Div(
             [
@@ -224,6 +228,7 @@ app.layout = html.Div(
                         html.Li("Try selectionIndicator to change how selected options are shown"),
                         html.Li("Try typing to filter options (if isSearchable is enabled)"),
                         html.Li("Try pressing backspace to remove values (if backspaceRemovesValue is enabled)"),
+                        html.Li("Try copy/paste - with allowCreation OFF, only valid options will be pasted"),
                     ]
                 ),
             ],
@@ -249,6 +254,8 @@ def update_grid(boolean_options, placeholder, maxMenuHeight, menuPlacement, sele
     options = {}
 
     # Handle boolean options
+    if "allowCreation" not in boolean_options:
+        options["allowCreation"] = False
     if "closeMenuOnSelect" in boolean_options:
         options["closeMenuOnSelect"] = True
     if "isClearable" not in boolean_options:

@@ -171,12 +171,12 @@ function transformCellObject(cellObj) {
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
         const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell'];
-        // Cells that support both nested (data: {}) and flat formats
+        // Cells that require nested data structure: {"kind": "...", "data": {...}}
         const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
-        // Use nested data if present, otherwise use flat format
-        const cellData = nestedDataCells.includes(cellObj.kind) && cellObj.data
-            ? cellObj.data  // nested: {"kind": "dropdown-cell", "data": {"value": "x"}}
-            : cellObj;      // flat: {"kind": "dropdown-cell", "value": "x"}
+        // For dropdown/multi-select, data must be in nested format
+        const cellData = nestedDataCells.includes(cellObj.kind)
+            ? (cellObj.data || {})  // nested format required
+            : cellObj;
 
         // Auto-derive copyData from cell value if not explicitly provided
         const deriveCopyData = () => {
@@ -1669,9 +1669,21 @@ const GlideGrid = (props) => {
         if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
             // Handle custom cells (dropdown, multiselect, tags, etc.)
             if (newValue.kind === GridCellKind.Custom) {
-                // For custom cells, newValue.data IS the cell value
-                // (e.g., {kind: "tags-cell", tags: [...], possibleTags: [...]})
-                newCellValue = newValue.data;
+                // For custom cells, newValue.data contains {kind: "...", value/values, allowedValues, ...}
+                // We need to preserve the nested format for dropdown/multi-select cells
+                const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
+                if (nestedDataCells.includes(newValue.data.kind) && oldValue.data) {
+                    // Reconstruct nested format: {kind, data: {...}, copyData}
+                    const { kind, ...innerData } = newValue.data;
+                    newCellValue = {
+                        kind: kind,
+                        data: innerData,
+                        copyData: newValue.copyData || ''
+                    };
+                } else {
+                    // Other custom cells use flat format
+                    newCellValue = newValue.data;
+                }
             } else {
                 // Update the data property while preserving the object structure
                 newCellValue = { ...oldValue, data: newValue.data };

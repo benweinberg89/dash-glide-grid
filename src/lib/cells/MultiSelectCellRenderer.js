@@ -538,26 +538,37 @@ const renderer = {
         }),
     }),
     onPaste: (val, cell) => {
+        // cell is the full cell object: {kind, data, copyData}
+        // data contains: {values, options, allowDuplicates, allowCreation, ...}
+        const d = cell.data;
+
         if (!val || !val.trim()) {
             return {
                 ...cell,
-                values: [],
+                copyData: "",
+                data: { ...d, values: [] },
             };
         }
+
         let values = val.split(",").map((s) => s.trim());
-        if (!cell.allowDuplicates) {
+
+        if (!d.allowDuplicates) {
             values = values.filter((v, index) => values.indexOf(v) === index);
         }
-        if (!cell.allowCreation) {
-            const options = prepareOptions(cell.options ?? []);
+
+        if (!d.allowCreation) {
+            const options = prepareOptions(d.options ?? []);
             values = values.filter((v) => options.find((o) => o.value === v));
         }
+
         if (values.length === 0) {
-            return undefined;
+            return undefined; // reject paste
         }
+
         return {
             ...cell,
-            values,
+            copyData: values.join(", "),
+            data: { ...d, values },
         };
     },
 };

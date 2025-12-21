@@ -300,24 +300,33 @@ const renderer = {
             },
         }),
     }),
-    onPaste: (v, d) => {
+    onPaste: (v, cell) => {
+        // cell is the full cell object: {kind, data, copyData}
+        // data contains: {value, allowedValues, allowCreation, ...}
+        const d = cell.data;
+
         // If allowCreation is enabled, accept any pasted value
         if (d.allowCreation) {
             return {
-                ...d,
-                value: v,
+                ...cell,
+                copyData: v,
+                data: { ...d, value: v },
             };
         }
+
         // Otherwise, only accept if value is in allowedValues
+        const isValid = d.allowedValues?.some((option) => {
+            if (option === null || option === undefined) return false;
+            if (typeof option === "string") return option === v;
+            return option.value === v;
+        });
+
+        if (!isValid) return undefined; // reject paste
+
         return {
-            ...d,
-            value: d.allowedValues.some((option) => {
-                if (option === null || option === undefined) return false;
-                if (typeof option === "string") return option === v;
-                return option.value === v;
-            })
-                ? v
-                : d.value,
+            ...cell,
+            copyData: v,
+            data: { ...d, value: v },
         };
     },
 };

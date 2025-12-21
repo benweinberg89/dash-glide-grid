@@ -65,13 +65,17 @@ DATA = [
         "boolean": {"kind": "boolean", "data": True},
         "dropdown": {
             "kind": "dropdown-cell",
-            "value": "active",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "active",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "multiselect": {
             "kind": "multi-select-cell",
-            "values": ["python", "rust"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["python", "rust"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
@@ -125,13 +129,17 @@ DATA = [
         "boolean": {"kind": "boolean", "data": False},
         "dropdown": {
             "kind": "dropdown-cell",
-            "value": "pending",
-            "allowedValues": STATUS_OPTIONS,
+            "data": {
+                "value": "pending",
+                "allowedValues": STATUS_OPTIONS,
+            },
         },
         "multiselect": {
             "kind": "multi-select-cell",
-            "values": ["javascript"],
-            "options": SKILL_OPTIONS,
+            "data": {
+                "values": ["javascript"],
+                "options": SKILL_OPTIONS,
+            },
         },
         "tags": {
             "kind": "tags-cell",
