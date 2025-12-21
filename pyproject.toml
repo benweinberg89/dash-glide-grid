@@ -1,6 +1,6 @@
 [project]
 name = "dash-glide-grid"
-version = "0.1.5"
+version = "0.1.6"
 description = "A high-performance data grid component for Plotly Dash"
 readme = "README.md"
 license = {text = "MIT"}
