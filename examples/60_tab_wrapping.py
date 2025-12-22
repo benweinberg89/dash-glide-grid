@@ -20,20 +20,20 @@ import dash_glide_grid as dgg
 
 app = Dash(__name__)
 
-# Sample editable data
+# Sample editable data - all text columns for easy Tab editing test
 DATA = [
-    {"name": "Alice", "department": "Engineering", "salary": 95000, "active": True},
-    {"name": "Bob", "department": "Marketing", "salary": 75000, "active": True},
-    {"name": "Carol", "department": "Sales", "salary": 85000, "active": False},
-    {"name": "David", "department": "Engineering", "salary": 105000, "active": True},
-    {"name": "Eve", "department": "HR", "salary": 65000, "active": True},
+    {"name": "Alice", "department": "Engineering", "role": "Senior Dev", "location": "NYC"},
+    {"name": "Bob", "department": "Marketing", "role": "Manager", "location": "LA"},
+    {"name": "Carol", "department": "Sales", "role": "Lead", "location": "Chicago"},
+    {"name": "David", "department": "Engineering", "role": "Junior Dev", "location": "Seattle"},
+    {"name": "Eve", "department": "HR", "role": "Coordinator", "location": "Boston"},
 ]
 
 COLUMNS = [
     {"id": "name", "title": "Name", "width": 150},
     {"id": "department", "title": "Department", "width": 150},
-    {"id": "salary", "title": "Salary", "width": 120},
-    {"id": "active", "title": "Active", "width": 100},
+    {"id": "role", "title": "Role", "width": 120},
+    {"id": "location", "title": "Location", "width": 120},
 ]
 
 app.layout = html.Div(

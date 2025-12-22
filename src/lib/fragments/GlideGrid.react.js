@@ -1640,9 +1640,60 @@ const GlideGrid = (props) => {
         }
     }, [setProps, nClicks]);
 
+    // Track if we need to wrap after cell edit (set by Tab handler)
+    const pendingWrapRef = useRef(null);
+
     // Handle cell edits
     const handleCellEdited = useCallback((cell, newValue) => {
         setIsEditorOpen(false);
+
+        // Check if we have a pending wrap from Tab at row boundary
+        if (pendingWrapRef.current) {
+            const { col: newCol, row: newRow } = pendingWrapRef.current;
+            pendingWrapRef.current = null;
+
+            // Apply the wrap after a short delay
+            setTimeout(() => {
+                const newSelection = {
+                    columns: CompactSelection.empty(),
+                    rows: CompactSelection.empty(),
+                    current: {
+                        cell: [newCol, newRow],
+                        range: { x: newCol, y: newRow, width: 1, height: 1 },
+                        rangeStack: []
+                    }
+                };
+                setGridSelection(newSelection);
+
+                if (setProps) {
+                    setProps({
+                        selectedCell: { col: newCol, row: newRow },
+                        selectedRange: {
+                            startCol: newCol,
+                            startRow: newRow,
+                            endCol: newCol,
+                            endRow: newRow
+                        }
+                    });
+                }
+
+                if (gridRef.current) {
+                    gridRef.current.scrollTo(newCol, newRow);
+                    gridRef.current.focus();
+                    gridRef.current.updateCells([{ cell: [newCol, newRow] }]);
+                }
+            }, 50);
+        } else {
+            // Focus the grid after editor closes so Tab continues to work
+            if (gridRef.current) {
+                setTimeout(() => {
+                    if (gridRef.current) {
+                        gridRef.current.focus();
+                    }
+                }, 0);
+            }
+        }
+
         if (!setProps || readonly) return;
 
         const [col, row] = cell;
@@ -3176,7 +3227,7 @@ const GlideGrid = (props) => {
         return { col: nextCol, row: nextRow, wrapped: true };
     }, [glideColumns.length, unselectableColumns, unselectableRows]);
 
-    // Tab navigation handler for wrapping behavior
+    // Tab navigation handler for wrapping behavior (backup for when capture phase doesn't apply)
     const handleTabNavigation = useCallback((e) => {
         if (!tabWrapping) return;
         if (e.key !== 'Tab') return;
@@ -3184,20 +3235,15 @@ const GlideGrid = (props) => {
         const direction = e.shiftKey ? -1 : 1;
         const numCols = glideColumns.length;
 
-        // Get current cell from selection
         if (!gridSelection.current?.cell) return;
         const [currentCol, currentRow] = gridSelection.current.cell;
 
-        // Check if we need to wrap (at row boundary)
         const needsWrap = (direction === 1 && currentCol === numCols - 1) ||
                           (direction === -1 && currentCol === 0);
 
-        if (!needsWrap) {
-            // Not at boundary - let Glide handle normal Tab navigation
-            return;
-        }
+        if (!needsWrap) return;
 
-        // We need to wrap - prevent default and handle ourselves
+        // Prevent default and handle wrap (only fires when not editing)
         e.preventDefault();
         e.stopPropagation();
 
@@ -3205,15 +3251,8 @@ const GlideGrid = (props) => {
             currentCol, currentRow, direction
         );
 
-        if (!wrapped) {
-            // At grid boundary, can't wrap further
-            return;
-        }
+        if (!wrapped) return;
 
-        // Track if we were editing
-        const wasEditing = isEditorOpen;
-
-        // Update selection state
         const newSelection = {
             columns: CompactSelection.empty(),
             rows: CompactSelection.empty(),
@@ -3225,7 +3264,6 @@ const GlideGrid = (props) => {
         };
         setGridSelection(newSelection);
 
-        // Update Dash props
         if (setProps) {
             setProps({
                 selectedCell: { col: newCol, row: newRow },
@@ -3238,27 +3276,91 @@ const GlideGrid = (props) => {
             });
         }
 
-        // Scroll to new cell
         if (gridRef.current) {
             gridRef.current.scrollTo(newCol, newRow);
+            gridRef.current.focus();
         }
+    }, [tabWrapping, gridSelection, glideColumns.length,
+        getNextCellWithWrapping, setProps]);
 
-        // If we were editing, activate the new cell to open editor
-        if (wasEditing) {
-            // Use setTimeout to let selection update propagate first
-            setTimeout(() => {
-                const newCellContent = getCellContent([newCol, newRow]);
-                if (newCellContent && newCellContent.allowOverlay && !newCellContent.readonly) {
-                    setIsEditorOpen(true);
-                    // Focus the grid
-                    if (gridRef.current) {
-                        gridRef.current.focus();
-                    }
+    // Use capture phase on DOCUMENT to intercept Tab before the editor sees it
+    // (Editor is in a portal outside our container, so container-level capture doesn't work)
+    useEffect(() => {
+        if (!tabWrapping) return;
+
+        const handleTabCapture = (e) => {
+            if (e.key !== 'Tab') return;
+
+            const direction = e.shiftKey ? -1 : 1;
+            const numCols = glideColumns.length;
+
+            if (!gridSelection.current?.cell) return;
+            const [currentCol, currentRow] = gridSelection.current.cell;
+
+            const needsWrap = (direction === 1 && currentCol === numCols - 1) ||
+                              (direction === -1 && currentCol === 0);
+
+            if (!needsWrap) return;
+
+            const numRows = localDataRef.current?.length || 0;
+            let newCol, newRow;
+
+            if (direction === 1) {
+                // Tab forward - wrap to next row
+                newCol = 0;
+                newRow = currentRow + 1;
+                if (newRow >= numRows) return; // At last cell - stay put
+            } else {
+                // Shift+Tab backward - wrap to previous row
+                newCol = numCols - 1;
+                newRow = currentRow - 1;
+                if (newRow < 0) return; // At first cell - stay put
+            }
+
+            // If editor is open, let Glide handle Tab to close the editor,
+            // but set a pending wrap that handleCellEdited will apply
+            if (isEditorOpen) {
+                pendingWrapRef.current = { col: newCol, row: newRow };
+                return; // Don't prevent default - let Glide close the editor
+            }
+
+            // Not editing - prevent default and handle the wrap ourselves
+            e.preventDefault();
+            e.stopPropagation();
+
+            const newSelection = {
+                columns: CompactSelection.empty(),
+                rows: CompactSelection.empty(),
+                current: {
+                    cell: [newCol, newRow],
+                    range: { x: newCol, y: newRow, width: 1, height: 1 },
+                    rangeStack: []
                 }
-            }, 0);
-        }
-    }, [tabWrapping, gridSelection, glideColumns.length, isEditorOpen,
-        getNextCellWithWrapping, setProps, getCellContent]);
+            };
+            setGridSelection(newSelection);
+
+            if (setProps) {
+                setProps({
+                    selectedCell: { col: newCol, row: newRow },
+                    selectedRange: {
+                        startCol: newCol,
+                        startRow: newRow,
+                        endCol: newCol,
+                        endRow: newRow
+                    }
+                });
+            }
+
+            if (gridRef.current) {
+                gridRef.current.scrollTo(newCol, newRow);
+                gridRef.current.focus();
+                gridRef.current.updateCells([{ cell: [newCol, newRow] }]);
+            }
+        };
+
+        document.addEventListener('keydown', handleTabCapture, true);
+        return () => document.removeEventListener('keydown', handleTabCapture, true);
+    }, [tabWrapping, glideColumns.length, gridSelection, isEditorOpen, setProps]);
 
     // Container style with explicit height
     const containerStyle = {
