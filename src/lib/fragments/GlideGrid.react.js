@@ -434,6 +434,7 @@ const GlideGrid = (props) => {
         editOnType,
         rangeSelectionColumnSpanning,
         trapFocus,
+        tabWrapping,
         scrollToActiveCell,
         columnSelectionMode,
         enableUndoRedo,
@@ -3094,6 +3095,171 @@ const GlideGrid = (props) => {
         }
     }, [enableUndoRedo, performUndo, performRedo]);
 
+    // ========== TAB WRAPPING NAVIGATION ==========
+
+    // Helper to calculate next/previous cell with row wrapping
+    const getNextCellWithWrapping = useCallback((currentCol, currentRow, direction) => {
+        // direction: 1 for Tab (forward), -1 for Shift+Tab (backward)
+        const numCols = glideColumns.length;
+        const numRows = localDataRef.current?.length || 0;
+
+        if (numCols === 0 || numRows === 0) {
+            return { col: currentCol, row: currentRow, wrapped: false };
+        }
+
+        let nextCol = currentCol + direction;
+        let nextRow = currentRow;
+
+        if (direction === 1) {
+            // Tab forward
+            if (nextCol >= numCols) {
+                // Wrap to next row
+                nextCol = 0;
+                nextRow = currentRow + 1;
+                if (nextRow >= numRows) {
+                    // At last cell of grid - stay put
+                    return { col: currentCol, row: currentRow, wrapped: false };
+                }
+            }
+        } else {
+            // Shift+Tab backward
+            if (nextCol < 0) {
+                // Wrap to previous row
+                nextCol = numCols - 1;
+                nextRow = currentRow - 1;
+                if (nextRow < 0) {
+                    // At first cell of grid - stay put
+                    return { col: currentCol, row: currentRow, wrapped: false };
+                }
+            }
+        }
+
+        // Skip unselectable columns (recursively find next valid cell)
+        if (unselectableColumns && unselectableColumns.length > 0) {
+            let attempts = 0;
+            const maxAttempts = numCols * numRows; // Prevent infinite loops
+            while (unselectableColumns.includes(nextCol) && attempts < maxAttempts) {
+                attempts++;
+                nextCol += direction;
+                if (direction === 1 && nextCol >= numCols) {
+                    nextCol = 0;
+                    nextRow++;
+                    if (nextRow >= numRows) {
+                        return { col: currentCol, row: currentRow, wrapped: false };
+                    }
+                } else if (direction === -1 && nextCol < 0) {
+                    nextCol = numCols - 1;
+                    nextRow--;
+                    if (nextRow < 0) {
+                        return { col: currentCol, row: currentRow, wrapped: false };
+                    }
+                }
+            }
+            if (attempts >= maxAttempts) {
+                return { col: currentCol, row: currentRow, wrapped: false };
+            }
+        }
+
+        // Skip unselectable rows
+        if (unselectableRows && unselectableRows.length > 0) {
+            let attempts = 0;
+            const maxAttempts = numRows;
+            while (unselectableRows.includes(nextRow) && attempts < maxAttempts) {
+                attempts++;
+                nextRow += direction;
+                if (nextRow >= numRows || nextRow < 0) {
+                    return { col: currentCol, row: currentRow, wrapped: false };
+                }
+            }
+        }
+
+        return { col: nextCol, row: nextRow, wrapped: true };
+    }, [glideColumns.length, unselectableColumns, unselectableRows]);
+
+    // Tab navigation handler for wrapping behavior
+    const handleTabNavigation = useCallback((e) => {
+        if (!tabWrapping) return;
+        if (e.key !== 'Tab') return;
+
+        const direction = e.shiftKey ? -1 : 1;
+        const numCols = glideColumns.length;
+
+        // Get current cell from selection
+        if (!gridSelection.current?.cell) return;
+        const [currentCol, currentRow] = gridSelection.current.cell;
+
+        // Check if we need to wrap (at row boundary)
+        const needsWrap = (direction === 1 && currentCol === numCols - 1) ||
+                          (direction === -1 && currentCol === 0);
+
+        if (!needsWrap) {
+            // Not at boundary - let Glide handle normal Tab navigation
+            return;
+        }
+
+        // We need to wrap - prevent default and handle ourselves
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { col: newCol, row: newRow, wrapped } = getNextCellWithWrapping(
+            currentCol, currentRow, direction
+        );
+
+        if (!wrapped) {
+            // At grid boundary, can't wrap further
+            return;
+        }
+
+        // Track if we were editing
+        const wasEditing = isEditorOpen;
+
+        // Update selection state
+        const newSelection = {
+            columns: CompactSelection.empty(),
+            rows: CompactSelection.empty(),
+            current: {
+                cell: [newCol, newRow],
+                range: { x: newCol, y: newRow, width: 1, height: 1 },
+                rangeStack: []
+            }
+        };
+        setGridSelection(newSelection);
+
+        // Update Dash props
+        if (setProps) {
+            setProps({
+                selectedCell: { col: newCol, row: newRow },
+                selectedRange: {
+                    startCol: newCol,
+                    startRow: newRow,
+                    endCol: newCol,
+                    endRow: newRow
+                }
+            });
+        }
+
+        // Scroll to new cell
+        if (gridRef.current) {
+            gridRef.current.scrollTo(newCol, newRow);
+        }
+
+        // If we were editing, activate the new cell to open editor
+        if (wasEditing) {
+            // Use setTimeout to let selection update propagate first
+            setTimeout(() => {
+                const newCellContent = getCellContent([newCol, newRow]);
+                if (newCellContent && newCellContent.allowOverlay && !newCellContent.readonly) {
+                    setIsEditorOpen(true);
+                    // Focus the grid
+                    if (gridRef.current) {
+                        gridRef.current.focus();
+                    }
+                }
+            }, 0);
+        }
+    }, [tabWrapping, gridSelection, glideColumns.length, isEditorOpen,
+        getNextCellWithWrapping, setProps, getCellContent]);
+
     // Container style with explicit height
     const containerStyle = {
         height: typeof height === 'number' ? `${height}px` : height,
@@ -3164,6 +3330,7 @@ const GlideGrid = (props) => {
                 editOnType={editOnType}
                 rangeSelectionColumnSpanning={rangeSelectionColumnSpanning}
                 trapFocus={trapFocus}
+                onKeyDown={tabWrapping ? handleTabNavigation : undefined}
                 scrollToActiveCell={scrollToActiveCell}
                 columnSelectionMode={columnSelectionMode}
                 onItemHovered={handleItemHovered}
@@ -3261,6 +3428,7 @@ GlideGrid.defaultProps = {
     editOnType: true,
     rangeSelectionColumnSpanning: true,
     trapFocus: false,
+    tabWrapping: false,
     scrollToActiveCell: true,
     columnSelectionMode: 'auto',
     enableUndoRedo: false,
@@ -4514,6 +4682,16 @@ GlideGrid.propTypes = {
      * Default: false
      */
     trapFocus: PropTypes.bool,
+
+    /**
+     * When true, Tab key navigation wraps at row boundaries.
+     * Tab at end of row moves to first cell of next row.
+     * Shift+Tab at start of row moves to last cell of previous row.
+     * Works in both selection mode (just moves selection) and edit mode (opens editor on new cell).
+     * At grid boundaries (first/last cell), stays put.
+     * Default: false
+     */
+    tabWrapping: PropTypes.bool,
 
     /**
      * When true, the grid automatically scrolls to keep the active cell visible

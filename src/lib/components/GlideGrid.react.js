@@ -59,6 +59,7 @@ GlideGrid.defaultProps = {
     editOnType: true,
     rangeSelectionColumnSpanning: true,
     trapFocus: false,
+    tabWrapping: false,
     scrollToActiveCell: true,
     columnSelectionMode: 'auto',
     enableUndoRedo: false,
@@ -1341,6 +1342,16 @@ GlideGrid.propTypes = {
      * Default: false
      */
     trapFocus: PropTypes.bool,
+
+    /**
+     * When true, Tab key navigation wraps at row boundaries.
+     * Tab at end of row moves to first cell of next row.
+     * Shift+Tab at start of row moves to last cell of previous row.
+     * Works in both selection mode (just moves selection) and edit mode (opens editor on new cell).
+     * At grid boundaries (first/last cell), stays put.
+     * Default: false
+     */
+    tabWrapping: PropTypes.bool,
 
     /**
      * When true, the grid automatically scrolls to keep the active cell visible
