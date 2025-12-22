@@ -526,6 +526,7 @@ const GlideGrid = (props) => {
     const batchTimeoutRef = useRef(null);            // For batching rapid edits
     const currentBatchRef = useRef([]);              // Current batch of edits being collected
     const lastUndoRedoActionRef = useRef(null);      // Track last processed undoRedoAction
+    const pendingWrapRef = useRef(null);             // Track pending Tab wrap for row boundaries
 
     // Ref to hold custom renderers for use in handlePaste
     const customRenderersRef = useRef(null);
@@ -1338,7 +1339,7 @@ const GlideGrid = (props) => {
         }
     }, []);
 
-    // Detect editor close via MutationObserver (for Escape/click-outside)
+    // Detect editor close via MutationObserver (for Escape/click-outside/Tab-without-edit)
     useEffect(() => {
         if (!isEditorOpen) return;
 
@@ -1350,12 +1351,57 @@ const GlideGrid = (props) => {
             const hasEditorChild = portal.querySelector('[class*="overlay-editor"], [class*="gdg-"]');
             if (!hasEditorChild && portal.children.length === 0) {
                 setIsEditorOpen(false);
+
+                // Apply pending Tab wrap if editor closed without triggering handleCellEdited
+                // (e.g., user opened editor then pressed Tab without making changes)
+                if (pendingWrapRef.current) {
+                    const { col: newCol, row: newRow } = pendingWrapRef.current;
+                    pendingWrapRef.current = null;
+
+                    setTimeout(() => {
+                        const newSelection = {
+                            columns: CompactSelection.empty(),
+                            rows: CompactSelection.empty(),
+                            current: {
+                                cell: [newCol, newRow],
+                                range: { x: newCol, y: newRow, width: 1, height: 1 },
+                                rangeStack: []
+                            }
+                        };
+                        setGridSelection(newSelection);
+
+                        if (setProps) {
+                            setProps({
+                                selectedCell: { col: newCol, row: newRow },
+                                selectedRange: {
+                                    startCol: newCol,
+                                    startRow: newRow,
+                                    endCol: newCol,
+                                    endRow: newRow
+                                }
+                            });
+                        }
+
+                        if (gridRef.current) {
+                            gridRef.current.scrollTo(newCol, newRow);
+                            gridRef.current.focus();
+                            gridRef.current.updateCells([{ cell: [newCol, newRow] }]);
+                        }
+                    }, 50);
+                } else {
+                    // No pending wrap - just focus the grid so Tab continues to work
+                    setTimeout(() => {
+                        if (gridRef.current) {
+                            gridRef.current.focus();
+                        }
+                    }, 0);
+                }
             }
         });
 
         observer.observe(portal, { childList: true, subtree: true });
         return () => observer.disconnect();
-    }, [isEditorOpen]);
+    }, [isEditorOpen, setProps]);
 
     // "close-overlay-on-scroll" behavior: close entire editor overlay on scroll
     useEffect(() => {
@@ -1639,9 +1685,6 @@ const GlideGrid = (props) => {
             });
         }
     }, [setProps, nClicks]);
-
-    // Track if we need to wrap after cell edit (set by Tab handler)
-    const pendingWrapRef = useRef(null);
 
     // Handle cell edits
     const handleCellEdited = useCallback((cell, newValue) => {
