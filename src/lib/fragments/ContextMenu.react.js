@@ -122,7 +122,7 @@ const ContextMenu = ({
                 margin: '4px 0'
             }
         };
-    }, [theme]);
+    }, [theme, maxHeight]);
 
     // Calculate menu position with viewport bounds checking
     const menuStyle = useMemo(() => {

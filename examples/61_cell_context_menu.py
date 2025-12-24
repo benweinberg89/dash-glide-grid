@@ -111,6 +111,20 @@ app.layout = html.Div(
                     clearable=False,
                     style={"width": "220px", "display": "inline-block", "verticalAlign": "middle"},
                 ),
+                html.Label(" Menu Max Height: ", style={"marginLeft": "20px"}),
+                dcc.Dropdown(
+                    id="max-height-dropdown",
+                    options=[
+                        {"label": "No limit", "value": "none"},
+                        {"label": "100px", "value": "100px"},
+                        {"label": "150px", "value": "150px"},
+                        {"label": "200px", "value": "200px"},
+                        {"label": "300px", "value": "300px"},
+                    ],
+                    value="none",
+                    clearable=False,
+                    style={"width": "120px", "display": "inline-block", "verticalAlign": "middle"},
+                ),
             ],
             style={"display": "flex", "alignItems": "center", "marginBottom": "15px"},
         ),
@@ -127,7 +141,6 @@ app.layout = html.Div(
                     rangeSelect="rect",
                     theme=LIGHT_THEME,
                     contextMenuConfig={
-                        "maxHeight": "150px",  # Enable scrolling with fixed height
                         "items": [
                             # Built-in copy actions using 'action' property
                             # Using monochrome Unicode symbols
@@ -518,6 +531,22 @@ def close_modal(n_clicks):
 )
 def update_scroll_behavior(value):
     return value
+
+
+@callback(
+    Output("context-menu-grid", "contextMenuConfig"),
+    Input("max-height-dropdown", "value"),
+    State("context-menu-grid", "contextMenuConfig"),
+)
+def update_max_height(value, current_config):
+    if not current_config:
+        return no_update
+    new_config = {**current_config}
+    if value == "none":
+        new_config.pop("maxHeight", None)
+    else:
+        new_config["maxHeight"] = value
+    return new_config
 
 
 if __name__ == "__main__":
