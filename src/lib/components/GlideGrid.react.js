@@ -714,7 +714,7 @@ GlideGrid.propTypes = {
      * Useful for implementing cell context menus.
      * Format: {"col": 0, "row": 1, "screenX": 100, "screenY": 200, "timestamp": 1234567890}
      */
-    cellContextMenu: PropTypes.shape({
+    contextMenu: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
         screenX: PropTypes.number,
@@ -727,7 +727,7 @@ GlideGrid.propTypes = {
      * Provide an array of menu items to display when right-clicking a cell.
      * Example: { "items": [{"id": "edit", "label": "Edit"}, {"id": "delete", "label": "Delete"}] }
      */
-    cellContextMenuConfig: PropTypes.shape({
+    contextMenuConfig: PropTypes.shape({
         items: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string.isRequired,
             label: PropTypes.string.isRequired,
@@ -764,7 +764,7 @@ GlideGrid.propTypes = {
      * Information about the last clicked cell context menu item.
      * Format: {"col": 0, "row": 1, "itemId": "edit", "timestamp": 1234567890}
      */
-    cellContextMenuItemClicked: PropTypes.shape({
+    contextMenuItemClicked: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
         itemId: PropTypes.string,

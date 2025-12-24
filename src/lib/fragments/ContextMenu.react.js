@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 
 /**
- * CellContextMenu - A context menu component for cell right-click actions
+ * ContextMenu - A context menu component for cell right-click actions
  * Renders as a portal positioned near the cell
  */
-const CellContextMenu = ({
+const ContextMenu = ({
     isOpen,
     onClose,
     position,
@@ -219,7 +219,7 @@ const CellContextMenu = ({
     return null;
 };
 
-CellContextMenu.propTypes = {
+ContextMenu.propTypes = {
     /** Whether the menu is open */
     isOpen: PropTypes.bool.isRequired,
     /** Callback when menu should close */
@@ -262,8 +262,8 @@ CellContextMenu.propTypes = {
     maxHeight: PropTypes.string
 };
 
-CellContextMenu.defaultProps = {
+ContextMenu.defaultProps = {
     items: []
 };
 
-export default CellContextMenu;
+export default ContextMenu;

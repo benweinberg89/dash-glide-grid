@@ -19,7 +19,7 @@ import { createTreeViewCellRenderer } from '../cells/TreeViewCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
-import CellContextMenu from './CellContextMenu.react';
+import ContextMenu from './ContextMenu.react';
 
 // Static cell renderers: replace library's versions with custom versions
 // Button renderer is added dynamically inside component to access setProps
@@ -427,7 +427,7 @@ const GlideGrid = (props) => {
         sortingOrder,
         columnFilters,
         headerMenuConfig,
-        cellContextMenuConfig,
+        contextMenuConfig,
         selectionColumnMin,
         unselectableColumns,
         unselectableRows,
@@ -484,7 +484,7 @@ const GlideGrid = (props) => {
     });
 
     // State for the cell context menu
-    const [cellMenuState, setCellMenuState] = useState({
+    const [contextMenuState, setContextMenuState] = useState({
         isOpen: false,
         col: null,
         row: null,
@@ -1581,7 +1581,7 @@ const GlideGrid = (props) => {
 
     // "close-overlay-on-scroll" behavior for context menu: close menu on scroll
     useEffect(() => {
-        if (contextMenuScrollBehavior !== 'close-overlay-on-scroll' || !cellMenuState.isOpen) return;
+        if (contextMenuScrollBehavior !== 'close-overlay-on-scroll' || !contextMenuState.isOpen) return;
 
         const handleWheel = (e) => {
             // Allow scrolling within the context menu itself (when maxHeight creates scrollable content)
@@ -1593,7 +1593,7 @@ const GlideGrid = (props) => {
             // Event is outside context menu - close it and prevent this wheel event
             e.preventDefault();
             e.stopPropagation();
-            handleCellMenuClose();
+            handleContextMenuClose();
         };
 
         const handleScroll = (e) => {
@@ -1602,7 +1602,7 @@ const GlideGrid = (props) => {
             if (contextMenu) {
                 return;
             }
-            handleCellMenuClose();
+            handleContextMenuClose();
         };
 
         window.addEventListener('scroll', handleScroll, true);
@@ -1612,13 +1612,13 @@ const GlideGrid = (props) => {
             window.removeEventListener('scroll', handleScroll, true);
             document.removeEventListener('wheel', handleWheel, { capture: true });
         };
-    }, [contextMenuScrollBehavior, cellMenuState.isOpen, handleCellMenuClose]);
+    }, [contextMenuScrollBehavior, contextMenuState.isOpen, handleContextMenuClose]);
 
     // "lock-scroll" behavior for context menu: prevent all external scrolling
     useEffect(() => {
         if (contextMenuScrollBehavior !== 'lock-scroll') return;
 
-        if (cellMenuState.isOpen) {
+        if (contextMenuState.isOpen) {
             // Save current scroll position
             contextMenuScrollPositionRef.current = {
                 x: window.scrollX,
@@ -1665,7 +1665,7 @@ const GlideGrid = (props) => {
                 contextMenuScrollHandlerRef.current = null;
             }
         };
-    }, [contextMenuScrollBehavior, cellMenuState.isOpen]);
+    }, [contextMenuScrollBehavior, contextMenuState.isOpen]);
 
     // Transform columns to Glide format (including sort indicators)
     const glideColumns = useMemo(() => {
@@ -2687,8 +2687,8 @@ const GlideGrid = (props) => {
     }, [headerMenuConfig, localColumns, localData, setProps]);
 
     // Handle cell context menu close
-    const handleCellMenuClose = useCallback(() => {
-        setCellMenuState({
+    const handleContextMenuClose = useCallback(() => {
+        setContextMenuState({
             isOpen: false,
             col: null,
             row: null,
@@ -2697,8 +2697,8 @@ const GlideGrid = (props) => {
     }, []);
 
     // Handle cell context menu item click
-    const handleCellMenuItemClick = useCallback((item) => {
-        const { col, row } = cellMenuState;
+    const handleContextMenuItemClick = useCallback((item) => {
+        const { col, row } = contextMenuState;
         const itemId = item.id;
         const action = item.action;
 
@@ -2885,7 +2885,7 @@ const GlideGrid = (props) => {
         // Always emit the event for Python callbacks
         if (setProps) {
             setProps({
-                cellContextMenuItemClicked: {
+                contextMenuItemClicked: {
                     col,
                     row,
                     itemId,
@@ -2893,8 +2893,8 @@ const GlideGrid = (props) => {
                 }
             });
         }
-        handleCellMenuClose();
-    }, [setProps, cellMenuState, handleCellMenuClose, localData, localColumns, gridSelection]);
+        handleContextMenuClose();
+    }, [setProps, contextMenuState, handleContextMenuClose, localData, localColumns, gridSelection]);
 
     // Handle header menu click (dropdown arrow on columns with hasMenu or filterable)
     const handleHeaderMenuClick = useCallback((col, screenPosition) => {
@@ -3015,8 +3015,8 @@ const GlideGrid = (props) => {
     }, [setProps, localColumns]);
 
     // Handle cell context menu (right-click on cell)
-    const handleCellContextMenu = useCallback((cell, event) => {
-        const hasConfig = cellContextMenuConfig?.items?.length > 0;
+    const handleContextMenu = useCallback((cell, event) => {
+        const hasConfig = contextMenuConfig?.items?.length > 0;
 
         // Prevent browser's default context menu
         event.preventDefault();
@@ -3027,7 +3027,7 @@ const GlideGrid = (props) => {
 
         // Open built-in context menu if configured
         if (hasConfig) {
-            setCellMenuState({
+            setContextMenuState({
                 isOpen: true,
                 col: cell[0],
                 row: cell[1],
@@ -3038,7 +3038,7 @@ const GlideGrid = (props) => {
         // Always emit prop for backwards compatibility (now with position)
         if (setProps) {
             setProps({
-                cellContextMenu: {
+                contextMenu: {
                     col: cell[0],
                     row: cell[1],
                     screenX,
@@ -3047,7 +3047,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps, cellContextMenuConfig]);
+    }, [setProps, contextMenuConfig]);
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
@@ -3220,8 +3220,8 @@ const GlideGrid = (props) => {
         }
 
         // Close context menu on grid internal scroll if behavior is set
-        if (contextMenuScrollBehavior === 'close-overlay-on-scroll' && cellMenuState.isOpen) {
-            handleCellMenuClose();
+        if (contextMenuScrollBehavior === 'close-overlay-on-scroll' && contextMenuState.isOpen) {
+            handleContextMenuClose();
         }
 
         if (setProps) {
@@ -3236,7 +3236,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps, editorScrollBehavior, isEditorOpen, contextMenuScrollBehavior, cellMenuState.isOpen, handleCellMenuClose]);
+    }, [setProps, editorScrollBehavior, isEditorOpen, contextMenuScrollBehavior, contextMenuState.isOpen, handleContextMenuClose]);
 
     // ========== PHASE 3: ROW/COLUMN REORDERING ==========
 
@@ -3830,7 +3830,7 @@ const GlideGrid = (props) => {
                 onHeaderMenuClick={handleHeaderMenuClick}
                 drawHeader={handleDrawHeaderCustom || (headerMenuConfig?.menuIcon && headerMenuConfig.menuIcon !== 'chevron' ? handleDrawHeader : undefined)}
                 onGroupHeaderClicked={handleGroupHeaderClicked}
-                onCellContextMenu={handleCellContextMenu}
+                onCellContextMenu={handleContextMenu}
                 onCellActivated={handleCellActivated}
                 cellActivationBehavior={cellActivationBehavior}
                 editOnType={editOnType}
@@ -3881,15 +3881,15 @@ const GlideGrid = (props) => {
                 anchorToHeader={headerMenuConfig?.anchorToHeader !== false}
             />
             {/* Cell Context Menu */}
-            <CellContextMenu
-                isOpen={cellMenuState.isOpen}
-                onClose={handleCellMenuClose}
-                position={cellMenuState.position}
-                cellInfo={{ col: cellMenuState.col, row: cellMenuState.row }}
-                items={cellContextMenuConfig?.items}
-                onItemClick={handleCellMenuItemClick}
+            <ContextMenu
+                isOpen={contextMenuState.isOpen}
+                onClose={handleContextMenuClose}
+                position={contextMenuState.position}
+                cellInfo={{ col: contextMenuState.col, row: contextMenuState.row }}
+                items={contextMenuConfig?.items}
+                onItemClick={handleContextMenuItemClick}
                 theme={theme}
-                maxHeight={cellContextMenuConfig?.maxHeight}
+                maxHeight={contextMenuConfig?.maxHeight}
             />
         </div>
     );
@@ -4564,7 +4564,7 @@ GlideGrid.propTypes = {
      * Useful for implementing cell context menus.
      * Format: {"col": 0, "row": 1, "screenX": 100, "screenY": 200, "timestamp": 1234567890}
      */
-    cellContextMenu: PropTypes.shape({
+    contextMenu: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
         screenX: PropTypes.number,
@@ -4577,7 +4577,7 @@ GlideGrid.propTypes = {
      * Provide an array of menu items to display when right-clicking a cell.
      * Example: { "items": [{"id": "edit", "label": "Edit"}, {"id": "delete", "label": "Delete"}] }
      */
-    cellContextMenuConfig: PropTypes.shape({
+    contextMenuConfig: PropTypes.shape({
         items: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string.isRequired,
             label: PropTypes.string.isRequired,
@@ -4591,7 +4591,7 @@ GlideGrid.propTypes = {
      * Information about the last clicked cell context menu item.
      * Format: {"col": 0, "row": 1, "itemId": "edit", "timestamp": 1234567890}
      */
-    cellContextMenuItemClicked: PropTypes.shape({
+    contextMenuItemClicked: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
         itemId: PropTypes.string,

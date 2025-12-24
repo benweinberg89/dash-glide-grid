@@ -126,7 +126,7 @@ app.layout = html.Div(
                     rowMarkers="number",
                     rangeSelect="rect",
                     theme=LIGHT_THEME,
-                    cellContextMenuConfig={
+                    contextMenuConfig={
                         "maxHeight": "150px",  # Enable scrolling with fixed height
                         "items": [
                             # Built-in copy actions using 'action' property
@@ -380,7 +380,7 @@ def toggle_theme(n_clicks):
     Output("action-output", "children"),
     Output("details-modal", "children"),
     Output("details-modal", "style"),
-    Input("context-menu-grid", "cellContextMenuItemClicked"),
+    Input("context-menu-grid", "contextMenuItemClicked"),
     State("context-menu-grid", "data"),
     prevent_initial_call=True,
 )
