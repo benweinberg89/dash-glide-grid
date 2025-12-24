@@ -19,6 +19,7 @@ import { createTreeViewCellRenderer } from '../cells/TreeViewCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
+import CellContextMenu from './CellContextMenu.react';
 
 // Static cell renderers: replace library's versions with custom versions
 // Button renderer is added dynamically inside component to access setProps
@@ -426,6 +427,7 @@ const GlideGrid = (props) => {
         sortingOrder,
         columnFilters,
         headerMenuConfig,
+        cellContextMenuConfig,
         selectionColumnMin,
         unselectableColumns,
         unselectableRows,
@@ -475,6 +477,17 @@ const GlideGrid = (props) => {
         position: null
     });
 
+    // State for the cell context menu
+    const [cellMenuState, setCellMenuState] = useState({
+        isOpen: false,
+        col: null,
+        row: null,
+        position: null
+    });
+
+    // Ref to track the last right-click mouse position (for context menu positioning)
+    const lastContextMenuPosition = useRef({ x: 0, y: 0 });
+
     // State for row hover effect
     const [hoveredRow, setHoveredRow] = useState(null);
 
@@ -502,6 +515,23 @@ const GlideGrid = (props) => {
 
     // Ref for the DataEditor to control scroll position
     const gridRef = useRef(null);
+
+    // Capture native contextmenu event to get accurate mouse position
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleNativeContextMenu = (e) => {
+            // Store the mouse position for use in the Glide callback
+            lastContextMenuPosition.current = { x: e.clientX, y: e.clientY };
+        };
+
+        // Use capture phase to get the position before Glide handles the event
+        container.addEventListener('contextmenu', handleNativeContextMenu, true);
+        return () => {
+            container.removeEventListener('contextmenu', handleNativeContextMenu, true);
+        };
+    }, []);
 
     // ========== LAST UPDATED STATE ==========
     // Track lastUpdated timestamps for cells (for flash effect on edit/undo/redo)
@@ -2562,6 +2592,31 @@ const GlideGrid = (props) => {
         }
     }, [headerMenuConfig, localColumns, localData, setProps]);
 
+    // Handle cell context menu close
+    const handleCellMenuClose = useCallback(() => {
+        setCellMenuState({
+            isOpen: false,
+            col: null,
+            row: null,
+            position: null
+        });
+    }, []);
+
+    // Handle cell context menu item click
+    const handleCellMenuItemClick = useCallback((itemId) => {
+        if (setProps) {
+            setProps({
+                cellContextMenuItemClicked: {
+                    col: cellMenuState.col,
+                    row: cellMenuState.row,
+                    itemId,
+                    timestamp: Date.now()
+                }
+            });
+        }
+        handleCellMenuClose();
+    }, [setProps, cellMenuState, handleCellMenuClose]);
+
     // Handle header menu click (dropdown arrow on columns with hasMenu or filterable)
     const handleHeaderMenuClick = useCallback((col, screenPosition) => {
         // Check if this column is filterable
@@ -2682,16 +2737,38 @@ const GlideGrid = (props) => {
 
     // Handle cell context menu (right-click on cell)
     const handleCellContextMenu = useCallback((cell, event) => {
+        const hasConfig = cellContextMenuConfig?.items?.length > 0;
+
+        // Prevent browser's default context menu
+        event.preventDefault();
+
+        // Use the mouse position captured by our native event listener
+        const screenX = lastContextMenuPosition.current.x;
+        const screenY = lastContextMenuPosition.current.y;
+
+        // Open built-in context menu if configured
+        if (hasConfig) {
+            setCellMenuState({
+                isOpen: true,
+                col: cell[0],
+                row: cell[1],
+                position: { x: screenX, y: screenY }
+            });
+        }
+
+        // Always emit prop for backwards compatibility (now with position)
         if (setProps) {
             setProps({
                 cellContextMenu: {
                     col: cell[0],
                     row: cell[1],
+                    screenX,
+                    screenY,
                     timestamp: Date.now()
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, cellContextMenuConfig]);
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
@@ -3519,6 +3596,16 @@ const GlideGrid = (props) => {
                 onCustomItemClick={handleCustomItemClick}
                 anchorToHeader={headerMenuConfig?.anchorToHeader !== false}
             />
+            {/* Cell Context Menu */}
+            <CellContextMenu
+                isOpen={cellMenuState.isOpen}
+                onClose={handleCellMenuClose}
+                position={cellMenuState.position}
+                cellInfo={{ col: cellMenuState.col, row: cellMenuState.row }}
+                items={cellContextMenuConfig?.items}
+                onItemClick={handleCellMenuItemClick}
+                theme={theme}
+            />
         </div>
     );
 };
@@ -4190,11 +4277,39 @@ GlideGrid.propTypes = {
     /**
      * Information about the last right-clicked cell.
      * Useful for implementing cell context menus.
-     * Format: {"col": 0, "row": 1, "timestamp": 1234567890}
+     * Format: {"col": 0, "row": 1, "screenX": 100, "screenY": 200, "timestamp": 1234567890}
      */
     cellContextMenu: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
+        screenX: PropTypes.number,
+        screenY: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Configuration for built-in cell context menu.
+     * Provide an array of menu items to display when right-clicking a cell.
+     * Example: { "items": [{"id": "edit", "label": "Edit"}, {"id": "delete", "label": "Delete"}] }
+     */
+    cellContextMenuConfig: PropTypes.shape({
+        items: PropTypes.arrayOf(PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            label: PropTypes.string.isRequired,
+            icon: PropTypes.string,
+            dividerAfter: PropTypes.bool,
+            disabled: PropTypes.bool
+        }))
+    }),
+
+    /**
+     * Information about the last clicked cell context menu item.
+     * Format: {"col": 0, "row": 1, "itemId": "edit", "timestamp": 1234567890}
+     */
+    cellContextMenuItemClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        itemId: PropTypes.string,
         timestamp: PropTypes.number
     }),
 
