@@ -97,8 +97,12 @@ const CellContextMenu = ({
             },
             icon: {
                 width: '20px',
-                textAlign: 'center',
-                flexShrink: 0
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                lineHeight: 1
             },
             label: {
                 flex: 1,
