@@ -533,6 +533,14 @@ const GlideGrid = (props) => {
     const modifierKeysRef = useRef({ metaKey: false, ctrlKey: false });
     // Set of selected cells in freeform mode, stored as "col,row" strings for O(1) lookup
     const [freeformSelection, setFreeformSelection] = useState(new Set());
+    // Ref to track Cmd+drag state: when dragging with Cmd, we need to know if we're adding or removing
+    // based on whether the first cell clicked was selected or not
+    const freeformDragRef = useRef({
+        isDragging: false,
+        isAddMode: true,  // true = add cells, false = remove cells
+        baseSelection: new Set(),  // selection state before this drag started
+        lastRange: null  // track the last range to detect new drag operations
+    });
 
     // ========== FREEFORM SELECTION: MERGE ADJACENT CELLS INTO RECTANGLES ==========
     // This function takes a set of cells and merges adjacent cells into larger rectangles
@@ -2316,6 +2324,24 @@ const GlideGrid = (props) => {
             if (range) {
                 const isCmdHeld = modifierKeysRef.current.metaKey || modifierKeysRef.current.ctrlKey;
 
+                // Check if this is a new drag operation (range origin changed)
+                const rangeKey = `${range.x},${range.y}`;
+                const isNewDrag = freeformDragRef.current.lastRange !== rangeKey;
+
+                if (isCmdHeld && isNewDrag) {
+                    // New Cmd+drag: determine add/remove mode based on whether the clicked cell was selected
+                    const clickedCellKey = cell ? `${cell[0]},${cell[1]}` : `${range.x},${range.y}`;
+                    const wasSelected = freeformSelection.has(clickedCellKey);
+                    freeformDragRef.current.isAddMode = !wasSelected;  // If it was selected, we're removing; otherwise adding
+                    freeformDragRef.current.baseSelection = new Set(freeformSelection);  // Snapshot current selection
+                    freeformDragRef.current.lastRange = rangeKey;
+                    freeformDragRef.current.isDragging = true;
+                } else if (!isCmdHeld) {
+                    // Non-Cmd selection: reset drag state
+                    freeformDragRef.current.isDragging = false;
+                    freeformDragRef.current.lastRange = null;
+                }
+
                 // Enumerate cells in the range, filtering out unselectable ones
                 const cellsInRange = [];
                 for (let col = range.x; col < range.x + range.width; col++) {
@@ -2330,21 +2356,26 @@ const GlideGrid = (props) => {
 
                 // Update freeform selection based on modifier key state
                 setFreeformSelection(prevSelection => {
-                    const newSelection = new Set(prevSelection);
+                    let newSelection;
 
                     if (isCmdHeld) {
-                        // Toggle mode: add unselected cells, remove selected cells
-                        cellsInRange.forEach(c => {
-                            const key = `${c.col},${c.row}`;
-                            if (newSelection.has(key)) {
-                                newSelection.delete(key);
-                            } else {
-                                newSelection.add(key);
-                            }
-                        });
+                        // Cmd+drag: start from base selection, then add or remove the entire drag range
+                        newSelection = new Set(freeformDragRef.current.baseSelection);
+
+                        if (freeformDragRef.current.isAddMode) {
+                            // Add mode: add all cells in range to base selection
+                            cellsInRange.forEach(c => {
+                                newSelection.add(`${c.col},${c.row}`);
+                            });
+                        } else {
+                            // Remove mode: remove all cells in range from base selection
+                            cellsInRange.forEach(c => {
+                                newSelection.delete(`${c.col},${c.row}`);
+                            });
+                        }
                     } else {
                         // New selection: clear previous, add these cells
-                        newSelection.clear();
+                        newSelection = new Set();
                         cellsInRange.forEach(c => {
                             newSelection.add(`${c.col},${c.row}`);
                         });
