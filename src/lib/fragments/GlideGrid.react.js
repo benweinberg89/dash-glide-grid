@@ -3790,6 +3790,7 @@ const GlideGrid = (props) => {
                 items={cellContextMenuConfig?.items}
                 onItemClick={handleCellMenuItemClick}
                 theme={theme}
+                maxHeight={cellContextMenuConfig?.maxHeight}
             />
         </div>
     );

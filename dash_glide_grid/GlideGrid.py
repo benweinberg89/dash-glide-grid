@@ -162,6 +162,10 @@ Keyword arguments:
 
             'pasteAtClickedCell', 'pasteAtSelection'.
 
+    - maxHeight (string; optional):
+        CSS max-height for the menu (e.g., '300px'). If set, enables
+        scrolling.
+
 - cellContextMenuItemClicked (dict; optional):
     Information about the last clicked cell context menu item. Format:
     {\"col\": 0, \"row\": 1, \"itemId\": \"edit\", \"timestamp\":
@@ -1518,7 +1522,8 @@ Keyword arguments:
     CellContextMenuConfig = TypedDict(
         "CellContextMenuConfig",
             {
-            "items": NotRequired[typing.Sequence["CellContextMenuConfigItems"]]
+            "items": NotRequired[typing.Sequence["CellContextMenuConfigItems"]],
+            "maxHeight": NotRequired[str]
         }
     )
 

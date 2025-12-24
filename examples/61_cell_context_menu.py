@@ -146,6 +146,7 @@ app.layout = html.Div(
                     rangeSelect="rect",
                     theme=LIGHT_THEME,
                     cellContextMenuConfig={
+                        "maxHeight": "150px",  # Enable scrolling with fixed height
                         "items": [
                             # Built-in copy actions using 'action' property
                             # Using monochrome Unicode symbols

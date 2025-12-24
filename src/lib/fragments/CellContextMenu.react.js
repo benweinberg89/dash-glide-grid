@@ -13,7 +13,8 @@ const CellContextMenu = ({
     cellInfo,
     items,
     onItemClick,
-    theme
+    theme,
+    maxHeight
 }) => {
     const menuRef = useRef(null);
     const [hoveredIndex, setHoveredIndex] = useState(-1);
@@ -75,7 +76,7 @@ const CellContextMenu = ({
                 color: textColor,
                 minWidth: '160px',
                 maxWidth: '280px',
-                overflow: 'hidden',
+                ...(maxHeight && { maxHeight, overflowY: 'auto' }),
                 zIndex: 10000,
                 padding: '4px 0'
             },
@@ -250,7 +251,9 @@ CellContextMenu.propTypes = {
     /** Callback when an item is clicked: (item) => void */
     onItemClick: PropTypes.func.isRequired,
     /** Grid theme object for styling */
-    theme: PropTypes.object
+    theme: PropTypes.object,
+    /** CSS max-height for the menu (e.g., '300px'). If set, enables scrolling. */
+    maxHeight: PropTypes.string
 };
 
 CellContextMenu.defaultProps = {

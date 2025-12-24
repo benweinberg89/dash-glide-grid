@@ -745,7 +745,9 @@ GlideGrid.propTypes = {
             disabled: PropTypes.bool,
             /** Built-in action: 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection' */
             action: PropTypes.oneOf(['copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'])
-        }))
+        })),
+        /** CSS max-height for the menu (e.g., '300px'). If set, enables scrolling. */
+        maxHeight: PropTypes.string
     }),
 
     /**
