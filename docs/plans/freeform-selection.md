@@ -5,7 +5,9 @@ Add a new selection mode (`rangeSelect="freeform"`) that allows non-rectangular,
 
 ## Desired Behavior
 - Click/drag without Cmd → **starts new selection** (clears previous, selects clicked cells)
-- Cmd+click/drag → **toggles** cells (adds unselected, removes selected)
+- Cmd+click on unselected cell → **add mode** (adds cells to selection)
+- Cmd+click on selected cell → **remove mode** (removes cells from selection)
+- Cmd+drag → consistently adds or removes based on first cell clicked
 - Escape key → **clears** the selection
 - Dragging across unselectable cells **excludes** them automatically
 - Visual style matches native selection appearance
@@ -25,146 +27,96 @@ selectedRanges: List[Dict]  # Same data as 1x1 ranges for API consistency
 selectedCell: Dict          # {col, row} - focus cell (most recently clicked), unchanged
 ```
 
-## Implementation
+## Actual Implementation
 
-### 1. React Changes (GlideGrid.react.js)
+### 1. State & Refs (GlideGrid.react.js lines 531-543)
 
-#### A. Track Modifier Keys
-Add refs and effects to track Cmd/Ctrl state:
 ```javascript
+// Modifier key tracking
 const modifierKeysRef = useRef({ metaKey: false, ctrlKey: false });
 
-useEffect(() => {
-    const handleKeyDown = (e) => {
-        modifierKeysRef.current = { metaKey: e.metaKey, ctrlKey: e.ctrlKey };
-    };
-    const handleKeyUp = (e) => {
-        modifierKeysRef.current = { metaKey: e.metaKey, ctrlKey: e.ctrlKey };
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-    return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('keyup', handleKeyUp);
-    };
-}, []);
+// Set of selected cells stored as "col,row" strings for O(1) lookup
+const [freeformSelection, setFreeformSelection] = useState(new Set());
+
+// Drag state tracking for Cmd+drag operations
+const freeformDragRef = useRef({
+    isDragging: false,
+    isAddMode: true,      // true = add cells, false = remove cells
+    baseSelection: new Set(),  // selection state before drag started
+    lastRange: null       // detect new drag operations by range origin
+});
 ```
 
-#### B. New Selection State
+### 2. Modifier Key Effect (lines 577-605)
+
+- Tracks Cmd/Ctrl key state via document keydown/keyup listeners
+- Only active when `rangeSelect === 'freeform'`
+- Also handles Escape to clear selection
+
+### 3. DataEditor Compatibility (line 3661)
+
+**Critical**: glide-data-grid doesn't understand 'freeform', so we map it:
 ```javascript
-const [freeformSelection, setFreeformSelection] = useState(new Set()); // "col,row" strings for O(1) lookup
+rangeSelect={rangeSelect === 'freeform' ? 'rect' : rangeSelect}
 ```
 
-#### C. Handle Selection Changes (when rangeSelect="freeform")
-In `handleSelectionChanged`:
-1. Detect if Cmd/Ctrl is held via `modifierKeysRef`
-2. Get cells in the new range (from `newSelection.current.range`)
-3. Filter out unselectable cells (`unselectableColumns`, `unselectableRows`, `selectionColumnMin`)
-4. If Cmd/Ctrl held: **toggle** cells (add if unselected, remove if selected)
-5. Otherwise: **clear** previous selection and add new cells
-6. Update `selectedCells` and `selectedRanges` output props
+### 4. Selection Handler (lines 2319-2419)
 
-#### D. Visual Rendering
-Convert freeform selection to `highlightRegions` with **merged rectangles**:
-- Merge adjacent cells into larger rectangles for continuous border appearance
-- Algorithm: Greedy rectangle merging (similar to AG Grid)
-  1. Sort cells by row, then column
-  2. Find maximal horizontal runs of adjacent cells
-  3. Merge vertical runs where possible
-- Result: Minimal set of rectangles that cover all selected cells with continuous borders
+When `rangeSelect === 'freeform'`:
 
-### 2. Key Files to Modify
+1. **Detect new drag** by checking if range origin changed
+2. **Determine add/remove mode** based on whether first clicked cell was selected
+3. **Store base selection** snapshot before drag
+4. **Apply selection changes**:
+   - Non-Cmd: Clear and select new range
+   - Cmd + Add mode: Base selection + drag range
+   - Cmd + Remove mode: Base selection - drag range
+
+### 5. Visual Rendering (lines 545-627)
+
+**Rectangle Merging Algorithm** (`mergeCellsIntoRectangles`):
+1. Sort cells by row, then column
+2. For each unprocessed cell, extend horizontally as far as possible
+3. Then extend vertically while entire row segments exist
+4. Mark all cells in rectangle as used
+5. Result: Minimal rectangles covering all selected cells
+
+**Combined Highlight Regions** (`combinedHighlightRegions`):
+- Merges user-provided `highlightRegions` with freeform selection
+- Uses `rgba(59, 130, 246, 0.15)` with `style: 'no-outline'`
+
+### 6. Files Modified
 
 | File | Changes |
 |------|---------|
-| `src/lib/fragments/GlideGrid.react.js` | Add modifier tracking, freeform selection logic, highlightRegions generation |
-| `src/lib/components/GlideGrid.react.js` | Add `selectedCells` prop definition |
-| `dash_glide_grid/GlideGrid.py` | Add `selectedCells` prop to Python component |
+| `src/lib/fragments/GlideGrid.react.js` | Modifier tracking, drag state, selection logic, rectangle merging, combined highlights |
+| `src/lib/components/GlideGrid.react.js` | Added `'freeform'` to rangeSelect, added `selectedCells` prop |
+| `dash_glide_grid/GlideGrid.py` | Auto-generated with new props |
+| `examples/62_freeform_selection.py` | Example demonstrating the feature |
 
-### 3. Selection Logic Pseudocode
+## Known Issues (WIP)
 
-```javascript
-function handleFreeformSelection(newRange, isCmdHeld) {
-    const cellsInRange = [];
-
-    // Enumerate cells in the range, filtering unselectable
-    for (let col = newRange.x; col < newRange.x + newRange.width; col++) {
-        for (let row = newRange.y; row < newRange.y + newRange.height; row++) {
-            if (unselectableColumns.includes(col)) continue;
-            if (unselectableRows.includes(row)) continue;
-            if (selectionColumnMin && col < selectionColumnMin) continue;
-            cellsInRange.push({ col, row });
-        }
-    }
-
-    if (isCmdHeld) {
-        // Toggle mode: add unselected cells, remove selected cells
-        cellsInRange.forEach(cell => {
-            const key = `${cell.col},${cell.row}`;
-            if (freeformSelection.has(key)) {
-                freeformSelection.delete(key);
-            } else {
-                freeformSelection.add(key);
-            }
-        });
-    } else {
-        // New selection: clear previous, add these cells
-        freeformSelection.clear();
-        cellsInRange.forEach(cell => {
-            freeformSelection.add(`${cell.col},${cell.row}`);
-        });
-    }
-
-    // Update output props
-    const cells = Array.from(freeformSelection).map(key => {
-        const [col, row] = key.split(',').map(Number);
-        return { col, row };
-    });
-
-    // Also generate selectedRanges (1x1 ranges for API consistency)
-    const ranges = cells.map(c => ({
-        startCol: c.col, startRow: c.row,
-        endCol: c.col, endRow: c.row
-    }));
-
-    setProps({ selectedCells: cells, selectedRanges: ranges });
-}
-```
-
-### 4. Edge Cases to Handle
-
-- **Sorted/filtered data**: Map display rows ↔ data rows via `sortedIndices`
-- **Click vs drag**: Single click = single cell; drag = range of cells
-- **Clear selection**: Click on empty area or press Escape
-- **Performance**: Large selections need efficient storage (Set of strings) and rendering (merge adjacent cells)
-
-### 5. Estimated Effort
-
-| Task | Effort |
-|------|--------|
-| Modifier key tracking | 1 hour |
-| Freeform selection state + logic | 2-3 hours |
-| Unselectable filtering | 1 hour |
-| Visual rendering via highlightRegions | 1-2 hours |
-| Prop definitions (React + Python) | 1 hour |
-| Testing + edge cases | 2 hours |
-| **Total** | **8-10 hours** |
+- [ ] Cmd+drag behavior still not perfect - range calculation may be off
+- [ ] Need to verify add/remove mode detection works correctly
 
 ## Decisions Made
 
 1. **Prop naming**: `rangeSelect="freeform"` ✓
 2. **Clear behavior**: Escape clears; click without Cmd starts new selection ✓
-3. **Cmd behavior**: Toggle (add unselected, remove selected) ✓
-4. **Selection props**: Both `selectedCells` AND `selectedRanges` (1x1 ranges for API consistency) ✓
-5. **Visual style**: Match native selection appearance ✓
-6. **Visual rendering**: Merge adjacent cells into rectangles for continuous borders ✓
+3. **Cmd behavior**: Add/remove mode based on first cell clicked ✓
+4. **Selection props**: Both `selectedCells` AND `selectedRanges` (1x1 ranges) ✓
+5. **Visual style**: Match native selection with merged rectangles ✓
+6. **glide-data-grid compatibility**: Map 'freeform' to 'rect' internally ✓
 
 ## Progress
 
-- [x] Create feature branch
+- [x] Create feature branch (`feature/freeform-selection`)
 - [x] Add modifier key tracking (Cmd/Ctrl)
 - [x] Add freeformSelection state and logic
+- [x] Add drag state tracking for consistent add/remove behavior
 - [x] Add unselectable cell filtering
 - [x] Implement merged rectangle rendering via highlightRegions
 - [x] Add selectedCells prop definitions (React + Python)
-- [x] Create example and test edge cases
+- [x] Create example (`examples/62_freeform_selection.py`)
+- [ ] Fix remaining Cmd+drag range issues
+- [ ] Final testing and polish
