@@ -132,6 +132,10 @@ Keyword arguments:
 
         - icon (string; optional)
 
+        - iconSize (string; optional):
+
+            CSS font-size for the icon (e.g., '18px', '1.2em').
+
         - dividerAfter (boolean; optional)
 
         - disabled (boolean; optional)
@@ -1482,6 +1486,7 @@ Keyword arguments:
             "id": str,
             "label": str,
             "icon": NotRequired[str],
+            "iconSize": NotRequired[str],
             "dividerAfter": NotRequired[bool],
             "disabled": NotRequired[bool],
             "action": NotRequired[Literal["copyCell", "copySelection", "paste"]]

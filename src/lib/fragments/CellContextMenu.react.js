@@ -96,7 +96,7 @@ const CellContextMenu = ({
                 cursor: 'not-allowed'
             },
             icon: {
-                width: '16px',
+                width: '20px',
                 textAlign: 'center',
                 flexShrink: 0
             },
@@ -180,7 +180,10 @@ const CellContextMenu = ({
                             onClick={() => handleItemClick(item)}
                         >
                             {item.icon && (
-                                <span style={styles.icon}>{item.icon}</span>
+                                <span style={{
+                                    ...styles.icon,
+                                    ...(item.iconSize && { fontSize: item.iconSize })
+                                }}>{item.icon}</span>
                             )}
                             <span style={styles.label}>{item.label}</span>
                         </div>
@@ -219,6 +222,8 @@ CellContextMenu.propTypes = {
         id: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
         icon: PropTypes.string,
+        /** CSS font-size for the icon (e.g., '18px', '1.2em') */
+        iconSize: PropTypes.string,
         dividerAfter: PropTypes.bool,
         disabled: PropTypes.bool,
         /** Built-in action: 'copyCell', 'copySelection', 'paste' */

@@ -731,6 +731,8 @@ GlideGrid.propTypes = {
             id: PropTypes.string.isRequired,
             label: PropTypes.string.isRequired,
             icon: PropTypes.string,
+            /** CSS font-size for the icon (e.g., '18px', '1.2em') */
+            iconSize: PropTypes.string,
             dividerAfter: PropTypes.bool,
             disabled: PropTypes.bool,
             /** Built-in action: 'copyCell', 'copySelection', 'paste' */
