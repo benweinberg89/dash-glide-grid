@@ -49,12 +49,12 @@ app.layout = html.Div([
             cellContextMenuConfig={
                 "items": [
                     # Built-in copy actions using 'action' property
-                    {"id": "copy", "label": "Copy Cell", "action": "copyCell"},
-                    {"id": "copy-selection", "label": "Copy Selection", "action": "copySelection"},
-                    {"id": "paste", "label": "Paste", "action": "paste", "dividerAfter": True},
+                    {"id": "copy", "label": "Copy Cell", "icon": "📋", "action": "copyCell"},
+                    {"id": "copy-selection", "label": "Copy Selection", "icon": "📑", "action": "copySelection"},
+                    {"id": "paste", "label": "Paste", "icon": "📥", "action": "paste", "dividerAfter": True},
                     # Custom actions handled by Python callback
-                    {"id": "delete", "label": "Delete Row"},
-                    {"id": "details", "label": "View Details"},
+                    {"id": "delete", "label": "Delete Row", "icon": "🗑️"},
+                    {"id": "details", "label": "View Details", "icon": "ℹ️"},
                 ]
             }
         ),
