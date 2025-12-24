@@ -159,7 +159,8 @@ const CellContextMenu = ({
 
     const menuContent = (
         <>
-            {/* Invisible backdrop to catch clicks outside */}
+            {/* Invisible backdrop - pointer-events:none allows wheel events to pass through to grid */}
+            {/* Click-outside detection is handled by the mousedown capture listener */}
             <div
                 style={{
                     position: 'fixed',
@@ -167,40 +168,40 @@ const CellContextMenu = ({
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    zIndex: 9999
+                    zIndex: 9999,
+                    pointerEvents: 'none'
                 }}
-                onClick={onClose}
             />
             <div ref={menuRef} style={menuStyle} data-context-menu="true">
                 {items.map((item, index) => (
-                    <React.Fragment key={item.id}>
-                        <div
-                            style={{
-                                ...styles.menuItem,
-                                ...(hoveredIndex === index && !item.disabled ? styles.menuItemHover : {}),
-                                ...(item.disabled ? styles.menuItemDisabled : {})
-                            }}
-                            onMouseEnter={() => setHoveredIndex(index)}
-                            onMouseLeave={() => setHoveredIndex(-1)}
-                            onClick={() => handleItemClick(item)}
-                        >
-                            {item.icon && (
-                                <span style={{
-                                    ...styles.icon,
-                                    ...(item.iconSize && { fontSize: item.iconSize }),
-                                    ...(item.iconColor && { color: item.iconColor }),
-                                    ...(item.iconWeight && { fontWeight: item.iconWeight })
-                                }}>{item.icon}</span>
-                            )}
+                <React.Fragment key={item.id}>
+                    <div
+                        style={{
+                            ...styles.menuItem,
+                            ...(hoveredIndex === index && !item.disabled ? styles.menuItemHover : {}),
+                            ...(item.disabled ? styles.menuItemDisabled : {})
+                        }}
+                        onMouseEnter={() => setHoveredIndex(index)}
+                        onMouseLeave={() => setHoveredIndex(-1)}
+                        onClick={() => handleItemClick(item)}
+                    >
+                        {item.icon && (
                             <span style={{
-                                ...styles.label,
-                                ...(item.color && { color: item.color }),
-                                ...(item.fontWeight && { fontWeight: item.fontWeight })
-                            }}>{item.label}</span>
-                        </div>
-                        {item.dividerAfter && <div style={styles.divider} />}
-                    </React.Fragment>
-                ))}
+                                ...styles.icon,
+                                ...(item.iconSize && { fontSize: item.iconSize }),
+                                ...(item.iconColor && { color: item.iconColor }),
+                                ...(item.iconWeight && { fontWeight: item.iconWeight })
+                            }}>{item.icon}</span>
+                        )}
+                        <span style={{
+                            ...styles.label,
+                            ...(item.color && { color: item.color }),
+                            ...(item.fontWeight && { fontWeight: item.fontWeight })
+                        }}>{item.label}</span>
+                    </div>
+                    {item.dividerAfter && <div style={styles.divider} />}
+                </React.Fragment>
+            ))}
             </div>
         </>
     );

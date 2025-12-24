@@ -1583,10 +1583,6 @@ const GlideGrid = (props) => {
     useEffect(() => {
         if (contextMenuScrollBehavior !== 'close-overlay-on-scroll' || !cellMenuState.isOpen) return;
 
-        // Block scrolling at CSS level while context menu is open
-        const originalOverflow = document.documentElement.style.overflow;
-        document.documentElement.style.overflow = 'hidden';
-
         const handleWheel = (e) => {
             // Allow scrolling within the context menu itself (when maxHeight creates scrollable content)
             const contextMenu = e.target.closest('[data-context-menu="true"]');
@@ -1594,7 +1590,7 @@ const GlideGrid = (props) => {
                 return;
             }
 
-            // Event is outside context menu - close it
+            // Event is outside context menu - close it and prevent this wheel event
             e.preventDefault();
             e.stopPropagation();
             handleCellMenuClose();
@@ -1613,7 +1609,6 @@ const GlideGrid = (props) => {
         document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
 
         return () => {
-            document.documentElement.style.overflow = originalOverflow;
             window.removeEventListener('scroll', handleScroll, true);
             document.removeEventListener('wheel', handleWheel, { capture: true });
         };
