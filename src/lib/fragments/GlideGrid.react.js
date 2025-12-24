@@ -3658,7 +3658,7 @@ const GlideGrid = (props) => {
                 rowMarkerTheme={rowMarkerTheme}
                 rowSelect={rowSelect}
                 columnSelect={columnSelect}
-                rangeSelect={rangeSelect}
+                rangeSelect={rangeSelect === 'freeform' ? 'rect' : rangeSelect}
                 rowSelectionMode={rowSelectionMode}
                 columnSelectionBlending={columnSelectionBlending}
                 rowSelectionBlending={rowSelectionBlending}
