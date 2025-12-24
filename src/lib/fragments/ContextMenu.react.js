@@ -60,6 +60,43 @@ const ContextMenu = ({
         }
     }, [isOpen]);
 
+    // Block page scroll while mouse is in the overlay
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleWheel = (e) => {
+            const menu = menuRef.current;
+            if (!menu) return;
+
+            // Check if scrolling would go beyond the menu's scroll bounds
+            const { scrollTop, scrollHeight, clientHeight } = menu;
+            const hasScrollbar = scrollHeight > clientHeight;
+            const isAtTop = scrollTop === 0;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight;
+            const scrollingUp = e.deltaY < 0;
+            const scrollingDown = e.deltaY > 0;
+
+            // Prevent page scroll if:
+            // - No scrollbar in menu, OR
+            // - Scrolling up at the top, OR
+            // - Scrolling down at the bottom
+            if (!hasScrollbar || (isAtTop && scrollingUp) || (isAtBottom && scrollingDown)) {
+                e.preventDefault();
+            }
+        };
+
+        const menu = menuRef.current;
+        if (menu) {
+            menu.addEventListener('wheel', handleWheel, { passive: false });
+        }
+
+        return () => {
+            if (menu) {
+                menu.removeEventListener('wheel', handleWheel);
+            }
+        };
+    }, [isOpen]);
+
     // Theme-based styles
     const styles = useMemo(() => {
         const t = theme || {};
