@@ -30,8 +30,13 @@ const CellContextMenu = ({
         };
 
         // Use capture phase to ensure we catch clicks on canvas elements
+        // Use both mousedown and pointerdown for better canvas compatibility
         document.addEventListener('mousedown', handleClickOutside, true);
-        return () => document.removeEventListener('mousedown', handleClickOutside, true);
+        document.addEventListener('pointerdown', handleClickOutside, true);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside, true);
+            document.removeEventListener('pointerdown', handleClickOutside, true);
+        };
     }, [isOpen, onClose]);
 
     // Escape to close
