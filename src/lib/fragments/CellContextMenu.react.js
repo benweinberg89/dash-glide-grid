@@ -186,10 +186,16 @@ const CellContextMenu = ({
                             {item.icon && (
                                 <span style={{
                                     ...styles.icon,
-                                    ...(item.iconSize && { fontSize: item.iconSize })
+                                    ...(item.iconSize && { fontSize: item.iconSize }),
+                                    ...(item.iconColor && { color: item.iconColor }),
+                                    ...(item.iconWeight && { fontWeight: item.iconWeight })
                                 }}>{item.icon}</span>
                             )}
-                            <span style={styles.label}>{item.label}</span>
+                            <span style={{
+                                ...styles.label,
+                                ...(item.color && { color: item.color }),
+                                ...(item.fontWeight && { fontWeight: item.fontWeight })
+                            }}>{item.label}</span>
                         </div>
                         {item.dividerAfter && <div style={styles.divider} />}
                     </React.Fragment>
@@ -228,6 +234,14 @@ CellContextMenu.propTypes = {
         icon: PropTypes.string,
         /** CSS font-size for the icon (e.g., '18px', '1.2em') */
         iconSize: PropTypes.string,
+        /** CSS color for the icon */
+        iconColor: PropTypes.string,
+        /** CSS font-weight for the icon (e.g., 'bold', '600') */
+        iconWeight: PropTypes.string,
+        /** CSS color for the label text */
+        color: PropTypes.string,
+        /** CSS font-weight for the label text (e.g., 'bold', '600') */
+        fontWeight: PropTypes.string,
         dividerAfter: PropTypes.bool,
         disabled: PropTypes.bool,
         /** Built-in action: 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection' */

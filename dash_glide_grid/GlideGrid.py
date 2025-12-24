@@ -136,6 +136,22 @@ Keyword arguments:
 
             CSS font-size for the icon (e.g., '18px', '1.2em').
 
+        - iconColor (string; optional):
+
+            CSS color for the icon.
+
+        - iconWeight (string; optional):
+
+            CSS font-weight for the icon (e.g., 'bold', '600').
+
+        - color (string; optional):
+
+            CSS color for the label text.
+
+        - fontWeight (string; optional):
+
+            CSS font-weight for the label text (e.g., 'bold', '600').
+
         - dividerAfter (boolean; optional)
 
         - disabled (boolean; optional)
@@ -1489,6 +1505,10 @@ Keyword arguments:
             "label": str,
             "icon": NotRequired[str],
             "iconSize": NotRequired[str],
+            "iconColor": NotRequired[str],
+            "iconWeight": NotRequired[str],
+            "color": NotRequired[str],
+            "fontWeight": NotRequired[str],
             "dividerAfter": NotRequired[bool],
             "disabled": NotRequired[bool],
             "action": NotRequired[Literal["copyClickedCell", "copySelection", "pasteAtClickedCell", "pasteAtSelection"]]

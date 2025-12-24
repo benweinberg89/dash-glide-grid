@@ -181,13 +181,19 @@ app.layout = html.Div(
                                 "id": "delete",
                                 "label": "Delete Row",
                                 "icon": "✕",
-                                "iconSize": "10px",
+                                "iconWeight": "800",
+                                "color": "#dc2626",  # red label
+                                # "fontWeight": "600",  # semi-bold label
+                                "iconColor": "#dc2626",  # red icon
                             },
                             {
                                 "id": "details",
                                 "label": "View Details",
+                                "color": "#4762BC",  # blue label
                                 "icon": "\u24d8",
-                                "iconSize": "10px",
+                                "iconSize": "11px",
+                                "iconWeight": "800",
+                                "iconColor": "#4762BC",  # blue icon
                             },
                         ]
                     },
