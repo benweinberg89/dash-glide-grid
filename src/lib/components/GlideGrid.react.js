@@ -67,6 +67,7 @@ GlideGrid.defaultProps = {
     canUndo: false,
     canRedo: false,
     editorScrollBehavior: 'default',
+    contextMenuScrollBehavior: 'default',
     redrawTrigger: null,
     showCellFlash: false,
     allowDelete: true
@@ -749,6 +750,15 @@ GlideGrid.propTypes = {
         /** CSS max-height for the menu (e.g., '300px'). If set, enables scrolling. */
         maxHeight: PropTypes.string
     }),
+
+    /**
+     * Controls how the grid behaves when the user scrolls while a context menu is open.
+     * - "default": Context menu stays at original position (standard behavior)
+     * - "close-overlay-on-scroll": Context menu closes on any scroll
+     * - "lock-scroll": Scrolling is prevented while context menu is open
+     * Default: "default"
+     */
+    contextMenuScrollBehavior: PropTypes.oneOf(['default', 'close-overlay-on-scroll', 'lock-scroll']),
 
     /**
      * Information about the last clicked cell context menu item.

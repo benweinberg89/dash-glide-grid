@@ -171,7 +171,7 @@ const CellContextMenu = ({
                 }}
                 onClick={onClose}
             />
-            <div ref={menuRef} style={menuStyle}>
+            <div ref={menuRef} style={menuStyle} data-context-menu="true">
                 {items.map((item, index) => (
                     <React.Fragment key={item.id}>
                         <div

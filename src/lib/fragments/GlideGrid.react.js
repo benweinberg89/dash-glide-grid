@@ -443,6 +443,7 @@ const GlideGrid = (props) => {
         maxUndoSteps,
         undoRedoAction,
         editorScrollBehavior,
+        contextMenuScrollBehavior,
         redrawTrigger,
         showCellFlash,
         allowDelete,
@@ -466,6 +467,11 @@ const GlideGrid = (props) => {
     // Editor scroll behavior state
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const scrollPositionRef = useRef({ x: 0, y: 0 });
+
+    // Context menu scroll behavior state
+    const contextMenuScrollPositionRef = useRef({ x: 0, y: 0 });
+    const contextMenuWheelHandlerRef = useRef(null);
+    const contextMenuScrollHandlerRef = useRef(null);
 
     // Local state for column filters (synced with Dash prop)
     const [localFilters, setLocalFilters] = useState(columnFilters || {});
@@ -1572,6 +1578,99 @@ const GlideGrid = (props) => {
             }
         };
     }, [editorScrollBehavior, isEditorOpen]);
+
+    // "close-overlay-on-scroll" behavior for context menu: close menu on scroll
+    useEffect(() => {
+        if (contextMenuScrollBehavior !== 'close-overlay-on-scroll' || !cellMenuState.isOpen) return;
+
+        // Block scrolling at CSS level while context menu is open
+        const originalOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+
+        const handleWheel = (e) => {
+            // Allow scrolling within the context menu itself (when maxHeight creates scrollable content)
+            const contextMenu = e.target.closest('[data-context-menu="true"]');
+            if (contextMenu) {
+                return;
+            }
+
+            // Event is outside context menu - close it
+            e.preventDefault();
+            e.stopPropagation();
+            handleCellMenuClose();
+        };
+
+        const handleScroll = (e) => {
+            // Ignore scroll events from within the context menu
+            const contextMenu = e.target.closest('[data-context-menu="true"]');
+            if (contextMenu) {
+                return;
+            }
+            handleCellMenuClose();
+        };
+
+        window.addEventListener('scroll', handleScroll, true);
+        document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+
+        return () => {
+            document.documentElement.style.overflow = originalOverflow;
+            window.removeEventListener('scroll', handleScroll, true);
+            document.removeEventListener('wheel', handleWheel, { capture: true });
+        };
+    }, [contextMenuScrollBehavior, cellMenuState.isOpen, handleCellMenuClose]);
+
+    // "lock-scroll" behavior for context menu: prevent all external scrolling
+    useEffect(() => {
+        if (contextMenuScrollBehavior !== 'lock-scroll') return;
+
+        if (cellMenuState.isOpen) {
+            // Save current scroll position
+            contextMenuScrollPositionRef.current = {
+                x: window.scrollX,
+                y: window.scrollY
+            };
+
+            // Create wheel handler to prevent scroll (but allow context menu scrolling)
+            contextMenuWheelHandlerRef.current = (e) => {
+                const contextMenu = e.target.closest('[data-context-menu="true"]');
+                if (contextMenu) {
+                    // Allow scrolling within context menu
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            // Create scroll handler to restore position if scroll somehow happens
+            contextMenuScrollHandlerRef.current = () => {
+                window.scrollTo(contextMenuScrollPositionRef.current.x, contextMenuScrollPositionRef.current.y);
+            };
+
+            // Prevent wheel events
+            document.addEventListener('wheel', contextMenuWheelHandlerRef.current, { passive: false });
+            // Also prevent touchmove for mobile
+            document.addEventListener('touchmove', contextMenuWheelHandlerRef.current, { passive: false });
+            // Restore scroll position if it changes
+            window.addEventListener('scroll', contextMenuScrollHandlerRef.current);
+
+            // Set overflow hidden on html element
+            document.documentElement.style.overflow = 'hidden';
+        }
+
+        return () => {
+            // Cleanup
+            document.documentElement.style.overflow = '';
+            if (contextMenuWheelHandlerRef.current) {
+                document.removeEventListener('wheel', contextMenuWheelHandlerRef.current);
+                document.removeEventListener('touchmove', contextMenuWheelHandlerRef.current);
+                contextMenuWheelHandlerRef.current = null;
+            }
+            if (contextMenuScrollHandlerRef.current) {
+                window.removeEventListener('scroll', contextMenuScrollHandlerRef.current);
+                contextMenuScrollHandlerRef.current = null;
+            }
+        };
+    }, [contextMenuScrollBehavior, cellMenuState.isOpen]);
 
     // Transform columns to Glide format (including sort indicators)
     const glideColumns = useMemo(() => {
@@ -3125,6 +3224,11 @@ const GlideGrid = (props) => {
             setIsEditorOpen(false);
         }
 
+        // Close context menu on grid internal scroll if behavior is set
+        if (contextMenuScrollBehavior === 'close-overlay-on-scroll' && cellMenuState.isOpen) {
+            handleCellMenuClose();
+        }
+
         if (setProps) {
             setProps({
                 visibleRegion: {
@@ -3137,7 +3241,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps, editorScrollBehavior, isEditorOpen]);
+    }, [setProps, editorScrollBehavior, isEditorOpen, contextMenuScrollBehavior, cellMenuState.isOpen, handleCellMenuClose]);
 
     // ========== PHASE 3: ROW/COLUMN REORDERING ==========
 

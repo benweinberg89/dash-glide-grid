@@ -55,62 +55,26 @@ COLUMNS = [
 
 # Initial sample data
 INITIAL_DATA = [
-    {
-        "id": 1,
-        "product": "Laptop Pro",
-        "category": "Electronics",
-        "price": 1299.99,
-        "stock": 45,
-    },
-    {
-        "id": 2,
-        "product": "Wireless Mouse",
-        "category": "Accessories",
-        "price": 49.99,
-        "stock": 200,
-    },
-    {
-        "id": 3,
-        "product": "USB-C Hub",
-        "category": "Accessories",
-        "price": 79.99,
-        "stock": 150,
-    },
-    {
-        "id": 4,
-        "product": 'Monitor 27"',
-        "category": "Electronics",
-        "price": 449.99,
-        "stock": 30,
-    },
-    {
-        "id": 5,
-        "product": "Keyboard RGB",
-        "category": "Accessories",
-        "price": 129.99,
-        "stock": 85,
-    },
-    {
-        "id": 6,
-        "product": "Webcam HD",
-        "category": "Electronics",
-        "price": 89.99,
-        "stock": 120,
-    },
-    {
-        "id": 7,
-        "product": "Desk Lamp",
-        "category": "Office",
-        "price": 39.99,
-        "stock": 75,
-    },
-    {
-        "id": 8,
-        "product": "Chair Ergonomic",
-        "category": "Furniture",
-        "price": 299.99,
-        "stock": 20,
-    },
+    {"id": 1, "product": "Laptop Pro", "category": "Electronics", "price": 1299.99, "stock": 45},
+    {"id": 2, "product": "Wireless Mouse", "category": "Accessories", "price": 49.99, "stock": 200},
+    {"id": 3, "product": "USB-C Hub", "category": "Accessories", "price": 79.99, "stock": 150},
+    {"id": 4, "product": 'Monitor 27"', "category": "Electronics", "price": 449.99, "stock": 30},
+    {"id": 5, "product": "Keyboard RGB", "category": "Accessories", "price": 129.99, "stock": 85},
+    {"id": 6, "product": "Webcam HD", "category": "Electronics", "price": 89.99, "stock": 120},
+    {"id": 7, "product": "Desk Lamp", "category": "Office", "price": 39.99, "stock": 75},
+    {"id": 8, "product": "Chair Ergonomic", "category": "Furniture", "price": 299.99, "stock": 20},
+    {"id": 9, "product": "Standing Desk", "category": "Furniture", "price": 599.99, "stock": 15},
+    {"id": 10, "product": "Headphones Pro", "category": "Electronics", "price": 249.99, "stock": 60},
+    {"id": 11, "product": "Mouse Pad XL", "category": "Accessories", "price": 29.99, "stock": 300},
+    {"id": 12, "product": "Monitor Arm", "category": "Accessories", "price": 89.99, "stock": 45},
+    {"id": 13, "product": "Cable Management", "category": "Office", "price": 19.99, "stock": 500},
+    {"id": 14, "product": "Desk Organizer", "category": "Office", "price": 34.99, "stock": 180},
+    {"id": 15, "product": "Laptop Stand", "category": "Accessories", "price": 59.99, "stock": 95},
+    {"id": 16, "product": "USB Microphone", "category": "Electronics", "price": 129.99, "stock": 70},
+    {"id": 17, "product": "Ring Light", "category": "Electronics", "price": 49.99, "stock": 110},
+    {"id": 18, "product": "Whiteboard", "category": "Office", "price": 79.99, "stock": 40},
+    {"id": 19, "product": "Footrest", "category": "Furniture", "price": 44.99, "stock": 55},
+    {"id": 20, "product": "Filing Cabinet", "category": "Furniture", "price": 149.99, "stock": 25},
 ]
 
 app.layout = html.Div(
@@ -121,17 +85,34 @@ app.layout = html.Div(
             "Right-click on any cell to see the context menu with working actions.",
             id="subtitle",
         ),
-        html.Button(
-            "Toggle Dark Mode",
-            id="theme-toggle",
-            style={
-                "marginBottom": "15px",
-                "padding": "8px 16px",
-                "cursor": "pointer",
-                "borderRadius": "6px",
-                "border": "1px solid #d1d5db",
-                "backgroundColor": "#f3f4f6",
-            },
+        html.Div(
+            [
+                html.Button(
+                    "Toggle Dark Mode",
+                    id="theme-toggle",
+                    style={
+                        "marginBottom": "15px",
+                        "padding": "8px 16px",
+                        "cursor": "pointer",
+                        "borderRadius": "6px",
+                        "border": "1px solid #d1d5db",
+                        "backgroundColor": "#f3f4f6",
+                    },
+                ),
+                html.Label(" Scroll Behavior: ", style={"marginLeft": "20px"}),
+                dcc.Dropdown(
+                    id="scroll-behavior-dropdown",
+                    options=[
+                        {"label": "default", "value": "default"},
+                        {"label": "close-overlay-on-scroll", "value": "close-overlay-on-scroll"},
+                        {"label": "lock-scroll", "value": "lock-scroll"},
+                    ],
+                    value="default",
+                    clearable=False,
+                    style={"width": "220px", "display": "inline-block", "verticalAlign": "middle"},
+                ),
+            ],
+            style={"display": "flex", "alignItems": "center", "marginBottom": "15px"},
         ),
         html.Div(
             [
@@ -529,6 +510,14 @@ def close_modal(n_clicks):
     if n_clicks:
         return {"display": "none"}
     return no_update
+
+
+@callback(
+    Output("context-menu-grid", "contextMenuScrollBehavior"),
+    Input("scroll-behavior-dropdown", "value"),
+)
+def update_scroll_behavior(value):
+    return value
 
 
 if __name__ == "__main__":
