@@ -153,7 +153,7 @@ app.layout = html.Div(
                                 "id": "copy",
                                 "label": "Copy Cell",
                                 "icon": "⧉",
-                                "action": "copyCell",
+                                "action": "copyClickedCell",
                             },
                             {
                                 "id": "copy-selection",
@@ -162,11 +162,18 @@ app.layout = html.Div(
                                 "action": "copySelection",
                             },
                             {
-                                "id": "paste",
-                                "label": "Paste",
+                                "id": "paste-cell",
+                                "label": "Paste at Cell",
                                 "icon": "⎘",
                                 "iconSize": "19px",
-                                "action": "paste",
+                                "action": "pasteAtClickedCell",
+                            },
+                            {
+                                "id": "paste-selection",
+                                "label": "Paste at Selection",
+                                "icon": "⎘",
+                                "iconSize": "19px",
+                                "action": "pasteAtSelection",
                                 "dividerAfter": True,
                             },
                             # Custom actions handled by Python callback
@@ -233,8 +240,14 @@ app.layout = html.Div(
                         ),
                         html.Li(
                             [
-                                html.Strong("Paste"),
-                                " - Pastes clipboard content starting at clicked cell (native action)",
+                                html.Strong("Paste at Cell"),
+                                " - Pastes clipboard content at the right-clicked cell (native action)",
+                            ]
+                        ),
+                        html.Li(
+                            [
+                                html.Strong("Paste at Selection"),
+                                " - Pastes clipboard content at top-left of selection (native action)",
                             ]
                         ),
                         html.Li(

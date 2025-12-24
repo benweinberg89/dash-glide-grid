@@ -735,8 +735,8 @@ GlideGrid.propTypes = {
             iconSize: PropTypes.string,
             dividerAfter: PropTypes.bool,
             disabled: PropTypes.bool,
-            /** Built-in action: 'copyCell', 'copySelection', 'paste' */
-            action: PropTypes.oneOf(['copyCell', 'copySelection', 'paste'])
+            /** Built-in action: 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection' */
+            action: PropTypes.oneOf(['copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'])
         }))
     }),
 

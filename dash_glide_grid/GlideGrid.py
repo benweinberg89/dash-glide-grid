@@ -140,9 +140,11 @@ Keyword arguments:
 
         - disabled (boolean; optional)
 
-        - action (a value equal to: 'copyCell', 'copySelection', 'paste'; optional):
+        - action (a value equal to: 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'; optional):
 
-            Built-in action: 'copyCell', 'copySelection', 'paste'.
+            Built-in action: 'copyClickedCell', 'copySelection',
+
+            'pasteAtClickedCell', 'pasteAtSelection'.
 
 - cellContextMenuItemClicked (dict; optional):
     Information about the last clicked cell context menu item. Format:
@@ -1489,7 +1491,7 @@ Keyword arguments:
             "iconSize": NotRequired[str],
             "dividerAfter": NotRequired[bool],
             "disabled": NotRequired[bool],
-            "action": NotRequired[Literal["copyCell", "copySelection", "paste"]]
+            "action": NotRequired[Literal["copyClickedCell", "copySelection", "pasteAtClickedCell", "pasteAtSelection"]]
         }
     )
 

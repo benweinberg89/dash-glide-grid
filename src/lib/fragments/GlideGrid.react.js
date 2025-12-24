@@ -2609,7 +2609,7 @@ const GlideGrid = (props) => {
         const action = item.action;
 
         // Handle built-in actions
-        if (action === 'copyCell') {
+        if (action === 'copyClickedCell') {
             // Copy the clicked cell value to clipboard
             if (localData && localColumns && col !== null && row !== null) {
                 const columnDef = localColumns[col];
@@ -2656,13 +2656,100 @@ const GlideGrid = (props) => {
                     console.error('Failed to copy cell:', err);
                 });
             }
-        } else if (action === 'paste') {
+        } else if (action === 'pasteAtClickedCell') {
             // Paste from clipboard starting at clicked cell
             if (col !== null && row !== null && localData && localColumns) {
                 navigator.clipboard.readText().then(text => {
                     if (!text) return;
 
                     // Parse TSV/CSV content
+                    const lines = text.split('\n').filter(line => line.length > 0);
+                    const newData = [...localData];
+                    let dataChanged = false;
+
+                    lines.forEach((line, lineIdx) => {
+                        const targetRow = row + lineIdx;
+                        if (targetRow >= newData.length) return;
+
+                        const values = line.split('\t');
+                        const newRowData = { ...newData[targetRow] };
+
+                        values.forEach((val, valIdx) => {
+                            const targetCol = col + valIdx;
+                            if (targetCol >= localColumns.length) return;
+
+                            const columnDef = localColumns[targetCol];
+                            const columnId = columnDef?.id;
+                            if (columnId && !columnDef.readonly) {
+                                newRowData[columnId] = val;
+                                dataChanged = true;
+                            }
+                        });
+
+                        newData[targetRow] = newRowData;
+                    });
+
+                    if (dataChanged) {
+                        setLocalData(newData);
+                        if (setProps) {
+                            setProps({ data: newData });
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Failed to paste:', err);
+                });
+            }
+        } else if (action === 'pasteAtSelection') {
+            // Paste from clipboard starting at top-left of current selection
+            if (localData && localColumns && gridSelection.current?.range) {
+                const range = gridSelection.current.range;
+                const startCol = range.x;
+                const startRow = range.y;
+
+                navigator.clipboard.readText().then(text => {
+                    if (!text) return;
+
+                    // Parse TSV/CSV content
+                    const lines = text.split('\n').filter(line => line.length > 0);
+                    const newData = [...localData];
+                    let dataChanged = false;
+
+                    lines.forEach((line, lineIdx) => {
+                        const targetRow = startRow + lineIdx;
+                        if (targetRow >= newData.length) return;
+
+                        const values = line.split('\t');
+                        const newRowData = { ...newData[targetRow] };
+
+                        values.forEach((val, valIdx) => {
+                            const targetCol = startCol + valIdx;
+                            if (targetCol >= localColumns.length) return;
+
+                            const columnDef = localColumns[targetCol];
+                            const columnId = columnDef?.id;
+                            if (columnId && !columnDef.readonly) {
+                                newRowData[columnId] = val;
+                                dataChanged = true;
+                            }
+                        });
+
+                        newData[targetRow] = newRowData;
+                    });
+
+                    if (dataChanged) {
+                        setLocalData(newData);
+                        if (setProps) {
+                            setProps({ data: newData });
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Failed to paste selection:', err);
+                });
+            } else if (col !== null && row !== null && localData && localColumns) {
+                // No range selection, fall back to paste at clicked cell
+                navigator.clipboard.readText().then(text => {
+                    if (!text) return;
+
                     const lines = text.split('\n').filter(line => line.length > 0);
                     const newData = [...localData];
                     let dataChanged = false;
