@@ -27,77 +27,102 @@ selectedRanges: List[Dict]  # Same data as 1x1 ranges for API consistency
 selectedCell: Dict          # {col, row} - focus cell (most recently clicked), unchanged
 ```
 
-## Actual Implementation
+## Actual Implementation (v2: Additive/Subtractive Layers)
 
-### 1. State & Refs (GlideGrid.react.js lines 531-543)
+### Core Concept
+
+Instead of tracking individual cells, we track **selection layers**. Each layer has:
+- `range`: `{x, y, width, height}` - the rectangular range
+- `value`: `+1` (add) or `-1` (subtract)
+
+A cell is selected if the **sum of all layer values** for that cell is **> 0**.
+
+### 1. State & Refs (GlideGrid.react.js lines 531-545)
 
 ```javascript
 // Modifier key tracking
 const modifierKeysRef = useRef({ metaKey: false, ctrlKey: false });
 
-// Set of selected cells stored as "col,row" strings for O(1) lookup
-const [freeformSelection, setFreeformSelection] = useState(new Set());
+// Selection layers: each layer has a range and a value (+1 or -1)
+// Normal drag = REPLACE (clear all, add +1 layer)
+// Cmd+drag = ADD layer (+1 if cell unselected, -1 if selected)
+// Final selection = cells where sum of layer values > 0
+const [selectionLayers, setSelectionLayers] = useState([]);
 
-// Drag state tracking for Cmd+drag operations
-const freeformDragRef = useRef({
-    isDragging: false,
-    isAddMode: true,      // true = add cells, false = remove cells
-    baseSelection: new Set(),  // selection state before drag started
-    lastRange: null       // detect new drag operations by range origin
+// Track current drag: which layer we're updating during drag
+const currentDragRef = useRef({
+    layerIndex: -1,  // index into selectionLayers for the current drag
+    rangeOrigin: null  // "x,y" to detect new drag operations
 });
 ```
 
-### 2. Modifier Key Effect (lines 577-605)
+### 2. Computing Selected Cells (lines 547-582)
+
+`computeSelectedCells(layers, unselectableCols, unselectableRows, colMin)`:
+1. For each layer, iterate through cells in the range
+2. Add the layer's value (+1 or -1) to a Map keyed by "col,row"
+3. Skip unselectable cells
+4. Return cells where net value > 0
+
+### 3. Selection Handler Logic (lines 2365-2442)
+
+When `rangeSelect === 'freeform'`:
+
+**New Drag (range origin changed):**
+- **Normal drag (no Cmd)**: REPLACE all layers with a single +1 layer
+- **Cmd+drag**: Check if first clicked cell is selected
+  - If selected: ADD a -1 layer (subtract)
+  - If not selected: ADD a +1 layer (add)
+
+**Continuing Drag (same origin):**
+- Update the current layer's range (the layer at `currentDragRef.layerIndex`)
+
+### 4. Visual Rendering (lines 654-680)
+
+`combinedHighlightRegions` useMemo:
+1. Compute selected cells from all layers
+2. Merge adjacent cells into rectangles using `mergeCellsIntoRectangles`
+3. Convert to highlightRegions format with selection color
+
+### 5. Modifier Key Effect (lines 719-751)
 
 - Tracks Cmd/Ctrl key state via document keydown/keyup listeners
 - Only active when `rangeSelect === 'freeform'`
-- Also handles Escape to clear selection
+- Escape clears all layers and resets drag state
 
-### 3. DataEditor Compatibility (line 3661)
+### 6. DataEditor Compatibility (line ~3700)
 
 **Critical**: glide-data-grid doesn't understand 'freeform', so we map it:
 ```javascript
 rangeSelect={rangeSelect === 'freeform' ? 'rect' : rangeSelect}
 ```
 
-### 4. Selection Handler (lines 2319-2419)
-
-When `rangeSelect === 'freeform'`:
-
-1. **Detect new drag** by checking if range origin changed
-2. **Determine add/remove mode** based on whether first clicked cell was selected
-3. **Store base selection** snapshot before drag
-4. **Apply selection changes**:
-   - Non-Cmd: Clear and select new range
-   - Cmd + Add mode: Base selection + drag range
-   - Cmd + Remove mode: Base selection - drag range
-
-### 5. Visual Rendering (lines 545-627)
-
-**Rectangle Merging Algorithm** (`mergeCellsIntoRectangles`):
-1. Sort cells by row, then column
-2. For each unprocessed cell, extend horizontally as far as possible
-3. Then extend vertically while entire row segments exist
-4. Mark all cells in rectangle as used
-5. Result: Minimal rectangles covering all selected cells
-
-**Combined Highlight Regions** (`combinedHighlightRegions`):
-- Merges user-provided `highlightRegions` with freeform selection
-- Uses `rgba(59, 130, 246, 0.15)` with `style: 'no-outline'`
-
-### 6. Files Modified
+### 7. Files Modified
 
 | File | Changes |
 |------|---------|
-| `src/lib/fragments/GlideGrid.react.js` | Modifier tracking, drag state, selection logic, rectangle merging, combined highlights |
+| `src/lib/fragments/GlideGrid.react.js` | Layers state, computeSelectedCells, selection logic, rectangle merging, combined highlights |
 | `src/lib/components/GlideGrid.react.js` | Added `'freeform'` to rangeSelect, added `selectedCells` prop |
 | `dash_glide_grid/GlideGrid.py` | Auto-generated with new props |
 | `examples/62_freeform_selection.py` | Example demonstrating the feature |
 
-## Known Issues (WIP)
+## How The Layers Approach Works
 
-- [ ] Cmd+drag behavior still not perfect - range calculation may be off
-- [ ] Need to verify add/remove mode detection works correctly
+**Example 1: Normal selection then subtract**
+1. Click/drag cells A,B,C → layers = `[{range: ABC, value: +1}]`
+2. Cells A,B,C all have value +1 → selected
+3. Cmd+click on B (which is selected) → layers = `[{ABC: +1}, {B: -1}]`
+4. A=+1, B=+1-1=0, C=+1 → A and C selected, B not selected
+
+**Example 2: Normal selection then add**
+1. Click/drag cells A,B,C → layers = `[{range: ABC, value: +1}]`
+2. Cmd+click on D (which is NOT selected) → layers = `[{ABC: +1}, {D: +1}]`
+3. A=+1, B=+1, C=+1, D=+1 → all selected
+
+**Example 3: Drag replaces**
+1. Click/drag cells A,B,C → layers = `[{ABC: +1}]`
+2. Click/drag (no Cmd) cells D,E → layers = `[{DE: +1}]` (ABC cleared!)
+3. Only D,E selected
 
 ## Decisions Made
 
@@ -107,16 +132,18 @@ When `rangeSelect === 'freeform'`:
 4. **Selection props**: Both `selectedCells` AND `selectedRanges` (1x1 ranges) ✓
 5. **Visual style**: Match native selection with merged rectangles ✓
 6. **glide-data-grid compatibility**: Map 'freeform' to 'rect' internally ✓
+7. **Implementation strategy**: Additive/subtractive layers ✓
 
 ## Progress
 
 - [x] Create feature branch (`feature/freeform-selection`)
 - [x] Add modifier key tracking (Cmd/Ctrl)
-- [x] Add freeformSelection state and logic
-- [x] Add drag state tracking for consistent add/remove behavior
+- [x] Implement layers-based selection state
+- [x] Add computeSelectedCells function
 - [x] Add unselectable cell filtering
 - [x] Implement merged rectangle rendering via highlightRegions
 - [x] Add selectedCells prop definitions (React + Python)
 - [x] Create example (`examples/62_freeform_selection.py`)
-- [ ] Fix remaining Cmd+drag range issues
-- [ ] Final testing and polish
+- [x] Rewrite selection handler for layers approach
+- [ ] Manual testing and verification
+- [ ] Final polish

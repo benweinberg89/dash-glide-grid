@@ -528,19 +528,58 @@ const GlideGrid = (props) => {
     const lastUndoRedoActionRef = useRef(null);      // Track last processed undoRedoAction
     const pendingWrapRef = useRef(null);             // Track pending Tab wrap for row boundaries
 
-    // ========== FREEFORM SELECTION STATE ==========
-    // Ref to track modifier keys (Cmd/Ctrl) for freeform selection toggle behavior
+    // ========== FREEFORM SELECTION STATE (Additive/Subtractive Layers) ==========
+    // Ref to track modifier keys (Cmd/Ctrl) for freeform selection
     const modifierKeysRef = useRef({ metaKey: false, ctrlKey: false });
-    // Set of selected cells in freeform mode, stored as "col,row" strings for O(1) lookup
-    const [freeformSelection, setFreeformSelection] = useState(new Set());
-    // Ref to track Cmd+drag state: when dragging with Cmd, we need to know if we're adding or removing
-    // based on whether the first cell clicked was selected or not
-    const freeformDragRef = useRef({
-        isDragging: false,
-        isAddMode: true,  // true = add cells, false = remove cells
-        baseSelection: new Set(),  // selection state before this drag started
-        lastRange: null  // track the last range to detect new drag operations
+
+    // Selection layers: each layer has a range and a value (+1 or -1)
+    // Normal drag = REPLACE (clear all, add +1 layer)
+    // Cmd+drag = ADD layer (+1 if cell unselected, -1 if selected)
+    // Final selection = cells where sum of layer values > 0
+    const [selectionLayers, setSelectionLayers] = useState([]);
+
+    // Track current drag: which layer we're updating during drag
+    const currentDragRef = useRef({
+        layerIndex: -1,  // index into selectionLayers for the current drag
+        rangeOrigin: null  // "x,y" to detect new drag operations
     });
+
+    // ========== FREEFORM SELECTION: COMPUTE SELECTED CELLS FROM LAYERS ==========
+    // Compute the net selected cells by summing layer values
+    // A cell is selected if its net value > 0
+    const computeSelectedCells = useCallback((layers, unselectableCols, unselectableRowsList, colMin) => {
+        if (layers.length === 0) return { cells: [], cellSet: new Set() };
+
+        const cellValues = new Map(); // "col,row" -> net value
+
+        for (const layer of layers) {
+            const { range, value } = layer;
+            for (let col = range.x; col < range.x + range.width; col++) {
+                for (let row = range.y; row < range.y + range.height; row++) {
+                    // Skip unselectable cells
+                    if (unselectableCols && unselectableCols.includes(col)) continue;
+                    if (unselectableRowsList && unselectableRowsList.includes(row)) continue;
+                    if (colMin != null && col < colMin) continue;
+
+                    const key = `${col},${row}`;
+                    cellValues.set(key, (cellValues.get(key) || 0) + value);
+                }
+            }
+        }
+
+        // Collect cells with positive net value
+        const cells = [];
+        const cellSet = new Set();
+        for (const [key, value] of cellValues) {
+            if (value > 0) {
+                const [col, row] = key.split(',').map(Number);
+                cells.push({ col, row });
+                cellSet.add(key);
+            }
+        }
+
+        return { cells, cellSet };
+    }, []);
 
     // ========== FREEFORM SELECTION: MERGE ADJACENT CELLS INTO RECTANGLES ==========
     // This function takes a set of cells and merges adjacent cells into larger rectangles
@@ -616,15 +655,21 @@ const GlideGrid = (props) => {
     const combinedHighlightRegions = useMemo(() => {
         const userRegions = highlightRegions || [];
 
-        if (rangeSelect !== 'freeform' || freeformSelection.size === 0) {
+        if (rangeSelect !== 'freeform' || selectionLayers.length === 0) {
             return userRegions.length > 0 ? userRegions : undefined;
         }
 
-        // Merge freeform selection cells into rectangles
-        const mergedRects = mergeCellsIntoRectangles(freeformSelection);
+        // Compute selected cells from layers
+        const { cellSet } = computeSelectedCells(selectionLayers, unselectableColumns, unselectableRows, selectionColumnMin);
+
+        if (cellSet.size === 0) {
+            return userRegions.length > 0 ? userRegions : undefined;
+        }
+
+        // Merge selected cells into rectangles
+        const mergedRects = mergeCellsIntoRectangles(cellSet);
 
         // Convert to highlightRegions format with selection color
-        // Use the theme's accent color with transparency to match native selection
         const freeformRegions = mergedRects.map(rect => ({
             color: 'rgba(59, 130, 246, 0.15)', // Blue with transparency, similar to native selection
             range: rect,
@@ -632,7 +677,7 @@ const GlideGrid = (props) => {
         }));
 
         return [...userRegions, ...freeformRegions];
-    }, [highlightRegions, rangeSelect, freeformSelection, mergeCellsIntoRectangles]);
+    }, [highlightRegions, rangeSelect, selectionLayers, unselectableColumns, unselectableRows, selectionColumnMin, computeSelectedCells, mergeCellsIntoRectangles]);
 
     // Ref to hold custom renderers for use in handlePaste
     const customRenderersRef = useRef(null);
@@ -672,17 +717,18 @@ const GlideGrid = (props) => {
     }, [columnFilters]);
 
     // ========== FREEFORM SELECTION: MODIFIER KEY TRACKING ==========
-    // Track Cmd/Ctrl key state for freeform selection toggle behavior
-    // Also handle Escape to clear freeform selection
+    // Track Cmd/Ctrl key state for freeform selection
+    // Also handle Escape to clear selection layers
     useEffect(() => {
         if (rangeSelect !== 'freeform') return;
 
         const handleKeyDown = (e) => {
             modifierKeysRef.current = { metaKey: e.metaKey, ctrlKey: e.ctrlKey };
 
-            // Escape clears freeform selection
+            // Escape clears all selection layers
             if (e.key === 'Escape') {
-                setFreeformSelection(new Set());
+                setSelectionLayers([]);
+                currentDragRef.current = { layerIndex: -1, rangeOrigin: null };
                 if (setProps) {
                     setProps({
                         selectedCells: [],
@@ -702,7 +748,7 @@ const GlideGrid = (props) => {
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
         };
-    }, [rangeSelect, setFreeformSelection, setProps]);
+    }, [rangeSelect, setSelectionLayers, setProps]);
 
     // ========== UNDO/REDO FUNCTIONS ==========
 
@@ -2312,11 +2358,24 @@ const GlideGrid = (props) => {
         }
 
         // Update internal state for visual feedback and editing
-        setGridSelection(adjustedSelection);
+        // For freeform mode, we only show the focus cell - our highlightRegions handle the selection
+        if (rangeSelect === 'freeform' && adjustedSelection.current?.cell) {
+            const cell = adjustedSelection.current.cell;
+            setGridSelection({
+                ...adjustedSelection,
+                current: {
+                    ...adjustedSelection.current,
+                    // Single-cell range so glide-data-grid only shows focus, not the drag range
+                    range: { x: cell[0], y: cell[1], width: 1, height: 1 }
+                }
+            });
+        } else {
+            setGridSelection(adjustedSelection);
+        }
 
         if (!setProps) return;
 
-        // ========== FREEFORM SELECTION MODE ==========
+        // ========== FREEFORM SELECTION MODE (Additive/Subtractive Layers) ==========
         if (rangeSelect === 'freeform' && adjustedSelection.current) {
             const range = adjustedSelection.current.range;
             const cell = adjustedSelection.current.cell;
@@ -2325,70 +2384,47 @@ const GlideGrid = (props) => {
                 const isCmdHeld = modifierKeysRef.current.metaKey || modifierKeysRef.current.ctrlKey;
 
                 // Check if this is a new drag operation (range origin changed)
-                const rangeKey = `${range.x},${range.y}`;
-                const isNewDrag = freeformDragRef.current.lastRange !== rangeKey;
+                const rangeOrigin = `${range.x},${range.y}`;
+                const isNewDrag = currentDragRef.current.rangeOrigin !== rangeOrigin;
 
-                if (isCmdHeld && isNewDrag) {
-                    // New Cmd+drag: determine add/remove mode based on whether the clicked cell was selected
-                    const clickedCellKey = cell ? `${cell[0]},${cell[1]}` : `${range.x},${range.y}`;
-                    const wasSelected = freeformSelection.has(clickedCellKey);
-                    freeformDragRef.current.isAddMode = !wasSelected;  // If it was selected, we're removing; otherwise adding
-                    freeformDragRef.current.baseSelection = new Set(freeformSelection);  // Snapshot current selection
-                    freeformDragRef.current.lastRange = rangeKey;
-                    freeformDragRef.current.isDragging = true;
-                } else if (!isCmdHeld) {
-                    // Non-Cmd selection: reset drag state
-                    freeformDragRef.current.isDragging = false;
-                    freeformDragRef.current.lastRange = null;
-                }
+                setSelectionLayers(prevLayers => {
+                    let newLayers;
 
-                // Enumerate cells in the range, filtering out unselectable ones
-                const cellsInRange = [];
-                for (let col = range.x; col < range.x + range.width; col++) {
-                    for (let row = range.y; row < range.y + range.height; row++) {
-                        // Skip unselectable cells
-                        if (unselectableColumns && unselectableColumns.includes(col)) continue;
-                        if (unselectableRows && unselectableRows.includes(row)) continue;
-                        if (selectionColumnMin != null && col < selectionColumnMin) continue;
-                        cellsInRange.push({ col, row });
-                    }
-                }
+                    if (isNewDrag) {
+                        // New drag operation
+                        if (isCmdHeld) {
+                            // Cmd+drag: ADD a layer (+1 if cell unselected, -1 if selected)
+                            // Check if the clicked cell is currently selected
+                            const clickedCellKey = cell ? `${cell[0]},${cell[1]}` : `${range.x},${range.y}`;
+                            const { cellSet } = computeSelectedCells(prevLayers, unselectableColumns, unselectableRows, selectionColumnMin);
+                            const isSelected = cellSet.has(clickedCellKey);
 
-                // Update freeform selection based on modifier key state
-                setFreeformSelection(prevSelection => {
-                    let newSelection;
-
-                    if (isCmdHeld) {
-                        // Cmd+drag: start from base selection, then add or remove the entire drag range
-                        newSelection = new Set(freeformDragRef.current.baseSelection);
-
-                        if (freeformDragRef.current.isAddMode) {
-                            // Add mode: add all cells in range to base selection
-                            cellsInRange.forEach(c => {
-                                newSelection.add(`${c.col},${c.row}`);
-                            });
+                            // Add a new layer: -1 to subtract selected cells, +1 to add unselected cells
+                            const layerValue = isSelected ? -1 : 1;
+                            newLayers = [...prevLayers, { range: { ...range }, value: layerValue }];
+                            currentDragRef.current = { layerIndex: newLayers.length - 1, rangeOrigin };
                         } else {
-                            // Remove mode: remove all cells in range from base selection
-                            cellsInRange.forEach(c => {
-                                newSelection.delete(`${c.col},${c.row}`);
-                            });
+                            // Normal drag: REPLACE all layers with a single +1 layer
+                            newLayers = [{ range: { ...range }, value: 1 }];
+                            currentDragRef.current = { layerIndex: 0, rangeOrigin };
                         }
                     } else {
-                        // New selection: clear previous, add these cells
-                        newSelection = new Set();
-                        cellsInRange.forEach(c => {
-                            newSelection.add(`${c.col},${c.row}`);
-                        });
+                        // Continuing existing drag: update the current layer's range
+                        const layerIdx = currentDragRef.current.layerIndex;
+                        if (layerIdx >= 0 && layerIdx < prevLayers.length) {
+                            newLayers = prevLayers.map((layer, idx) =>
+                                idx === layerIdx ? { ...layer, range: { ...range } } : layer
+                            );
+                        } else {
+                            newLayers = prevLayers;
+                        }
                     }
 
-                    // Convert Set to output format
-                    const selectedCellsArray = Array.from(newSelection).map(key => {
-                        const [colStr, rowStr] = key.split(',');
-                        return { col: parseInt(colStr, 10), row: parseInt(rowStr, 10) };
-                    });
+                    // Compute selected cells from all layers
+                    const { cells } = computeSelectedCells(newLayers, unselectableColumns, unselectableRows, selectionColumnMin);
 
                     // Generate selectedRanges (1x1 ranges for API consistency)
-                    const selectedRangesArray = selectedCellsArray.map(c => ({
+                    const selectedRangesArray = cells.map(c => ({
                         startCol: c.col,
                         startRow: c.row,
                         endCol: c.col,
@@ -2397,7 +2433,7 @@ const GlideGrid = (props) => {
 
                     // Update Dash props
                     const freeformUpdates = {
-                        selectedCells: selectedCellsArray,
+                        selectedCells: cells,
                         selectedRanges: selectedRangesArray
                     };
 
@@ -2411,7 +2447,7 @@ const GlideGrid = (props) => {
 
                     setProps(freeformUpdates);
 
-                    return newSelection;
+                    return newLayers;
                 });
             }
 
@@ -2478,7 +2514,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rangeSelect, setFreeformSelection]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rangeSelect, setSelectionLayers, computeSelectedCells]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
@@ -3408,7 +3444,16 @@ const GlideGrid = (props) => {
     };
 
     // Theme is passed directly (camelCase)
-    const glideTheme = theme;
+    // For freeform mode, we hide the native selection highlight since we use highlightRegions
+    const glideTheme = useMemo(() => {
+        if (rangeSelect === 'freeform') {
+            return {
+                ...theme,
+                accentLight: 'transparent'  // Hide native selection highlight
+            };
+        }
+        return theme;
+    }, [theme, rangeSelect]);
 
     // Keyboard handler for undo/redo shortcuts
     const handleKeyDown = useCallback((e) => {
