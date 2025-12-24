@@ -528,6 +528,104 @@ const GlideGrid = (props) => {
     const lastUndoRedoActionRef = useRef(null);      // Track last processed undoRedoAction
     const pendingWrapRef = useRef(null);             // Track pending Tab wrap for row boundaries
 
+    // ========== FREEFORM SELECTION STATE ==========
+    // Ref to track modifier keys (Cmd/Ctrl) for freeform selection toggle behavior
+    const modifierKeysRef = useRef({ metaKey: false, ctrlKey: false });
+    // Set of selected cells in freeform mode, stored as "col,row" strings for O(1) lookup
+    const [freeformSelection, setFreeformSelection] = useState(new Set());
+
+    // ========== FREEFORM SELECTION: MERGE ADJACENT CELLS INTO RECTANGLES ==========
+    // This function takes a set of cells and merges adjacent cells into larger rectangles
+    // for more efficient and visually appealing highlight rendering
+    const mergeCellsIntoRectangles = useCallback((cellSet) => {
+        if (cellSet.size === 0) return [];
+
+        // Convert set to array of {col, row} objects
+        const cells = Array.from(cellSet).map(key => {
+            const [col, row] = key.split(',').map(Number);
+            return { col, row };
+        });
+
+        // Sort by row, then by column
+        cells.sort((a, b) => a.row - b.row || a.col - b.col);
+
+        // Create a lookup set for O(1) cell existence check
+        const cellLookup = new Set(cellSet);
+
+        // Track which cells have been used in a rectangle
+        const used = new Set();
+
+        const rectangles = [];
+
+        for (const cell of cells) {
+            const key = `${cell.col},${cell.row}`;
+            if (used.has(key)) continue;
+
+            // Start a new rectangle from this cell
+            let width = 1;
+            let height = 1;
+
+            // Extend horizontally as far as possible
+            while (cellLookup.has(`${cell.col + width},${cell.row}`)) {
+                width++;
+            }
+
+            // Try to extend vertically, checking that entire row segment exists
+            let canExtendDown = true;
+            while (canExtendDown) {
+                const nextRow = cell.row + height;
+                // Check if all cells in the next row segment exist
+                for (let c = cell.col; c < cell.col + width; c++) {
+                    if (!cellLookup.has(`${c},${nextRow}`)) {
+                        canExtendDown = false;
+                        break;
+                    }
+                }
+                if (canExtendDown) {
+                    height++;
+                }
+            }
+
+            // Mark all cells in this rectangle as used
+            for (let r = cell.row; r < cell.row + height; r++) {
+                for (let c = cell.col; c < cell.col + width; c++) {
+                    used.add(`${c},${r}`);
+                }
+            }
+
+            rectangles.push({
+                x: cell.col,
+                y: cell.row,
+                width,
+                height
+            });
+        }
+
+        return rectangles;
+    }, []);
+
+    // Compute combined highlightRegions (user-provided + freeform selection)
+    const combinedHighlightRegions = useMemo(() => {
+        const userRegions = highlightRegions || [];
+
+        if (rangeSelect !== 'freeform' || freeformSelection.size === 0) {
+            return userRegions.length > 0 ? userRegions : undefined;
+        }
+
+        // Merge freeform selection cells into rectangles
+        const mergedRects = mergeCellsIntoRectangles(freeformSelection);
+
+        // Convert to highlightRegions format with selection color
+        // Use the theme's accent color with transparency to match native selection
+        const freeformRegions = mergedRects.map(rect => ({
+            color: 'rgba(59, 130, 246, 0.15)', // Blue with transparency, similar to native selection
+            range: rect,
+            style: 'no-outline' // No border, just fill - selection already has focus ring on active cell
+        }));
+
+        return [...userRegions, ...freeformRegions];
+    }, [highlightRegions, rangeSelect, freeformSelection, mergeCellsIntoRectangles]);
+
     // Ref to hold custom renderers for use in handlePaste
     const customRenderersRef = useRef(null);
 
@@ -564,6 +662,39 @@ const GlideGrid = (props) => {
     useEffect(() => {
         setLocalFilters(columnFilters || {});
     }, [columnFilters]);
+
+    // ========== FREEFORM SELECTION: MODIFIER KEY TRACKING ==========
+    // Track Cmd/Ctrl key state for freeform selection toggle behavior
+    // Also handle Escape to clear freeform selection
+    useEffect(() => {
+        if (rangeSelect !== 'freeform') return;
+
+        const handleKeyDown = (e) => {
+            modifierKeysRef.current = { metaKey: e.metaKey, ctrlKey: e.ctrlKey };
+
+            // Escape clears freeform selection
+            if (e.key === 'Escape') {
+                setFreeformSelection(new Set());
+                if (setProps) {
+                    setProps({
+                        selectedCells: [],
+                        selectedRanges: []
+                    });
+                }
+            }
+        };
+        const handleKeyUp = (e) => {
+            modifierKeysRef.current = { metaKey: e.metaKey, ctrlKey: e.ctrlKey };
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [rangeSelect, setFreeformSelection, setProps]);
 
     // ========== UNDO/REDO FUNCTIONS ==========
 
@@ -2177,6 +2308,85 @@ const GlideGrid = (props) => {
 
         if (!setProps) return;
 
+        // ========== FREEFORM SELECTION MODE ==========
+        if (rangeSelect === 'freeform' && adjustedSelection.current) {
+            const range = adjustedSelection.current.range;
+            const cell = adjustedSelection.current.cell;
+
+            if (range) {
+                const isCmdHeld = modifierKeysRef.current.metaKey || modifierKeysRef.current.ctrlKey;
+
+                // Enumerate cells in the range, filtering out unselectable ones
+                const cellsInRange = [];
+                for (let col = range.x; col < range.x + range.width; col++) {
+                    for (let row = range.y; row < range.y + range.height; row++) {
+                        // Skip unselectable cells
+                        if (unselectableColumns && unselectableColumns.includes(col)) continue;
+                        if (unselectableRows && unselectableRows.includes(row)) continue;
+                        if (selectionColumnMin != null && col < selectionColumnMin) continue;
+                        cellsInRange.push({ col, row });
+                    }
+                }
+
+                // Update freeform selection based on modifier key state
+                setFreeformSelection(prevSelection => {
+                    const newSelection = new Set(prevSelection);
+
+                    if (isCmdHeld) {
+                        // Toggle mode: add unselected cells, remove selected cells
+                        cellsInRange.forEach(c => {
+                            const key = `${c.col},${c.row}`;
+                            if (newSelection.has(key)) {
+                                newSelection.delete(key);
+                            } else {
+                                newSelection.add(key);
+                            }
+                        });
+                    } else {
+                        // New selection: clear previous, add these cells
+                        newSelection.clear();
+                        cellsInRange.forEach(c => {
+                            newSelection.add(`${c.col},${c.row}`);
+                        });
+                    }
+
+                    // Convert Set to output format
+                    const selectedCellsArray = Array.from(newSelection).map(key => {
+                        const [colStr, rowStr] = key.split(',');
+                        return { col: parseInt(colStr, 10), row: parseInt(rowStr, 10) };
+                    });
+
+                    // Generate selectedRanges (1x1 ranges for API consistency)
+                    const selectedRangesArray = selectedCellsArray.map(c => ({
+                        startCol: c.col,
+                        startRow: c.row,
+                        endCol: c.col,
+                        endRow: c.row
+                    }));
+
+                    // Update Dash props
+                    const freeformUpdates = {
+                        selectedCells: selectedCellsArray,
+                        selectedRanges: selectedRangesArray
+                    };
+
+                    // Also update selectedCell (focus cell)
+                    if (cell) {
+                        freeformUpdates.selectedCell = {
+                            col: cell[0],
+                            row: cell[1]
+                        };
+                    }
+
+                    setProps(freeformUpdates);
+
+                    return newSelection;
+                });
+            }
+
+            return; // Don't continue to normal selection handling
+        }
+
         const updates = {};
 
         // Handle cell selection
@@ -2237,7 +2447,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rangeSelect, setFreeformSelection]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
@@ -3485,7 +3695,7 @@ const GlideGrid = (props) => {
                 onVisibleRegionChanged={handleVisibleRegionChanged}
                 onColumnMoved={columnMovable !== false ? handleColumnMoved : undefined}
                 onRowMoved={rowMovable !== false ? handleRowMoved : undefined}
-                highlightRegions={highlightRegions}
+                highlightRegions={combinedHighlightRegions}
                 trailingRowOptions={trailingRowOptions}
                 onRowAppended={trailingRowOptions ? handleRowAppended : undefined}
                 scrollOffsetX={scrollOffsetX}

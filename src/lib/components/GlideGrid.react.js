@@ -49,6 +49,7 @@ GlideGrid.defaultProps = {
     selectedColumns: [],
     selectedRange: null,
     selectedRanges: [],
+    selectedCells: [],
     nClicks: 0,
     sortable: false,
     sortColumns: [],
@@ -331,9 +332,15 @@ GlideGrid.propTypes = {
     columnSelect: PropTypes.oneOf(['none', 'single', 'multi']),
 
     /**
-     * Range selection mode. Options: 'none', 'cell', 'rect', 'multi-cell', 'multi-rect'
+     * Range selection mode. Options: 'none', 'cell', 'rect', 'multi-cell', 'multi-rect', 'freeform'
+     *
+     * 'freeform' mode allows non-rectangular cell selection:
+     * - Click/drag to start a new selection (clears previous)
+     * - Cmd/Ctrl+click/drag to toggle cells (add unselected, remove selected)
+     * - Escape to clear the selection
+     * - Unselectable cells are automatically excluded when dragging across them
      */
-    rangeSelect: PropTypes.oneOf(['none', 'cell', 'rect', 'multi-cell', 'multi-rect']),
+    rangeSelect: PropTypes.oneOf(['none', 'cell', 'rect', 'multi-cell', 'multi-rect', 'freeform']),
 
     /**
      * Row selection behavior. 'auto' requires modifier keys for multi-select,
@@ -585,12 +592,25 @@ GlideGrid.propTypes = {
      * Updated when user Ctrl/Cmd+clicks to add additional selections.
      * Each range has the same format as selectedRange.
      * The primary selection is in selectedRange, additional selections are here.
+     *
+     * In rangeSelect="freeform" mode, this contains 1x1 ranges for each selected cell
+     * for API consistency.
      */
     selectedRanges: PropTypes.arrayOf(PropTypes.shape({
         startCol: PropTypes.number,
         startRow: PropTypes.number,
         endCol: PropTypes.number,
         endRow: PropTypes.number
+    })),
+
+    /**
+     * Array of selected cells when using rangeSelect="freeform" mode.
+     * Each cell is represented as {"col": number, "row": number}.
+     * This is a simpler format than selectedRanges for freeform selections.
+     */
+    selectedCells: PropTypes.arrayOf(PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number
     })),
 
     /**
