@@ -6,7 +6,7 @@ Right-click on any cell to see the context menu.
 """
 
 import dash
-from dash import html, dcc, callback, Input, Output, State, no_update
+from dash import html, dcc, callback, Input, Output, State, no_update, clientside_callback
 import dash_glide_grid as dgg
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
@@ -36,8 +36,10 @@ app.layout = html.Div([
     html.H1("Cell Context Menu Example"),
     html.P("Right-click on any cell to see the context menu with working actions."),
 
-    # Clipboard component for actual copy-to-clipboard
-    dcc.Clipboard(id="clipboard", style={"display": "none"}),
+    # Store for clipboard content - triggers clientside callback
+    dcc.Store(id="clipboard-store"),
+    # Dummy div for clientside callback output
+    html.Div(id="clipboard-dummy", style={"display": "none"}),
 
     html.Div([
         dgg.GlideGrid(
@@ -107,7 +109,7 @@ app.layout = html.Div([
     Output("context-menu-grid", "data"),
     Output("action-output", "children"),
     Output("clipboard-output", "children"),
-    Output("clipboard", "content"),
+    Output("clipboard-store", "data"),
     Output("details-modal", "children"),
     Output("details-modal", "style"),
     Input("context-menu-grid", "cellContextMenuItemClicked"),
@@ -136,7 +138,7 @@ def handle_context_menu(item, current_data, selected_range):
     new_data = no_update
     action_msg = no_update
     clipboard_msg = no_update
-    clipboard_content = no_update  # For actual clipboard copy
+    clipboard_data = no_update  # For actual clipboard copy via clientside callback
     modal_content = no_update
     modal_style = {"display": "none"}
 
@@ -144,7 +146,8 @@ def handle_context_menu(item, current_data, selected_range):
         # Copy action - copy to clipboard
         action_msg = f"Copied value from Row {row + 1}, {col_name}"
         clipboard_msg = str(cell_value)
-        clipboard_content = str(cell_value)
+        # Include timestamp so store updates even if same content is copied twice
+        clipboard_data = {"text": str(cell_value), "ts": item.get("timestamp", 0)}
 
     elif item_id == "copy-selection":
         # Copy selection - extract data from the selected range
@@ -167,7 +170,7 @@ def handle_context_menu(item, current_data, selected_range):
                     lines.append("\t".join(row_values))
 
             clipboard_msg = "\n".join(lines)
-            clipboard_content = clipboard_msg  # Copy to real clipboard
+            clipboard_data = {"text": clipboard_msg, "ts": item.get("timestamp", 0)}
             num_cells = (end_row - start_row + 1) * (end_col - start_col + 1)
             action_msg = f"Copied {num_cells} cells ({end_row - start_row + 1} rows x {end_col - start_col + 1} cols)"
         else:
@@ -219,7 +222,7 @@ def handle_context_menu(item, current_data, selected_range):
         })
         modal_style = {"display": "block"}
 
-    return new_data, action_msg, clipboard_msg, clipboard_content, modal_content, modal_style
+    return new_data, action_msg, clipboard_msg, clipboard_data, modal_content, modal_style
 
 
 # Close modal callback
@@ -232,6 +235,24 @@ def close_modal(n_clicks):
     if n_clicks:
         return {"display": "none"}
     return no_update
+
+
+# Clientside callback to copy text to real clipboard
+clientside_callback(
+    """
+    function(data) {
+        if (data && data.text) {
+            navigator.clipboard.writeText(data.text).catch(function(err) {
+                console.error('Failed to copy to clipboard:', err);
+            });
+        }
+        return '';
+    }
+    """,
+    Output("clipboard-dummy", "children"),
+    Input("clipboard-store", "data"),
+    prevent_initial_call=True
+)
 
 
 if __name__ == "__main__":
