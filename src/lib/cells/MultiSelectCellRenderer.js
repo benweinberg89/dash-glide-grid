@@ -280,7 +280,9 @@ const Editor = (p) => {
             case "Enter":
             case "Tab":
                 if (!inputValue) {
-                    onFinishedEditing(cell, [0, 1]);
+                    // Tab = right [1,0], Enter = down [0,1]
+                    const movement = event.key === "Tab" ? [1, 0] : [0, 1];
+                    onFinishedEditing(cell, movement);
                     return;
                 }
                 if (allowDuplicates && allowCreation) {
