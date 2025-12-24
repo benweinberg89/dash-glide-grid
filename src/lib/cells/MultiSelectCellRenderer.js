@@ -282,6 +282,7 @@ const Editor = (p) => {
                 if (!inputValue) {
                     // Tab = right [1,0], Enter = down [0,1]
                     const movement = event.key === "Tab" ? [1, 0] : [0, 1];
+                    event.preventDefault();
                     onFinishedEditing(cell, movement);
                     return;
                 }
