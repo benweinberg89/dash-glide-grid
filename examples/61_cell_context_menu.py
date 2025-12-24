@@ -6,10 +6,43 @@ Right-click on any cell to see the context menu.
 """
 
 import dash
-from dash import html, callback, Input, Output, State, no_update
+from dash import html, dcc, callback, Input, Output, State, no_update
 import dash_glide_grid as dgg
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
+
+# Theme configurations
+DARK_THEME = {
+    "accentColor": "#3b82f6",
+    "accentLight": "rgba(59, 130, 246, 0.2)",
+    "bgCell": "#1f2937",
+    "bgCellMedium": "#374151",
+    "bgHeader": "#111827",
+    "bgHeaderHasFocus": "#374151",
+    "bgHeaderHovered": "#374151",
+    "textDark": "#f3f4f6",
+    "textMedium": "#9ca3af",
+    "textLight": "#6b7280",
+    "textHeader": "#f3f4f6",
+    "borderColor": "rgba(255, 255, 255, 0.1)",
+    "horizontalBorderColor": "rgba(255, 255, 255, 0.1)",
+}
+
+LIGHT_THEME = {
+    "accentColor": "#3b82f6",
+    "accentLight": "rgba(59, 130, 246, 0.1)",
+    "bgCell": "#ffffff",
+    "bgCellMedium": "#f9fafb",
+    "bgHeader": "#f3f4f6",
+    "bgHeaderHasFocus": "#e5e7eb",
+    "bgHeaderHovered": "#e5e7eb",
+    "textDark": "#111827",
+    "textMedium": "#6b7280",
+    "textLight": "#9ca3af",
+    "textHeader": "#111827",
+    "borderColor": "#e5e7eb",
+    "horizontalBorderColor": "#e5e7eb",
+}
 
 # Column definitions
 COLUMNS = [
@@ -32,67 +65,190 @@ INITIAL_DATA = [
     {"id": 8, "product": "Chair Ergonomic", "category": "Furniture", "price": 299.99, "stock": 20},
 ]
 
-app.layout = html.Div([
-    html.H1("Cell Context Menu Example"),
-    html.P("Right-click on any cell to see the context menu with working actions."),
+app.layout = html.Div(
+    id="app-container",
+    children=[
+        html.H1("Cell Context Menu Example", id="title"),
+        html.P("Right-click on any cell to see the context menu with working actions.", id="subtitle"),
 
-    html.Div([
-        dgg.GlideGrid(
-            id="context-menu-grid",
-            columns=COLUMNS,
-            data=INITIAL_DATA,
-            height=350,
-            rowHeight=34,
-            headerHeight=40,
-            rowMarkers="number",
-            rangeSelect="rect",
-            cellContextMenuConfig={
-                "items": [
-                    # Built-in copy actions using 'action' property
-                    {"id": "copy", "label": "Copy Cell", "icon": "📋", "action": "copyCell"},
-                    {"id": "copy-selection", "label": "Copy Selection", "icon": "📑", "action": "copySelection"},
-                    {"id": "paste", "label": "Paste", "icon": "📥", "action": "paste", "dividerAfter": True},
-                    # Custom actions handled by Python callback
-                    {"id": "delete", "label": "Delete Row", "icon": "🗑️"},
-                    {"id": "details", "label": "View Details", "icon": "ℹ️"},
-                ]
-            }
+        html.Button(
+            "Toggle Dark Mode",
+            id="theme-toggle",
+            style={
+                "marginBottom": "15px",
+                "padding": "8px 16px",
+                "cursor": "pointer",
+                "borderRadius": "6px",
+                "border": "1px solid #d1d5db",
+                "backgroundColor": "#f3f4f6",
+            },
         ),
-    ], style={"margin": "20px"}),
 
-    # Action feedback area
-    html.Div([
         html.Div([
-            html.H4("Last Action:"),
-            html.Div(id="action-output", style={
+            dgg.GlideGrid(
+                id="context-menu-grid",
+                columns=COLUMNS,
+                data=INITIAL_DATA,
+                height=350,
+                rowHeight=34,
+                headerHeight=40,
+                rowMarkers="number",
+                rangeSelect="rect",
+                theme=LIGHT_THEME,
+                cellContextMenuConfig={
+                    "items": [
+                        # Built-in copy actions using 'action' property
+                        # Using monochrome Unicode symbols
+                        {"id": "copy", "label": "Copy Cell", "icon": "⧉", "action": "copyCell"},
+                        {"id": "copy-selection", "label": "Copy Selection", "icon": "❐", "action": "copySelection"},
+                        {"id": "paste", "label": "Paste", "icon": "⧫", "action": "paste", "dividerAfter": True},
+                        # Custom actions handled by Python callback
+                        {"id": "delete", "label": "Delete Row", "icon": "✕"},
+                        {"id": "details", "label": "View Details", "icon": "ℹ"},
+                    ]
+                }
+            ),
+        ], style={"margin": "20px 0"}),
+
+        # Action feedback area
+        html.Div([
+            html.Div([
+                html.H4("Last Action:", id="action-label"),
+                html.Div(id="action-output", style={
+                    "fontFamily": "monospace",
+                    "padding": "15px",
+                    "backgroundColor": "#e8f4e8",
+                    "borderRadius": "5px",
+                    "minHeight": "40px",
+                    "whiteSpace": "pre-wrap"
+                }),
+            ], style={"flex": "1"}),
+        ], style={"display": "flex", "margin": "20px 0"}),
+
+        # Details modal
+        html.Div(id="details-modal", style={"display": "none"}),
+
+        html.Div(
+            id="info-box",
+            children=[
+                html.H4("Context Menu Items:"),
+                html.Ul([
+                    html.Li([html.Strong("Copy Cell"), " - Copies the clicked cell value (native action)"]),
+                    html.Li([html.Strong("Copy Selection"), " - Copies all cells in the current range selection as TSV (native action)"]),
+                    html.Li([html.Strong("Paste"), " - Pastes clipboard content starting at clicked cell (native action)"]),
+                    html.Li([html.Strong("Delete Row"), " - Removes the row from the grid (Python callback)"]),
+                    html.Li([html.Strong("View Details"), " - Shows detailed information about the row (Python callback)"]),
+                ]),
+                html.P([
+                    "Tip: Native actions (copy/paste) work directly in the browser without a server round-trip. ",
+                    "Custom actions trigger Python callbacks for more complex logic."
+                ], style={"fontStyle": "italic", "marginTop": "10px"}),
+            ],
+            style={"margin": "20px 0", "padding": "20px", "backgroundColor": "#f5f5f5", "borderRadius": "6px"}
+        ),
+
+        # Store for theme state
+        dcc.Store(id="theme-store", data="light"),
+    ],
+    style={"padding": "20px", "maxWidth": "800px", "fontFamily": "system-ui, sans-serif"},
+)
+
+
+@callback(
+    Output("context-menu-grid", "theme"),
+    Output("app-container", "style"),
+    Output("title", "style"),
+    Output("subtitle", "style"),
+    Output("theme-toggle", "style"),
+    Output("theme-toggle", "children"),
+    Output("action-output", "style"),
+    Output("action-label", "style"),
+    Output("info-box", "style"),
+    Input("theme-toggle", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_theme(n_clicks):
+    is_dark = (n_clicks or 0) % 2 == 1
+
+    btn_style_light = {
+        "marginBottom": "15px",
+        "padding": "8px 16px",
+        "cursor": "pointer",
+        "borderRadius": "6px",
+        "border": "1px solid #d1d5db",
+        "backgroundColor": "#f3f4f6",
+        "color": "#111827",
+    }
+    btn_style_dark = {
+        "marginBottom": "15px",
+        "padding": "8px 16px",
+        "cursor": "pointer",
+        "borderRadius": "6px",
+        "border": "1px solid #4b5563",
+        "backgroundColor": "#374151",
+        "color": "#f3f4f6",
+    }
+
+    if is_dark:
+        return (
+            DARK_THEME,
+            {
+                "padding": "20px",
+                "maxWidth": "800px",
+                "fontFamily": "system-ui, sans-serif",
+                "backgroundColor": "#111827",
+                "minHeight": "100vh",
+            },
+            {"color": "#f3f4f6"},
+            {"color": "#9ca3af"},
+            btn_style_dark,
+            "Toggle Light Mode",
+            {
+                "fontFamily": "monospace",
+                "padding": "15px",
+                "backgroundColor": "#374151",
+                "borderRadius": "5px",
+                "minHeight": "40px",
+                "whiteSpace": "pre-wrap",
+                "color": "#f3f4f6",
+            },
+            {"color": "#f3f4f6"},
+            {
+                "margin": "20px 0",
+                "padding": "20px",
+                "backgroundColor": "#374151",
+                "borderRadius": "6px",
+                "color": "#f3f4f6",
+            },
+        )
+    else:
+        return (
+            LIGHT_THEME,
+            {
+                "padding": "20px",
+                "maxWidth": "800px",
+                "fontFamily": "system-ui, sans-serif",
+            },
+            {"color": "#111827"},
+            {"color": "#6b7280"},
+            btn_style_light,
+            "Toggle Dark Mode",
+            {
                 "fontFamily": "monospace",
                 "padding": "15px",
                 "backgroundColor": "#e8f4e8",
                 "borderRadius": "5px",
                 "minHeight": "40px",
-                "whiteSpace": "pre-wrap"
-            }),
-        ], style={"flex": "1"}),
-    ], style={"display": "flex", "margin": "20px"}),
-
-    # Details modal
-    html.Div(id="details-modal", style={"display": "none"}),
-
-    html.Div([
-        html.H4("Context Menu Items:"),
-        html.Ul([
-            html.Li([html.Strong("Copy Cell"), " - Copies the clicked cell value (native action)"]),
-            html.Li([html.Strong("Copy Selection"), " - Copies all cells in the current range selection as TSV (native action)"]),
-            html.Li([html.Strong("Paste"), " - Pastes clipboard content starting at clicked cell (native action)"]),
-            html.Li([html.Strong("Delete Row"), " - Removes the row from the grid (Python callback)"]),
-            html.Li([html.Strong("View Details"), " - Shows detailed information about the row (Python callback)"]),
-        ]),
-        html.P([
-            "Tip: Native actions (copy/paste) work directly in the browser without a server round-trip. ",
-            "Custom actions trigger Python callbacks for more complex logic."
-        ], style={"fontStyle": "italic", "marginTop": "10px"}),
-    ], style={"margin": "20px", "padding": "20px", "backgroundColor": "#f5f5f5"}),
-])
+                "whiteSpace": "pre-wrap",
+            },
+            {"color": "#111827"},
+            {
+                "margin": "20px 0",
+                "padding": "20px",
+                "backgroundColor": "#f5f5f5",
+                "borderRadius": "6px",
+            },
+        )
 
 
 @callback(
@@ -197,4 +353,4 @@ def close_modal(n_clicks):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8050)
+    app.run(debug=True, port=8061)
