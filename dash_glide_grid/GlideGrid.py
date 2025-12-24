@@ -136,6 +136,10 @@ Keyword arguments:
 
         - disabled (boolean; optional)
 
+        - action (a value equal to: 'copyCell', 'copySelection', 'paste'; optional):
+
+            Built-in action: 'copyCell', 'copySelection', 'paste'.
+
 - cellContextMenuItemClicked (dict; optional):
     Information about the last clicked cell context menu item. Format:
     {\"col\": 0, \"row\": 1, \"itemId\": \"edit\", \"timestamp\":
@@ -1479,7 +1483,8 @@ Keyword arguments:
             "label": str,
             "icon": NotRequired[str],
             "dividerAfter": NotRequired[bool],
-            "disabled": NotRequired[bool]
+            "disabled": NotRequired[bool],
+            "action": NotRequired[Literal["copyCell", "copySelection", "paste"]]
         }
     )
 

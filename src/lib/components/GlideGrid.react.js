@@ -732,7 +732,9 @@ GlideGrid.propTypes = {
             label: PropTypes.string.isRequired,
             icon: PropTypes.string,
             dividerAfter: PropTypes.bool,
-            disabled: PropTypes.bool
+            disabled: PropTypes.bool,
+            /** Built-in action: 'copyCell', 'copySelection', 'paste' */
+            action: PropTypes.oneOf(['copyCell', 'copySelection', 'paste'])
         }))
     }),
 

@@ -144,10 +144,10 @@ const CellContextMenu = ({
         };
     }, [position, styles.container, items]);
 
-    // Handle item click
+    // Handle item click - pass full item so parent can check for action property
     const handleItemClick = useCallback((item) => {
         if (item.disabled) return;
-        onItemClick(item.id);
+        onItemClick(item);
     }, [onItemClick]);
 
     if (!isOpen || !items || items.length === 0) return null;
@@ -220,9 +220,11 @@ CellContextMenu.propTypes = {
         label: PropTypes.string.isRequired,
         icon: PropTypes.string,
         dividerAfter: PropTypes.bool,
-        disabled: PropTypes.bool
+        disabled: PropTypes.bool,
+        /** Built-in action: 'copyCell', 'copySelection', 'paste' */
+        action: PropTypes.oneOf(['copyCell', 'copySelection', 'paste'])
     })),
-    /** Callback when an item is clicked: (itemId) => void */
+    /** Callback when an item is clicked: (item) => void */
     onItemClick: PropTypes.func.isRequired,
     /** Grid theme object for styling */
     theme: PropTypes.object

@@ -6,7 +6,7 @@ Right-click on any cell to see the context menu.
 """
 
 import dash
-from dash import html, dcc, callback, Input, Output, State, no_update, clientside_callback
+from dash import html, callback, Input, Output, State, no_update
 import dash_glide_grid as dgg
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
@@ -36,11 +36,6 @@ app.layout = html.Div([
     html.H1("Cell Context Menu Example"),
     html.P("Right-click on any cell to see the context menu with working actions."),
 
-    # Store for clipboard content - triggers clientside callback
-    dcc.Store(id="clipboard-store"),
-    # Dummy div for clientside callback output
-    html.Div(id="clipboard-dummy", style={"display": "none"}),
-
     html.Div([
         dgg.GlideGrid(
             id="context-menu-grid",
@@ -53,8 +48,11 @@ app.layout = html.Div([
             rangeSelect="rect",
             cellContextMenuConfig={
                 "items": [
-                    {"id": "copy", "label": "Copy Cell"},
-                    {"id": "copy-selection", "label": "Copy Selection", "dividerAfter": True},
+                    # Built-in copy actions using 'action' property
+                    {"id": "copy", "label": "Copy Cell", "action": "copyCell"},
+                    {"id": "copy-selection", "label": "Copy Selection", "action": "copySelection"},
+                    {"id": "paste", "label": "Paste", "action": "paste", "dividerAfter": True},
+                    # Custom actions handled by Python callback
                     {"id": "delete", "label": "Delete Row"},
                     {"id": "details", "label": "View Details"},
                 ]
@@ -74,17 +72,6 @@ app.layout = html.Div([
                 "minHeight": "40px",
                 "whiteSpace": "pre-wrap"
             }),
-        ], style={"flex": "1", "marginRight": "20px"}),
-
-        html.Div([
-            html.H4("Clipboard:"),
-            html.Div(id="clipboard-output", style={
-                "fontFamily": "monospace",
-                "padding": "15px",
-                "backgroundColor": "#e8e8f4",
-                "borderRadius": "5px",
-                "minHeight": "40px"
-            }),
         ], style={"flex": "1"}),
     ], style={"display": "flex", "margin": "20px"}),
 
@@ -94,13 +81,16 @@ app.layout = html.Div([
     html.Div([
         html.H4("Context Menu Items:"),
         html.Ul([
-            html.Li([html.Strong("Copy Cell"), " - Copies the clicked cell value"]),
-            html.Li([html.Strong("Copy Selection"), " - Copies all cells in the current range selection (TSV format)"]),
-            html.Li([html.Strong("Delete Row"), " - Removes the row from the grid"]),
-            html.Li([html.Strong("View Details"), " - Shows detailed information about the row"]),
+            html.Li([html.Strong("Copy Cell"), " - Copies the clicked cell value (native action)"]),
+            html.Li([html.Strong("Copy Selection"), " - Copies all cells in the current range selection as TSV (native action)"]),
+            html.Li([html.Strong("Paste"), " - Pastes clipboard content starting at clicked cell (native action)"]),
+            html.Li([html.Strong("Delete Row"), " - Removes the row from the grid (Python callback)"]),
+            html.Li([html.Strong("View Details"), " - Shows detailed information about the row (Python callback)"]),
         ]),
-        html.P("Tip: Click and drag to select a range of cells, then right-click to copy the selection.",
-               style={"fontStyle": "italic", "marginTop": "10px"}),
+        html.P([
+            "Tip: Native actions (copy/paste) work directly in the browser without a server round-trip. ",
+            "Custom actions trigger Python callbacks for more complex logic."
+        ], style={"fontStyle": "italic", "marginTop": "10px"}),
     ], style={"margin": "20px", "padding": "20px", "backgroundColor": "#f5f5f5"}),
 ])
 
@@ -108,19 +98,16 @@ app.layout = html.Div([
 @callback(
     Output("context-menu-grid", "data"),
     Output("action-output", "children"),
-    Output("clipboard-output", "children"),
-    Output("clipboard-store", "data"),
     Output("details-modal", "children"),
     Output("details-modal", "style"),
     Input("context-menu-grid", "cellContextMenuItemClicked"),
     State("context-menu-grid", "data"),
-    State("context-menu-grid", "selectedRange"),
     prevent_initial_call=True
 )
-def handle_context_menu(item, current_data, selected_range):
+def handle_context_menu(item, current_data):
     """Handle context menu actions."""
     if not item:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     col = item.get("col", 0)
     row = item.get("row", 0)
@@ -128,7 +115,6 @@ def handle_context_menu(item, current_data, selected_range):
 
     # Get column info
     col_id = COLUMNS[col]["id"] if col < len(COLUMNS) else None
-    col_name = COLUMNS[col]["title"] if col < len(COLUMNS) else f"Col {col}"
 
     # Get row data
     row_data = current_data[row] if row < len(current_data) else {}
@@ -137,45 +123,18 @@ def handle_context_menu(item, current_data, selected_range):
     # Default outputs (no change)
     new_data = no_update
     action_msg = no_update
-    clipboard_msg = no_update
-    clipboard_data = no_update  # For actual clipboard copy via clientside callback
     modal_content = no_update
     modal_style = {"display": "none"}
 
+    # Native actions just show a message - the actual copy/paste is handled by the component
     if item_id == "copy":
-        # Copy action - copy to clipboard
-        action_msg = f"Copied value from Row {row + 1}, {col_name}"
-        clipboard_msg = str(cell_value)
-        # Include timestamp so store updates even if same content is copied twice
-        clipboard_data = {"text": str(cell_value), "ts": item.get("timestamp", 0)}
+        action_msg = f"Copied cell value: {cell_value}"
 
     elif item_id == "copy-selection":
-        # Copy selection - extract data from the selected range
-        if selected_range:
-            start_col = selected_range.get("startCol", 0)
-            end_col = selected_range.get("endCol", 0)
-            start_row = selected_range.get("startRow", 0)
-            end_row = selected_range.get("endRow", 0)
+        action_msg = "Copied selection to clipboard"
 
-            # Build tab-separated values (TSV) for the selection
-            lines = []
-            for r in range(start_row, end_row + 1):
-                if r < len(current_data):
-                    row_values = []
-                    for c in range(start_col, end_col + 1):
-                        if c < len(COLUMNS):
-                            col_id = COLUMNS[c]["id"]
-                            val = current_data[r].get(col_id, "")
-                            row_values.append(str(val))
-                    lines.append("\t".join(row_values))
-
-            clipboard_msg = "\n".join(lines)
-            clipboard_data = {"text": clipboard_msg, "ts": item.get("timestamp", 0)}
-            num_cells = (end_row - start_row + 1) * (end_col - start_col + 1)
-            action_msg = f"Copied {num_cells} cells ({end_row - start_row + 1} rows x {end_col - start_col + 1} cols)"
-        else:
-            action_msg = "No selection to copy"
-            clipboard_msg = ""
+    elif item_id == "paste":
+        action_msg = "Pasted from clipboard"
 
     elif item_id == "delete":
         # Delete action - remove the row
@@ -222,7 +181,7 @@ def handle_context_menu(item, current_data, selected_range):
         })
         modal_style = {"display": "block"}
 
-    return new_data, action_msg, clipboard_msg, clipboard_data, modal_content, modal_style
+    return new_data, action_msg, modal_content, modal_style
 
 
 # Close modal callback
@@ -235,24 +194,6 @@ def close_modal(n_clicks):
     if n_clicks:
         return {"display": "none"}
     return no_update
-
-
-# Clientside callback to copy text to real clipboard
-clientside_callback(
-    """
-    function(data) {
-        if (data && data.text) {
-            navigator.clipboard.writeText(data.text).catch(function(err) {
-                console.error('Failed to copy to clipboard:', err);
-            });
-        }
-        return '';
-    }
-    """,
-    Output("clipboard-dummy", "children"),
-    Input("clipboard-store", "data"),
-    prevent_initial_call=True
-)
 
 
 if __name__ == "__main__":

@@ -2603,19 +2603,117 @@ const GlideGrid = (props) => {
     }, []);
 
     // Handle cell context menu item click
-    const handleCellMenuItemClick = useCallback((itemId) => {
+    const handleCellMenuItemClick = useCallback((item) => {
+        const { col, row } = cellMenuState;
+        const itemId = item.id;
+        const action = item.action;
+
+        // Handle built-in actions
+        if (action === 'copyCell') {
+            // Copy the clicked cell value to clipboard
+            if (localData && localColumns && col !== null && row !== null) {
+                const columnDef = localColumns[col];
+                const columnId = columnDef?.id;
+                const rowData = localData[row];
+                const cellValue = rowData && columnId ? rowData[columnId] : '';
+                navigator.clipboard.writeText(String(cellValue ?? '')).catch(err => {
+                    console.error('Failed to copy cell:', err);
+                });
+            }
+        } else if (action === 'copySelection') {
+            // Copy the current selection as TSV
+            if (localData && localColumns && gridSelection.current?.range) {
+                const range = gridSelection.current.range;
+                const startCol = range.x;
+                const endCol = range.x + range.width - 1;
+                const startRow = range.y;
+                const endRow = range.y + range.height - 1;
+
+                const lines = [];
+                for (let r = startRow; r <= endRow; r++) {
+                    const rowData = localData[r];
+                    if (rowData) {
+                        const rowValues = [];
+                        for (let c = startCol; c <= endCol; c++) {
+                            const columnDef = localColumns[c];
+                            const columnId = columnDef?.id;
+                            const val = columnId ? rowData[columnId] : '';
+                            rowValues.push(String(val ?? ''));
+                        }
+                        lines.push(rowValues.join('\t'));
+                    }
+                }
+                navigator.clipboard.writeText(lines.join('\n')).catch(err => {
+                    console.error('Failed to copy selection:', err);
+                });
+            } else if (col !== null && row !== null) {
+                // No range selection, copy single cell
+                const columnDef = localColumns[col];
+                const columnId = columnDef?.id;
+                const rowData = localData[row];
+                const cellValue = rowData && columnId ? rowData[columnId] : '';
+                navigator.clipboard.writeText(String(cellValue ?? '')).catch(err => {
+                    console.error('Failed to copy cell:', err);
+                });
+            }
+        } else if (action === 'paste') {
+            // Paste from clipboard starting at clicked cell
+            if (col !== null && row !== null && localData && localColumns) {
+                navigator.clipboard.readText().then(text => {
+                    if (!text) return;
+
+                    // Parse TSV/CSV content
+                    const lines = text.split('\n').filter(line => line.length > 0);
+                    const newData = [...localData];
+                    let dataChanged = false;
+
+                    lines.forEach((line, lineIdx) => {
+                        const targetRow = row + lineIdx;
+                        if (targetRow >= newData.length) return;
+
+                        const values = line.split('\t');
+                        const newRowData = { ...newData[targetRow] };
+
+                        values.forEach((val, valIdx) => {
+                            const targetCol = col + valIdx;
+                            if (targetCol >= localColumns.length) return;
+
+                            const columnDef = localColumns[targetCol];
+                            const columnId = columnDef?.id;
+                            if (columnId && !columnDef.readonly) {
+                                newRowData[columnId] = val;
+                                dataChanged = true;
+                            }
+                        });
+
+                        newData[targetRow] = newRowData;
+                    });
+
+                    if (dataChanged) {
+                        setLocalData(newData);
+                        if (setProps) {
+                            setProps({ data: newData });
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Failed to paste:', err);
+                });
+            }
+        }
+
+        // Always emit the event for Python callbacks
         if (setProps) {
             setProps({
                 cellContextMenuItemClicked: {
-                    col: cellMenuState.col,
-                    row: cellMenuState.row,
+                    col,
+                    row,
                     itemId,
                     timestamp: Date.now()
                 }
             });
         }
         handleCellMenuClose();
-    }, [setProps, cellMenuState, handleCellMenuClose]);
+    }, [setProps, cellMenuState, handleCellMenuClose, localData, localColumns, gridSelection]);
 
     // Handle header menu click (dropdown arrow on columns with hasMenu or filterable)
     const handleHeaderMenuClick = useCallback((col, screenPosition) => {
