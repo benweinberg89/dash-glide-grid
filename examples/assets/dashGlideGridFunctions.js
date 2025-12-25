@@ -139,10 +139,66 @@ dggfuncs.pasteUppercase = async function(col, row, utils) {
 };
 
 /**
- * Fill the current selection with a specific value.
- * Example usage: {"id": "fill", "label": "Fill with X", "action": {"function": "fillSelection(selection, utils)"}}
+ * Uppercase all text cells in the current selection.
+ * Example usage: {"id": "upper-sel", "label": "Uppercase Selection", "action": {"function": "uppercaseSelection(selection, columns, data, utils)"}}
  */
-dggfuncs.fillSelection = function(selection, columns, utils) {
+dggfuncs.uppercaseSelection = function(selection, columns, data, utils) {
+    if (!selection || !selection.range) {
+        return;
+    }
+    var range = selection.range;
+    var edits = [];
+    for (var r = range.y; r < range.y + range.height; r++) {
+        var rowData = data[r];
+        if (!rowData) continue;
+        for (var c = range.x; c < range.x + range.width; c++) {
+            var colDef = columns[c];
+            if (!colDef) continue;
+            var colId = colDef.id || colDef.title;
+            var cellValue = rowData[colId];
+            if (typeof cellValue === 'string') {
+                edits.push({ col: c, row: r, value: cellValue.toUpperCase() });
+            }
+        }
+    }
+    if (edits.length > 0) {
+        utils.setCells(edits);
+    }
+};
+
+/**
+ * Lowercase all text cells in the current selection.
+ * Example usage: {"id": "lower-sel", "label": "Lowercase Selection", "action": {"function": "lowercaseSelection(selection, columns, data, utils)"}}
+ */
+dggfuncs.lowercaseSelection = function(selection, columns, data, utils) {
+    if (!selection || !selection.range) {
+        return;
+    }
+    var range = selection.range;
+    var edits = [];
+    for (var r = range.y; r < range.y + range.height; r++) {
+        var rowData = data[r];
+        if (!rowData) continue;
+        for (var c = range.x; c < range.x + range.width; c++) {
+            var colDef = columns[c];
+            if (!colDef) continue;
+            var colId = colDef.id || colDef.title;
+            var cellValue = rowData[colId];
+            if (typeof cellValue === 'string') {
+                edits.push({ col: c, row: r, value: cellValue.toLowerCase() });
+            }
+        }
+    }
+    if (edits.length > 0) {
+        utils.setCells(edits);
+    }
+};
+
+/**
+ * Clear all cells in the current selection.
+ * Example usage: {"id": "clear-sel", "label": "Clear Selection", "action": {"function": "clearSelection(selection, utils)"}}
+ */
+dggfuncs.clearSelection = function(selection, utils) {
     if (!selection || !selection.range) {
         return;
     }
@@ -150,7 +206,7 @@ dggfuncs.fillSelection = function(selection, columns, utils) {
     var edits = [];
     for (var r = range.y; r < range.y + range.height; r++) {
         for (var c = range.x; c < range.x + range.width; c++) {
-            edits.push({ col: c, row: r, value: 'X' });
+            edits.push({ col: c, row: r, value: '' });
         }
     }
     if (edits.length > 0) {

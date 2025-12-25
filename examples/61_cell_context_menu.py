@@ -193,6 +193,28 @@ app.layout = html.Div(
                                 "action": {"function": "pasteUppercase(col, row, utils)"},
                                 "dividerAfter": True,
                             },
+                            # Selection-based clientside actions
+                            {
+                                "id": "uppercase-sel",
+                                "label": "Uppercase Selection",
+                                "icon": "AA",
+                                "iconSize": "10px",
+                                "action": {"function": "uppercaseSelection(selection, columns, data, utils)"},
+                            },
+                            {
+                                "id": "lowercase-sel",
+                                "label": "Lowercase Selection",
+                                "icon": "aa",
+                                "iconSize": "10px",
+                                "action": {"function": "lowercaseSelection(selection, columns, data, utils)"},
+                            },
+                            {
+                                "id": "clear-sel",
+                                "label": "Clear Selection",
+                                "icon": "⌀",
+                                "action": {"function": "clearSelection(selection, utils)"},
+                                "dividerAfter": True,
+                            },
                             # Custom actions handled by Python callback
                             {
                                 "id": "delete",
@@ -289,6 +311,12 @@ app.layout = html.Div(
                             [
                                 html.Strong("Paste Uppercase"),
                                 " - Pastes clipboard as uppercase (async clientside function)",
+                            ]
+                        ),
+                        html.Li(
+                            [
+                                html.Strong("Uppercase/Lowercase/Clear Selection"),
+                                " - Operates on all cells in the current selection (clientside)",
                             ]
                         ),
                         html.Li(
@@ -479,6 +507,16 @@ def handle_context_menu(item, current_data):
 
     elif item_id == "paste-upper":
         action_msg = f"Pasted uppercase at row {row + 1}, column '{col_id}'"
+
+    # Selection-based clientside actions
+    elif item_id == "uppercase-sel":
+        action_msg = "Uppercased all text cells in selection"
+
+    elif item_id == "lowercase-sel":
+        action_msg = "Lowercased all text cells in selection"
+
+    elif item_id == "clear-sel":
+        action_msg = "Cleared all cells in selection"
 
     elif item_id == "delete":
         # Delete action - remove the row
