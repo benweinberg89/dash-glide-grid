@@ -83,9 +83,9 @@ COLUMNS = [
 # Initial sample data with various cell types
 INITIAL_DATA = [
     {
-        "id": 1,
-        "name": "Alice Johnson",
-        "age": 32,
+        "id": {"kind": "number", "data": 1},
+        "name": {"kind": "text", "data": "Alice Johnson"},
+        "age": {"kind": "number", "data": 32},
         "active": {"kind": "boolean", "data": True},
         "status": {"kind": "dropdown-cell", "data": {"value": "active", "allowedValues": STATUS_OPTIONS}},
         "rating": {"kind": "star-cell", "rating": 5, "maxStars": 5},
@@ -96,9 +96,9 @@ INITIAL_DATA = [
         "website": {"kind": "uri", "data": "https://alice.dev", "displayData": "alice.dev"},
     },
     {
-        "id": 2,
-        "name": "Bob Smith",
-        "age": 28,
+        "id": {"kind": "number", "data": 2},
+        "name": {"kind": "text", "data": "Bob Smith"},
+        "age": {"kind": "number", "data": 28},
         "active": {"kind": "boolean", "data": False},
         "status": {"kind": "dropdown-cell", "data": {"value": "pending", "allowedValues": STATUS_OPTIONS}},
         "rating": {"kind": "star-cell", "rating": 2, "maxStars": 5},
@@ -109,9 +109,9 @@ INITIAL_DATA = [
         "website": {"kind": "uri", "data": "https://bob.io", "displayData": "bob.io"},
     },
     {
-        "id": 3,
-        "name": "Carol Williams",
-        "age": 45,
+        "id": {"kind": "number", "data": 3},
+        "name": {"kind": "text", "data": "Carol Williams"},
+        "age": {"kind": "number", "data": 45},
         "active": {"kind": "boolean", "data": True},
         "status": {"kind": "dropdown-cell", "data": {"value": "completed", "allowedValues": STATUS_OPTIONS}},
         "rating": {"kind": "star-cell", "rating": 4, "maxStars": 5},
@@ -122,9 +122,9 @@ INITIAL_DATA = [
         "website": {"kind": "uri", "data": "https://carol.tech", "displayData": "carol.tech"},
     },
     {
-        "id": 4,
-        "name": "David Lee",
-        "age": 38,
+        "id": {"kind": "number", "data": 4},
+        "name": {"kind": "text", "data": "David Lee"},
+        "age": {"kind": "number", "data": 38},
         "active": {"kind": "boolean", "data": True},
         "status": {"kind": "dropdown-cell", "data": {"value": "archived", "allowedValues": STATUS_OPTIONS}},
         "rating": {"kind": "star-cell", "rating": 3, "maxStars": 5},
@@ -135,9 +135,9 @@ INITIAL_DATA = [
         "website": {"kind": "uri", "data": "https://david.com", "displayData": "david.com"},
     },
     {
-        "id": 5,
-        "name": "Eve Martinez",
-        "age": 29,
+        "id": {"kind": "number", "data": 5},
+        "name": {"kind": "text", "data": "Eve Martinez"},
+        "age": {"kind": "number", "data": 29},
         "active": {"kind": "boolean", "data": False},
         "status": {"kind": "dropdown-cell", "data": {"value": "active", "allowedValues": STATUS_OPTIONS}},
         "rating": {"kind": "star-cell", "rating": 1, "maxStars": 5},
@@ -243,12 +243,12 @@ app.layout = html.Div(
                                 "action": "pasteAtSelection",
                                 "dividerAfter": True,
                             },
-                            # Clientside function actions (defined in assets/dashGlideGridFunctions.js)
+                            # Built-in clear actions
                             {
                                 "id": "clear",
                                 "label": "Clear Cell",
                                 "icon": "⌀",
-                                "action": {"function": "clearCell(col, row, columnId, utils)"},
+                                "action": "clearClickedCell",
                             },
                             {
                                 "id": "uppercase",
@@ -284,7 +284,7 @@ app.layout = html.Div(
                                 "id": "clear-sel",
                                 "label": "Clear Selection",
                                 "icon": "⌀",
-                                "action": {"function": "clearSelection(selection, utils)"},
+                                "action": "clearSelection",
                                 "dividerAfter": True,
                             },
                             # Custom actions handled by Python callback
@@ -389,7 +389,7 @@ app.layout = html.Div(
                         html.Li(
                             [
                                 html.Strong("Clear Cell"),
-                                " - Clears the cell value (clientside function)",
+                                " - Clears the cell value (native action)",
                             ]
                         ),
                         html.Li(
@@ -406,8 +406,14 @@ app.layout = html.Div(
                         ),
                         html.Li(
                             [
-                                html.Strong("Uppercase/Lowercase/Clear Selection"),
-                                " - Operates on all cells in the current selection (clientside)",
+                                html.Strong("Uppercase/Lowercase Selection"),
+                                " - Operates on all text cells in selection (clientside)",
+                            ]
+                        ),
+                        html.Li(
+                            [
+                                html.Strong("Clear Selection"),
+                                " - Clears all cells in selection (native action)",
                             ]
                         ),
                         html.Li(

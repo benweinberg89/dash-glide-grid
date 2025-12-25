@@ -1916,7 +1916,12 @@ const GlideGrid = (props) => {
                 }
             } else {
                 // Update the data property while preserving the object structure
-                newCellValue = { ...oldValue, data: newValue.data };
+                // Always derive displayData from the new data - Glide passes stale displayData
+                newCellValue = {
+                    ...oldValue,
+                    data: newValue.data,
+                    displayData: String(newValue.data ?? '')
+                };
             }
         } else {
             // Simple value - extract the data from the GridCell
@@ -2030,6 +2035,72 @@ const GlideGrid = (props) => {
             }
         }
     }, []);
+
+    // Get the cleared/empty value for a cell using the renderer's deletedValue
+    // Takes col, row to get the properly transformed cell via getCellContent
+    const getClearedValue = useCallback((col, row, oldValue) => {
+        // Get the Glide-format cell via getCellContent
+        const cell = getCellContent([col, row]);
+        if (!cell) return oldValue;
+
+        // For custom cells, find the renderer and use its deletedValue
+        if (cell.kind === GridCellKind.Custom && cell.data?.kind) {
+            const renderer = customRenderersRef.current?.find(r =>
+                r.isMatch?.(cell)
+            );
+            const deletedValue = renderer?.provideEditor?.()?.deletedValue;
+            if (deletedValue) {
+                const clearedCell = deletedValue(cell);
+                // Convert back to stored format
+                const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
+                if (nestedDataCells.includes(clearedCell.data.kind)) {
+                    // Reconstruct nested format: {kind, data: {...}, copyData}
+                    const { kind, ...innerData } = clearedCell.data;
+                    return {
+                        kind: kind,
+                        data: innerData,
+                        copyData: clearedCell.copyData || ''
+                    };
+                } else {
+                    // Other custom cells use flat format
+                    return clearedCell.data;
+                }
+            }
+            // Fallback - return unchanged
+            return oldValue;
+        }
+
+        // For built-in Glide cell types
+        switch (cell.kind) {
+            case GridCellKind.Number:
+                // Return empty string for numbers - null would make cell non-editable
+                // Empty string becomes an editable text cell; typing a number restores it
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: '', displayData: '' };
+                }
+                return '';
+            case GridCellKind.Boolean:
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: false };
+                }
+                return false;
+            case GridCellKind.Text:
+            case GridCellKind.Uri:
+            case GridCellKind.Markdown:
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: '', displayData: '' };
+                }
+                return '';
+            case GridCellKind.Bubble:
+            case GridCellKind.Drilldown:
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: [] };
+                }
+                return [];
+            default:
+                return oldValue;
+        }
+    }, [getCellContent]);
 
     // Extract a copyable string value from a cell by using getCellContent
     // This ensures context menu copy uses the same logic as native Cmd+C
@@ -2925,6 +2996,89 @@ const GlideGrid = (props) => {
                     console.error('Failed to paste:', err);
                 });
             }
+        } else if (action === 'clearClickedCell') {
+            // Clear the clicked cell value
+            if (col !== null && row !== null && localData && localColumns) {
+                const columnDef = localColumns[col];
+                const columnId = columnDef?.id;
+                if (columnId && !columnDef.readonly) {
+                    const oldValue = localData[row]?.[columnId];
+                    const newValue = getClearedValue(col, row, oldValue);
+                    const newData = [...localData];
+                    newData[row] = { ...newData[row], [columnId]: newValue };
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits: [{ col, row, value: newValue }],
+                                count: 1,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                }
+            }
+        } else if (action === 'clearSelection') {
+            // Clear all cells in the current selection
+            if (localData && localColumns && gridSelection.current?.range) {
+                const range = gridSelection.current.range;
+                const newData = [...localData];
+                const edits = [];
+
+                for (let r = range.y; r < range.y + range.height; r++) {
+                    if (r >= newData.length) continue;
+                    const newRowData = { ...newData[r] };
+
+                    for (let c = range.x; c < range.x + range.width; c++) {
+                        if (c >= localColumns.length) continue;
+                        const columnDef = localColumns[c];
+                        const columnId = columnDef?.id;
+                        if (columnId && !columnDef.readonly) {
+                            const oldValue = newRowData[columnId];
+                            const newValue = getClearedValue(c, r, oldValue);
+                            newRowData[columnId] = newValue;
+                            edits.push({ col: c, row: r, value: newValue });
+                        }
+                    }
+                    newData[r] = newRowData;
+                }
+
+                if (edits.length > 0) {
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits,
+                                count: edits.length,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                }
+            } else if (col !== null && row !== null && localData && localColumns) {
+                // No range selection, fall back to clear single clicked cell
+                const columnDef = localColumns[col];
+                const columnId = columnDef?.id;
+                if (columnId && !columnDef.readonly) {
+                    const oldValue = localData[row]?.[columnId];
+                    const newValue = getClearedValue(col, row, oldValue);
+                    const newData = [...localData];
+                    newData[row] = { ...newData[row], [columnId]: newValue };
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits: [{ col, row, value: newValue }],
+                                count: 1,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                }
+            }
         } else if (isFunctionRef(action)) {
             // Handle clientside function action
             const columnDef = localColumns?.[col];
@@ -3026,7 +3180,7 @@ const GlideGrid = (props) => {
             });
         }
         handleContextMenuClose();
-    }, [setProps, contextMenuState, handleContextMenuClose, localData, localColumns, gridSelection]);
+    }, [setProps, contextMenuState, handleContextMenuClose, localData, localColumns, gridSelection, getClearedValue]);
 
     // Handle header menu click (dropdown arrow on columns with hasMenu or filterable)
     const handleHeaderMenuClick = useCallback((col, screenPosition) => {
