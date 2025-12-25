@@ -44,37 +44,109 @@ LIGHT_THEME = {
     "horizontalBorderColor": "#e5e7eb",
 }
 
-# Column definitions
-COLUMNS = [
-    {"title": "ID", "id": "id", "width": 60},
-    {"title": "Product", "id": "product", "width": 150},
-    {"title": "Category", "id": "category", "width": 120},
-    {"title": "Price", "id": "price", "width": 100},
-    {"title": "Stock", "id": "stock", "width": 80},
+# Status options for dropdowns
+STATUS_OPTIONS = ["active", "pending", "completed", "archived"]
+
+# Tag definitions
+TAG_DEFS = [
+    {"tag": "Bug", "color": "#ef4444"},
+    {"tag": "Feature", "color": "#8b5cf6"},
+    {"tag": "Critical", "color": "#f97316"},
+    {"tag": "Low", "color": "#22c55e"},
+    {"tag": "Docs", "color": "#3b82f6"},
 ]
 
-# Initial sample data
+# Skill options for multi-select
+SKILL_OPTIONS = [
+    {"value": "python", "label": "Python"},
+    {"value": "javascript", "label": "JavaScript"},
+    {"value": "rust", "label": "Rust"},
+    {"value": "go", "label": "Go"},
+    {"value": "sql", "label": "SQL"},
+]
+
+# Column definitions with various cell types
+COLUMNS = [
+    {"title": "ID", "id": "id", "width": 50},
+    {"title": "Name", "id": "name", "width": 120},
+    {"title": "Age", "id": "age", "width": 60},
+    {"title": "Active", "id": "active", "width": 70},
+    {"title": "Status", "id": "status", "width": 100},
+    {"title": "Rating", "id": "rating", "width": 90},
+    {"title": "Due Date", "id": "due_date", "width": 110},
+    {"title": "Progress", "id": "progress", "width": 100},
+    {"title": "Skills", "id": "skills", "width": 120},
+    {"title": "Tags", "id": "tags", "width": 140},
+    {"title": "Website", "id": "website", "width": 100},
+]
+
+# Initial sample data with various cell types
 INITIAL_DATA = [
-    {"id": 1, "product": "Laptop Pro", "category": "Electronics", "price": 1299.99, "stock": 45},
-    {"id": 2, "product": "Wireless Mouse", "category": "Accessories", "price": 49.99, "stock": 200},
-    {"id": 3, "product": "USB-C Hub", "category": "Accessories", "price": 79.99, "stock": 150},
-    {"id": 4, "product": 'Monitor 27"', "category": "Electronics", "price": 449.99, "stock": 30},
-    {"id": 5, "product": "Keyboard RGB", "category": "Accessories", "price": 129.99, "stock": 85},
-    {"id": 6, "product": "Webcam HD", "category": "Electronics", "price": 89.99, "stock": 120},
-    {"id": 7, "product": "Desk Lamp", "category": "Office", "price": 39.99, "stock": 75},
-    {"id": 8, "product": "Chair Ergonomic", "category": "Furniture", "price": 299.99, "stock": 20},
-    {"id": 9, "product": "Standing Desk", "category": "Furniture", "price": 599.99, "stock": 15},
-    {"id": 10, "product": "Headphones Pro", "category": "Electronics", "price": 249.99, "stock": 60},
-    {"id": 11, "product": "Mouse Pad XL", "category": "Accessories", "price": 29.99, "stock": 300},
-    {"id": 12, "product": "Monitor Arm", "category": "Accessories", "price": 89.99, "stock": 45},
-    {"id": 13, "product": "Cable Management", "category": "Office", "price": 19.99, "stock": 500},
-    {"id": 14, "product": "Desk Organizer", "category": "Office", "price": 34.99, "stock": 180},
-    {"id": 15, "product": "Laptop Stand", "category": "Accessories", "price": 59.99, "stock": 95},
-    {"id": 16, "product": "USB Microphone", "category": "Electronics", "price": 129.99, "stock": 70},
-    {"id": 17, "product": "Ring Light", "category": "Electronics", "price": 49.99, "stock": 110},
-    {"id": 18, "product": "Whiteboard", "category": "Office", "price": 79.99, "stock": 40},
-    {"id": 19, "product": "Footrest", "category": "Furniture", "price": 44.99, "stock": 55},
-    {"id": 20, "product": "Filing Cabinet", "category": "Furniture", "price": 149.99, "stock": 25},
+    {
+        "id": 1,
+        "name": "Alice Johnson",
+        "age": 32,
+        "active": {"kind": "boolean", "data": True},
+        "status": {"kind": "dropdown-cell", "data": {"value": "active", "allowedValues": STATUS_OPTIONS}},
+        "rating": {"kind": "star-cell", "rating": 5, "maxStars": 5},
+        "due_date": {"kind": "date-picker-cell", "date": "2024-03-15", "displayDate": "Mar 15, 2024"},
+        "progress": {"kind": "range-cell", "value": 85, "min": 0, "max": 100, "label": "85%"},
+        "skills": {"kind": "multi-select-cell", "data": {"values": ["python", "rust"], "options": SKILL_OPTIONS}},
+        "tags": {"kind": "tags-cell", "tags": ["Feature", "Critical"], "possibleTags": TAG_DEFS},
+        "website": {"kind": "uri", "data": "https://alice.dev", "displayData": "alice.dev"},
+    },
+    {
+        "id": 2,
+        "name": "Bob Smith",
+        "age": 28,
+        "active": {"kind": "boolean", "data": False},
+        "status": {"kind": "dropdown-cell", "data": {"value": "pending", "allowedValues": STATUS_OPTIONS}},
+        "rating": {"kind": "star-cell", "rating": 2, "maxStars": 5},
+        "due_date": {"kind": "date-picker-cell", "date": "2024-01-10", "displayDate": "Jan 10, 2024"},
+        "progress": {"kind": "range-cell", "value": 25, "min": 0, "max": 100, "label": "25%"},
+        "skills": {"kind": "multi-select-cell", "data": {"values": ["javascript"], "options": SKILL_OPTIONS}},
+        "tags": {"kind": "tags-cell", "tags": ["Bug"], "possibleTags": TAG_DEFS},
+        "website": {"kind": "uri", "data": "https://bob.io", "displayData": "bob.io"},
+    },
+    {
+        "id": 3,
+        "name": "Carol Williams",
+        "age": 45,
+        "active": {"kind": "boolean", "data": True},
+        "status": {"kind": "dropdown-cell", "data": {"value": "completed", "allowedValues": STATUS_OPTIONS}},
+        "rating": {"kind": "star-cell", "rating": 4, "maxStars": 5},
+        "due_date": {"kind": "date-picker-cell", "date": "2024-06-20", "displayDate": "Jun 20, 2024"},
+        "progress": {"kind": "range-cell", "value": 100, "min": 0, "max": 100, "label": "100%"},
+        "skills": {"kind": "multi-select-cell", "data": {"values": ["python", "javascript", "sql"], "options": SKILL_OPTIONS}},
+        "tags": {"kind": "tags-cell", "tags": ["Bug", "Feature", "Docs"], "possibleTags": TAG_DEFS},
+        "website": {"kind": "uri", "data": "https://carol.tech", "displayData": "carol.tech"},
+    },
+    {
+        "id": 4,
+        "name": "David Lee",
+        "age": 38,
+        "active": {"kind": "boolean", "data": True},
+        "status": {"kind": "dropdown-cell", "data": {"value": "archived", "allowedValues": STATUS_OPTIONS}},
+        "rating": {"kind": "star-cell", "rating": 3, "maxStars": 5},
+        "due_date": {"kind": "date-picker-cell", "date": "2024-02-28", "displayDate": "Feb 28, 2024"},
+        "progress": {"kind": "range-cell", "value": 50, "min": 0, "max": 100, "label": "50%"},
+        "skills": {"kind": "multi-select-cell", "data": {"values": ["go", "rust"], "options": SKILL_OPTIONS}},
+        "tags": {"kind": "tags-cell", "tags": ["Low"], "possibleTags": TAG_DEFS},
+        "website": {"kind": "uri", "data": "https://david.com", "displayData": "david.com"},
+    },
+    {
+        "id": 5,
+        "name": "Eve Martinez",
+        "age": 29,
+        "active": {"kind": "boolean", "data": False},
+        "status": {"kind": "dropdown-cell", "data": {"value": "active", "allowedValues": STATUS_OPTIONS}},
+        "rating": {"kind": "star-cell", "rating": 1, "maxStars": 5},
+        "due_date": {"kind": "date-picker-cell", "date": "2024-12-01", "displayDate": "Dec 1, 2024"},
+        "progress": {"kind": "range-cell", "value": 10, "min": 0, "max": 100, "label": "10%"},
+        "skills": {"kind": "multi-select-cell", "data": {"values": ["sql"], "options": SKILL_OPTIONS}},
+        "tags": {"kind": "tags-cell", "tags": ["Feature"], "possibleTags": TAG_DEFS},
+        "website": {"kind": "uri", "data": "https://eve.codes", "displayData": "eve.codes"},
+    },
 ]
 
 app.layout = html.Div(
@@ -373,7 +445,7 @@ app.layout = html.Div(
     ],
     style={
         "padding": "20px",
-        "maxWidth": "800px",
+        "maxWidth": "1000px",
         "fontFamily": "system-ui, sans-serif",
     },
 )
@@ -419,7 +491,7 @@ def toggle_theme(n_clicks):
             DARK_THEME,
             {
                 "padding": "20px",
-                "maxWidth": "800px",
+                "maxWidth": "1000px",
                 "fontFamily": "system-ui, sans-serif",
                 "backgroundColor": "#111827",
                 "minHeight": "100vh",
@@ -451,7 +523,7 @@ def toggle_theme(n_clicks):
             LIGHT_THEME,
             {
                 "padding": "20px",
-                "maxWidth": "800px",
+                "maxWidth": "1000px",
                 "fontFamily": "system-ui, sans-serif",
             },
             {"color": "#111827"},

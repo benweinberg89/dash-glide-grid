@@ -1963,6 +1963,100 @@ const GlideGrid = (props) => {
         return true;
     }, [setProps, readonly, sortedIndices, addEditToBatch]);
 
+    // Coerce a pasted string value to match the target cell's type
+    // Used by both handlePaste and context menu paste actions
+    const coercePastedValue = useCallback((pastedValue, oldValue) => {
+        // Preserve format (object vs simple value) and convert pasted string to appropriate type
+        if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
+            // Cell object - check for custom cell renderer with onPaste method
+            const renderer = customRenderersRef.current?.find(r =>
+                r.isMatch?.({ data: oldValue })
+            );
+            if (renderer?.onPaste) {
+                // Call custom renderer's onPaste to transform the pasted value
+                const transformed = renderer.onPaste(pastedValue, oldValue);
+                // If onPaste returns undefined, keep the old value (reject paste)
+                return transformed !== undefined ? transformed : oldValue;
+            } else if (oldValue.kind === 'number') {
+                const num = parseFloat(pastedValue);
+                // Reject paste if not a valid number - keep old value
+                return isNaN(num) ? oldValue : { ...oldValue, data: num };
+            } else if (oldValue.kind === 'boolean') {
+                const lowerVal = pastedValue.toLowerCase().trim();
+                if (lowerVal === 'true') {
+                    return { ...oldValue, data: true };
+                } else if (lowerVal === 'false') {
+                    return { ...oldValue, data: false };
+                } else {
+                    // Reject paste - keep old value
+                    return { ...oldValue };
+                }
+            } else if (oldValue.kind === 'bubble') {
+                // Bubble data is an array of strings - parse comma-separated values
+                const bubbles = pastedValue
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+                return { ...oldValue, data: bubbles };
+            } else if (oldValue.kind === 'drilldown') {
+                // Drilldown data is an array of objects with text property
+                const items = pastedValue
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0)
+                    .map(text => ({ text }));
+                return { ...oldValue, data: items };
+            } else {
+                return { ...oldValue, data: pastedValue };
+            }
+        } else {
+            // Simple value - try to preserve type
+            if (typeof oldValue === 'number') {
+                const num = parseFloat(pastedValue);
+                // Reject paste if not a valid number - keep old value
+                return isNaN(num) ? oldValue : num;
+            } else if (typeof oldValue === 'boolean') {
+                const lowerVal = pastedValue.toLowerCase().trim();
+                if (lowerVal === 'true') {
+                    return true;
+                } else if (lowerVal === 'false') {
+                    return false;
+                } else {
+                    // Reject paste - keep old value
+                    return oldValue;
+                }
+            } else {
+                return pastedValue;
+            }
+        }
+    }, []);
+
+    // Extract a copyable string value from a cell by using getCellContent
+    // This ensures context menu copy uses the same logic as native Cmd+C
+    const getCellCopyValue = useCallback((col, row) => {
+        const cell = getCellContent([col, row]);
+        if (!cell) return '';
+        // For custom cells, copyData is populated by deriveCopyData in getCellContent
+        if (cell.copyData !== undefined) {
+            return String(cell.copyData);
+        }
+        // For built-in cells, extract from data/displayData
+        if (cell.kind === GridCellKind.Number) {
+            return cell.displayData ?? String(cell.data ?? '');
+        } else if (cell.kind === GridCellKind.Boolean) {
+            return String(cell.data ?? false);
+        } else if (cell.kind === GridCellKind.Text || cell.kind === GridCellKind.Uri || cell.kind === GridCellKind.Markdown) {
+            return cell.data ?? cell.displayData ?? '';
+        } else if (cell.kind === GridCellKind.Bubble) {
+            return Array.isArray(cell.data) ? cell.data.join(', ') : '';
+        } else if (cell.kind === GridCellKind.Drilldown) {
+            return Array.isArray(cell.data) ? cell.data.map(d => d.text || '').join(', ') : '';
+        } else if (cell.kind === GridCellKind.Image) {
+            return Array.isArray(cell.data) ? cell.data[0] || '' : '';
+        }
+        return '';
+    }, [getCellContent]);
+
     // Handle paste events (for multi-cell paste like Excel)
     const handlePaste = useCallback((target, values) => {
         if (!setProps || readonly) {
@@ -2000,71 +2094,7 @@ const GlideGrid = (props) => {
 
                 const pastedValue = values[i][j];
                 const oldValue = newData[actualPasteRow][columnId];
-
-                // Preserve format (object vs simple value) and convert pasted string to appropriate type
-                let newCellValue;
-                if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
-                    // Cell object - check for custom cell renderer with onPaste method
-                    const renderer = customRenderersRef.current?.find(r =>
-                        r.isMatch?.({ data: oldValue })
-                    );
-                    if (renderer?.onPaste) {
-                        // Call custom renderer's onPaste to transform the pasted value
-                        const transformed = renderer.onPaste(pastedValue, oldValue);
-                        // If onPaste returns undefined, keep the old value (reject paste)
-                        newCellValue = transformed !== undefined ? transformed : oldValue;
-                    } else if (oldValue.kind === 'number') {
-                        const num = parseFloat(pastedValue);
-                        // Reject paste if not a valid number - keep old value
-                        newCellValue = isNaN(num) ? oldValue : { ...oldValue, data: num };
-                    } else if (oldValue.kind === 'boolean') {
-                        const lowerVal = pastedValue.toLowerCase().trim();
-                        if (lowerVal === 'true') {
-                            newCellValue = { ...oldValue, data: true };
-                        } else if (lowerVal === 'false') {
-                            newCellValue = { ...oldValue, data: false };
-                        } else {
-                            // Reject paste - keep old value
-                            newCellValue = { ...oldValue };
-                        }
-                    } else if (oldValue.kind === 'bubble') {
-                        // Bubble data is an array of strings - parse comma-separated values
-                        const bubbles = pastedValue
-                            .split(',')
-                            .map(s => s.trim())
-                            .filter(s => s.length > 0);
-                        newCellValue = { ...oldValue, data: bubbles };
-                    } else if (oldValue.kind === 'drilldown') {
-                        // Drilldown data is an array of objects with text property
-                        const items = pastedValue
-                            .split(',')
-                            .map(s => s.trim())
-                            .filter(s => s.length > 0)
-                            .map(text => ({ text }));
-                        newCellValue = { ...oldValue, data: items };
-                    } else {
-                        newCellValue = { ...oldValue, data: pastedValue };
-                    }
-                } else {
-                    // Simple value - try to preserve type
-                    if (typeof oldValue === 'number') {
-                        const num = parseFloat(pastedValue);
-                        // Reject paste if not a valid number - keep old value
-                        newCellValue = isNaN(num) ? oldValue : num;
-                    } else if (typeof oldValue === 'boolean') {
-                        const lowerVal = pastedValue.toLowerCase().trim();
-                        if (lowerVal === 'true') {
-                            newCellValue = true;
-                        } else if (lowerVal === 'false') {
-                            newCellValue = false;
-                        } else {
-                            // Reject paste - keep old value
-                            newCellValue = oldValue;
-                        }
-                    } else {
-                        newCellValue = pastedValue;
-                    }
-                }
+                const newCellValue = coercePastedValue(pastedValue, oldValue);
 
                 newData[actualPasteRow] = { ...newData[actualPasteRow], [columnId]: newCellValue };
 
@@ -2706,11 +2736,7 @@ const GlideGrid = (props) => {
         if (action === 'copyClickedCell') {
             // Copy the clicked cell value to clipboard
             if (localData && localColumns && col !== null && row !== null) {
-                const columnDef = localColumns[col];
-                const columnId = columnDef?.id;
-                const rowData = localData[row];
-                const cellValue = rowData && columnId ? rowData[columnId] : '';
-                navigator.clipboard.writeText(String(cellValue ?? '')).catch(err => {
+                navigator.clipboard.writeText(getCellCopyValue(col, row)).catch(err => {
                     console.error('Failed to copy cell:', err);
                 });
             }
@@ -2725,14 +2751,10 @@ const GlideGrid = (props) => {
 
                 const lines = [];
                 for (let r = startRow; r <= endRow; r++) {
-                    const rowData = localData[r];
-                    if (rowData) {
+                    if (r < localData.length) {
                         const rowValues = [];
                         for (let c = startCol; c <= endCol; c++) {
-                            const columnDef = localColumns[c];
-                            const columnId = columnDef?.id;
-                            const val = columnId ? rowData[columnId] : '';
-                            rowValues.push(String(val ?? ''));
+                            rowValues.push(getCellCopyValue(c, r));
                         }
                         lines.push(rowValues.join('\t'));
                     }
@@ -2742,11 +2764,7 @@ const GlideGrid = (props) => {
                 });
             } else if (col !== null && row !== null) {
                 // No range selection, copy single cell
-                const columnDef = localColumns[col];
-                const columnId = columnDef?.id;
-                const rowData = localData[row];
-                const cellValue = rowData && columnId ? rowData[columnId] : '';
-                navigator.clipboard.writeText(String(cellValue ?? '')).catch(err => {
+                navigator.clipboard.writeText(getCellCopyValue(col, row)).catch(err => {
                     console.error('Failed to copy cell:', err);
                 });
             }
@@ -2775,8 +2793,10 @@ const GlideGrid = (props) => {
                             const columnDef = localColumns[targetCol];
                             const columnId = columnDef?.id;
                             if (columnId && !columnDef.readonly) {
-                                newRowData[columnId] = val;
-                                edits.push({ col: targetCol, row: targetRow, value: val });
+                                const oldValue = newRowData[columnId];
+                                const newValue = coercePastedValue(val, oldValue);
+                                newRowData[columnId] = newValue;
+                                edits.push({ col: targetCol, row: targetRow, value: newValue });
                             }
                         });
 
@@ -2829,8 +2849,10 @@ const GlideGrid = (props) => {
                             const columnDef = localColumns[targetCol];
                             const columnId = columnDef?.id;
                             if (columnId && !columnDef.readonly) {
-                                newRowData[columnId] = val;
-                                edits.push({ col: targetCol, row: targetRow, value: val });
+                                const oldValue = newRowData[columnId];
+                                const newValue = coercePastedValue(val, oldValue);
+                                newRowData[columnId] = newValue;
+                                edits.push({ col: targetCol, row: targetRow, value: newValue });
                             }
                         });
 
@@ -2876,8 +2898,10 @@ const GlideGrid = (props) => {
                             const columnDef = localColumns[targetCol];
                             const columnId = columnDef?.id;
                             if (columnId && !columnDef.readonly) {
-                                newRowData[columnId] = val;
-                                edits.push({ col: targetCol, row: targetRow, value: val });
+                                const oldValue = newRowData[columnId];
+                                const newValue = coercePastedValue(val, oldValue);
+                                newRowData[columnId] = newValue;
+                                edits.push({ col: targetCol, row: targetRow, value: newValue });
                             }
                         });
 
