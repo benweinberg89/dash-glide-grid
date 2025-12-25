@@ -2908,7 +2908,14 @@ const GlideGrid = (props) => {
                     });
                     setLocalData(newData);
                     if (setProps) {
-                        setProps({ data: newData });
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits: edits.map(e => ({ col: e.col, row: e.row, value: e.value })),
+                                count: edits.length,
+                                timestamp: Date.now()
+                            }
+                        });
                     }
                 },
                 getClipboard: () => navigator.clipboard.readText(),
