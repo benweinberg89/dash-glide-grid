@@ -1925,7 +1925,8 @@ const GlideGrid = (props) => {
             }
         } else {
             // Simple value - extract the data from the GridCell
-            newCellValue = newValue.data;
+            // Convert undefined to empty string for JSON serialization (undefined is stripped)
+            newCellValue = newValue.data ?? '';
         }
 
         newData[actualRow] = { ...newData[actualRow], [columnId]: newCellValue };
