@@ -105,7 +105,7 @@ function autoDetectCellType(value) {
         return {
             kind: GridCellKind.Text,
             data: '',
-            allowOverlay: false,
+            allowOverlay: true,
             displayData: ''
         };
     }
