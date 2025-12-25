@@ -49,8 +49,8 @@ const ContextMenu = ({
             }
         };
 
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
+        document.addEventListener('keydown', handleEscape, true);
+        return () => document.removeEventListener('keydown', handleEscape, true);
     }, [isOpen, onClose]);
 
     // Reset hover state when menu closes
