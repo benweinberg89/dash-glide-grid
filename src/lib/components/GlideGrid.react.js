@@ -67,6 +67,7 @@ GlideGrid.defaultProps = {
     canUndo: false,
     canRedo: false,
     editorScrollBehavior: 'default',
+    contextMenuScrollBehavior: 'default',
     redrawTrigger: null,
     showCellFlash: false,
     allowDelete: true
@@ -711,11 +712,70 @@ GlideGrid.propTypes = {
     /**
      * Information about the last right-clicked cell.
      * Useful for implementing cell context menus.
-     * Format: {"col": 0, "row": 1, "timestamp": 1234567890}
+     * Format: {"col": 0, "row": 1, "screenX": 100, "screenY": 200, "timestamp": 1234567890}
      */
-    cellContextMenu: PropTypes.shape({
+    contextMenu: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
+        screenX: PropTypes.number,
+        screenY: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Configuration for built-in cell context menu.
+     * Provide an array of menu items to display when right-clicking a cell.
+     * Example: { "items": [{"id": "edit", "label": "Edit"}, {"id": "delete", "label": "Delete"}] }
+     */
+    contextMenuConfig: PropTypes.shape({
+        items: PropTypes.arrayOf(PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            label: PropTypes.string.isRequired,
+            icon: PropTypes.string,
+            /** CSS font-size for the icon (e.g., '18px', '1.2em') */
+            iconSize: PropTypes.string,
+            /** CSS color for the icon */
+            iconColor: PropTypes.string,
+            /** CSS font-weight for the icon (e.g., 'bold', '600') */
+            iconWeight: PropTypes.string,
+            /** CSS color for the label text */
+            color: PropTypes.string,
+            /** CSS font-weight for the label text (e.g., 'bold', '600') */
+            fontWeight: PropTypes.string,
+            dividerAfter: PropTypes.bool,
+            disabled: PropTypes.bool,
+            /** Action to execute when item is clicked.
+             * Built-in (string): 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'
+             * Clientside function (object): {function: 'myFunc(col, row, cellData, rowData, selection, columns, data, utils)'}
+             */
+            action: PropTypes.oneOfType([
+                PropTypes.string,
+                PropTypes.shape({
+                    function: PropTypes.string
+                })
+            ])
+        })),
+        /** Max-height in pixels (e.g., 300 or '300px'). Only px units supported. If set, enables scrolling. */
+        maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    }),
+
+    /**
+     * Controls how the grid behaves when the user scrolls while a context menu is open.
+     * - "default": Context menu stays at original position (standard behavior)
+     * - "close-overlay-on-scroll": Context menu closes on any scroll
+     * - "lock-scroll": Scrolling is prevented while context menu is open
+     * Default: "default"
+     */
+    contextMenuScrollBehavior: PropTypes.oneOf(['default', 'close-overlay-on-scroll', 'lock-scroll']),
+
+    /**
+     * Information about the last clicked cell context menu item.
+     * Format: {"col": 0, "row": 1, "itemId": "edit", "timestamp": 1234567890}
+     */
+    contextMenuItemClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        itemId: PropTypes.string,
         timestamp: PropTypes.number
     }),
 

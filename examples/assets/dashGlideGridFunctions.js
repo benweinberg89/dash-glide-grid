@@ -98,6 +98,126 @@ window.getAnimatingCells = function() {
     return cells;
 };
 
+// =============================================================================
+// Context Menu Clientside Actions
+// These functions can be used as context menu actions via:
+//   action: {"function": "clearCell(col, row, utils)"}
+// =============================================================================
+
+/**
+ * Clear the clicked cell's value.
+ * Example usage: {"id": "clear", "label": "Clear Cell", "action": {"function": "clearCell(col, row, columnId, utils)"}}
+ */
+dggfuncs.clearCell = function(col, row, columnId, utils) {
+    utils.setCells([{ col: col, row: row, value: '' }]);
+};
+
+/**
+ * Convert the clicked cell's text to uppercase.
+ * Example usage: {"id": "upper", "label": "Uppercase", "action": {"function": "uppercaseCell(col, row, columnId, cellData, utils)"}}
+ */
+dggfuncs.uppercaseCell = function(col, row, columnId, cellData, utils) {
+    if (typeof cellData === 'string') {
+        utils.setCells([{ col: col, row: row, value: cellData.toUpperCase() }]);
+    }
+};
+
+/**
+ * Paste clipboard content as uppercase text.
+ * Demonstrates async action using clipboard API.
+ * Example usage: {"id": "paste-upper", "label": "Paste Uppercase", "action": {"function": "pasteUppercase(col, row, utils)"}}
+ */
+dggfuncs.pasteUppercase = async function(col, row, utils) {
+    try {
+        var text = await utils.getClipboard();
+        if (text) {
+            utils.setCells([{ col: col, row: row, value: text.toUpperCase() }]);
+        }
+    } catch (err) {
+        console.error('Failed to paste:', err);
+    }
+};
+
+/**
+ * Uppercase all text cells in the current selection.
+ * Example usage: {"id": "upper-sel", "label": "Uppercase Selection", "action": {"function": "uppercaseSelection(selection, columns, data, utils)"}}
+ */
+dggfuncs.uppercaseSelection = function(selection, columns, data, utils) {
+    if (!selection || !selection.range) {
+        return;
+    }
+    var range = selection.range;
+    var edits = [];
+    for (var r = range.y; r < range.y + range.height; r++) {
+        var rowData = data[r];
+        if (!rowData) continue;
+        for (var c = range.x; c < range.x + range.width; c++) {
+            var colDef = columns[c];
+            if (!colDef) continue;
+            var colId = colDef.id || colDef.title;
+            var cellValue = rowData[colId];
+            if (typeof cellValue === 'string') {
+                edits.push({ col: c, row: r, value: cellValue.toUpperCase() });
+            }
+        }
+    }
+    if (edits.length > 0) {
+        utils.setCells(edits);
+    }
+};
+
+/**
+ * Lowercase all text cells in the current selection.
+ * Example usage: {"id": "lower-sel", "label": "Lowercase Selection", "action": {"function": "lowercaseSelection(selection, columns, data, utils)"}}
+ */
+dggfuncs.lowercaseSelection = function(selection, columns, data, utils) {
+    if (!selection || !selection.range) {
+        return;
+    }
+    var range = selection.range;
+    var edits = [];
+    for (var r = range.y; r < range.y + range.height; r++) {
+        var rowData = data[r];
+        if (!rowData) continue;
+        for (var c = range.x; c < range.x + range.width; c++) {
+            var colDef = columns[c];
+            if (!colDef) continue;
+            var colId = colDef.id || colDef.title;
+            var cellValue = rowData[colId];
+            if (typeof cellValue === 'string') {
+                edits.push({ col: c, row: r, value: cellValue.toLowerCase() });
+            }
+        }
+    }
+    if (edits.length > 0) {
+        utils.setCells(edits);
+    }
+};
+
+/**
+ * Clear all cells in the current selection.
+ * Example usage: {"id": "clear-sel", "label": "Clear Selection", "action": {"function": "clearSelection(selection, utils)"}}
+ */
+dggfuncs.clearSelection = function(selection, utils) {
+    if (!selection || !selection.range) {
+        return;
+    }
+    var range = selection.range;
+    var edits = [];
+    for (var r = range.y; r < range.y + range.height; r++) {
+        for (var c = range.x; c < range.x + range.width; c++) {
+            edits.push({ col: c, row: r, value: '' });
+        }
+    }
+    if (edits.length > 0) {
+        utils.setCells(edits);
+    }
+};
+
+// =============================================================================
+// Animation Functions (existing)
+// =============================================================================
+
 /**
  * getCellContent function that returns cells with themeOverride for animation colors.
  * Used by example 43 - demonstrates themeOverride approach (alternative to custom drawCell).

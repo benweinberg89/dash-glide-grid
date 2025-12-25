@@ -19,6 +19,7 @@ import { createTreeViewCellRenderer } from '../cells/TreeViewCellRenderer';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { executeFunction, isFunctionRef } from '../utils/functionParser';
 import HeaderMenu from './HeaderMenu.react';
+import ContextMenu from './ContextMenu.react';
 
 // Static cell renderers: replace library's versions with custom versions
 // Button renderer is added dynamically inside component to access setProps
@@ -104,7 +105,7 @@ function autoDetectCellType(value) {
         return {
             kind: GridCellKind.Text,
             data: '',
-            allowOverlay: false,
+            allowOverlay: true,
             displayData: ''
         };
     }
@@ -426,6 +427,7 @@ const GlideGrid = (props) => {
         sortingOrder,
         columnFilters,
         headerMenuConfig,
+        contextMenuConfig,
         selectionColumnMin,
         unselectableColumns,
         unselectableRows,
@@ -441,6 +443,7 @@ const GlideGrid = (props) => {
         maxUndoSteps,
         undoRedoAction,
         editorScrollBehavior,
+        contextMenuScrollBehavior,
         redrawTrigger,
         showCellFlash,
         allowDelete,
@@ -465,6 +468,11 @@ const GlideGrid = (props) => {
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const scrollPositionRef = useRef({ x: 0, y: 0 });
 
+    // Context menu scroll behavior state
+    const contextMenuScrollPositionRef = useRef({ x: 0, y: 0 });
+    const contextMenuWheelHandlerRef = useRef(null);
+    const contextMenuScrollHandlerRef = useRef(null);
+
     // Local state for column filters (synced with Dash prop)
     const [localFilters, setLocalFilters] = useState(columnFilters || {});
 
@@ -474,6 +482,17 @@ const GlideGrid = (props) => {
         columnIndex: null,
         position: null
     });
+
+    // State for the cell context menu
+    const [contextMenuState, setContextMenuState] = useState({
+        isOpen: false,
+        col: null,
+        row: null,
+        position: null
+    });
+
+    // Ref to track the last right-click mouse position (for context menu positioning)
+    const lastContextMenuPosition = useRef({ x: 0, y: 0 });
 
     // State for row hover effect
     const [hoveredRow, setHoveredRow] = useState(null);
@@ -502,6 +521,23 @@ const GlideGrid = (props) => {
 
     // Ref for the DataEditor to control scroll position
     const gridRef = useRef(null);
+
+    // Capture native contextmenu event to get accurate mouse position
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleNativeContextMenu = (e) => {
+            // Store the mouse position for use in the Glide callback
+            lastContextMenuPosition.current = { x: e.clientX, y: e.clientY };
+        };
+
+        // Use capture phase to get the position before Glide handles the event
+        container.addEventListener('contextmenu', handleNativeContextMenu, true);
+        return () => {
+            container.removeEventListener('contextmenu', handleNativeContextMenu, true);
+        };
+    }, []);
 
     // ========== LAST UPDATED STATE ==========
     // Track lastUpdated timestamps for cells (for flash effect on edit/undo/redo)
@@ -1543,6 +1579,94 @@ const GlideGrid = (props) => {
         };
     }, [editorScrollBehavior, isEditorOpen]);
 
+    // "close-overlay-on-scroll" behavior for context menu: close menu on scroll
+    useEffect(() => {
+        if (contextMenuScrollBehavior !== 'close-overlay-on-scroll' || !contextMenuState.isOpen) return;
+
+        const handleWheel = (e) => {
+            // Allow scrolling within the context menu itself (when maxHeight creates scrollable content)
+            const contextMenu = e.target.closest('[data-context-menu="true"]');
+            if (contextMenu) {
+                return;
+            }
+
+            // Event is outside context menu - close it and prevent this wheel event
+            e.preventDefault();
+            e.stopPropagation();
+            handleContextMenuClose();
+        };
+
+        const handleScroll = (e) => {
+            // Ignore scroll events from within the context menu
+            const contextMenu = e.target.closest('[data-context-menu="true"]');
+            if (contextMenu) {
+                return;
+            }
+            handleContextMenuClose();
+        };
+
+        window.addEventListener('scroll', handleScroll, true);
+        document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll, true);
+            document.removeEventListener('wheel', handleWheel, { capture: true });
+        };
+    }, [contextMenuScrollBehavior, contextMenuState.isOpen, handleContextMenuClose]);
+
+    // "lock-scroll" behavior for context menu: prevent all external scrolling
+    useEffect(() => {
+        if (contextMenuScrollBehavior !== 'lock-scroll') return;
+
+        if (contextMenuState.isOpen) {
+            // Save current scroll position
+            contextMenuScrollPositionRef.current = {
+                x: window.scrollX,
+                y: window.scrollY
+            };
+
+            // Create wheel handler to prevent scroll (but allow context menu scrolling)
+            contextMenuWheelHandlerRef.current = (e) => {
+                const contextMenu = e.target.closest('[data-context-menu="true"]');
+                if (contextMenu) {
+                    // Allow scrolling within context menu
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            // Create scroll handler to restore position if scroll somehow happens
+            contextMenuScrollHandlerRef.current = () => {
+                window.scrollTo(contextMenuScrollPositionRef.current.x, contextMenuScrollPositionRef.current.y);
+            };
+
+            // Prevent wheel events
+            document.addEventListener('wheel', contextMenuWheelHandlerRef.current, { passive: false });
+            // Also prevent touchmove for mobile
+            document.addEventListener('touchmove', contextMenuWheelHandlerRef.current, { passive: false });
+            // Restore scroll position if it changes
+            window.addEventListener('scroll', contextMenuScrollHandlerRef.current);
+
+            // Set overflow hidden on html element
+            document.documentElement.style.overflow = 'hidden';
+        }
+
+        return () => {
+            // Cleanup
+            document.documentElement.style.overflow = '';
+            if (contextMenuWheelHandlerRef.current) {
+                document.removeEventListener('wheel', contextMenuWheelHandlerRef.current);
+                document.removeEventListener('touchmove', contextMenuWheelHandlerRef.current);
+                contextMenuWheelHandlerRef.current = null;
+            }
+            if (contextMenuScrollHandlerRef.current) {
+                window.removeEventListener('scroll', contextMenuScrollHandlerRef.current);
+                contextMenuScrollHandlerRef.current = null;
+            }
+        };
+    }, [contextMenuScrollBehavior, contextMenuState.isOpen]);
+
     // Transform columns to Glide format (including sort indicators)
     const glideColumns = useMemo(() => {
         if (!localColumns || !Array.isArray(localColumns)) {
@@ -1792,11 +1916,17 @@ const GlideGrid = (props) => {
                 }
             } else {
                 // Update the data property while preserving the object structure
-                newCellValue = { ...oldValue, data: newValue.data };
+                // Always derive displayData from the new data - Glide passes stale displayData
+                newCellValue = {
+                    ...oldValue,
+                    data: newValue.data,
+                    displayData: String(newValue.data ?? '')
+                };
             }
         } else {
             // Simple value - extract the data from the GridCell
-            newCellValue = newValue.data;
+            // Convert undefined to empty string for JSON serialization (undefined is stripped)
+            newCellValue = newValue.data ?? '';
         }
 
         newData[actualRow] = { ...newData[actualRow], [columnId]: newCellValue };
@@ -1831,13 +1961,173 @@ const GlideGrid = (props) => {
             cellEdited: {
                 col: col,
                 row: actualRow,
-                value: newValue.kind === GridCellKind.Custom ? newValue.data : newValue.data,
+                value: (newValue.kind === GridCellKind.Custom ? newValue.data : newValue.data) ?? '',
                 timestamp: Date.now()
             }
         });
 
         return true;
     }, [setProps, readonly, sortedIndices, addEditToBatch]);
+
+    // Coerce a pasted string value to match the target cell's type
+    // Used by both handlePaste and context menu paste actions
+    const coercePastedValue = useCallback((pastedValue, oldValue) => {
+        // Preserve format (object vs simple value) and convert pasted string to appropriate type
+        if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
+            // Cell object - check for custom cell renderer with onPaste method
+            const renderer = customRenderersRef.current?.find(r =>
+                r.isMatch?.({ data: oldValue })
+            );
+            if (renderer?.onPaste) {
+                // Call custom renderer's onPaste to transform the pasted value
+                const transformed = renderer.onPaste(pastedValue, oldValue);
+                // If onPaste returns undefined, keep the old value (reject paste)
+                return transformed !== undefined ? transformed : oldValue;
+            } else if (oldValue.kind === 'number') {
+                const num = parseFloat(pastedValue);
+                // Reject paste if not a valid number - keep old value
+                return isNaN(num) ? oldValue : { ...oldValue, data: num };
+            } else if (oldValue.kind === 'boolean') {
+                const lowerVal = pastedValue.toLowerCase().trim();
+                if (lowerVal === 'true') {
+                    return { ...oldValue, data: true };
+                } else if (lowerVal === 'false') {
+                    return { ...oldValue, data: false };
+                } else {
+                    // Reject paste - keep old value
+                    return { ...oldValue };
+                }
+            } else if (oldValue.kind === 'bubble') {
+                // Bubble data is an array of strings - parse comma-separated values
+                const bubbles = pastedValue
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+                return { ...oldValue, data: bubbles };
+            } else if (oldValue.kind === 'drilldown') {
+                // Drilldown data is an array of objects with text property
+                const items = pastedValue
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0)
+                    .map(text => ({ text }));
+                return { ...oldValue, data: items };
+            } else {
+                return { ...oldValue, data: pastedValue };
+            }
+        } else {
+            // Simple value - try to preserve type
+            if (typeof oldValue === 'number') {
+                const num = parseFloat(pastedValue);
+                // Reject paste if not a valid number - keep old value
+                return isNaN(num) ? oldValue : num;
+            } else if (typeof oldValue === 'boolean') {
+                const lowerVal = pastedValue.toLowerCase().trim();
+                if (lowerVal === 'true') {
+                    return true;
+                } else if (lowerVal === 'false') {
+                    return false;
+                } else {
+                    // Reject paste - keep old value
+                    return oldValue;
+                }
+            } else {
+                return pastedValue;
+            }
+        }
+    }, []);
+
+    // Get the cleared/empty value for a cell using the renderer's deletedValue
+    // Takes col, row to get the properly transformed cell via getCellContent
+    const getClearedValue = useCallback((col, row, oldValue) => {
+        // Get the Glide-format cell via getCellContent
+        const cell = getCellContent([col, row]);
+        if (!cell) return oldValue;
+
+        // For custom cells, find the renderer and use its deletedValue
+        if (cell.kind === GridCellKind.Custom && cell.data?.kind) {
+            const renderer = customRenderersRef.current?.find(r =>
+                r.isMatch?.(cell)
+            );
+            const deletedValue = renderer?.provideEditor?.()?.deletedValue;
+            if (deletedValue) {
+                const clearedCell = deletedValue(cell);
+                // Convert back to stored format
+                const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
+                if (nestedDataCells.includes(clearedCell.data.kind)) {
+                    // Reconstruct nested format: {kind, data: {...}, copyData}
+                    const { kind, ...innerData } = clearedCell.data;
+                    return {
+                        kind: kind,
+                        data: innerData,
+                        copyData: clearedCell.copyData || ''
+                    };
+                } else {
+                    // Other custom cells use flat format
+                    return clearedCell.data;
+                }
+            }
+            // Fallback - return unchanged
+            return oldValue;
+        }
+
+        // For built-in Glide cell types
+        switch (cell.kind) {
+            case GridCellKind.Number:
+                // Return empty string for numbers - null would make cell non-editable
+                // Empty string becomes an editable text cell; typing a number restores it
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: '', displayData: '' };
+                }
+                return '';
+            case GridCellKind.Boolean:
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: false };
+                }
+                return false;
+            case GridCellKind.Text:
+            case GridCellKind.Uri:
+            case GridCellKind.Markdown:
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: '', displayData: '' };
+                }
+                return '';
+            case GridCellKind.Bubble:
+            case GridCellKind.Drilldown:
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: [] };
+                }
+                return [];
+            default:
+                return oldValue;
+        }
+    }, [getCellContent]);
+
+    // Extract a copyable string value from a cell by using getCellContent
+    // This ensures context menu copy uses the same logic as native Cmd+C
+    const getCellCopyValue = useCallback((col, row) => {
+        const cell = getCellContent([col, row]);
+        if (!cell) return '';
+        // For custom cells, copyData is populated by deriveCopyData in getCellContent
+        if (cell.copyData !== undefined) {
+            return String(cell.copyData);
+        }
+        // For built-in cells, extract from data/displayData
+        if (cell.kind === GridCellKind.Number) {
+            return cell.displayData ?? String(cell.data ?? '');
+        } else if (cell.kind === GridCellKind.Boolean) {
+            return String(cell.data ?? false);
+        } else if (cell.kind === GridCellKind.Text || cell.kind === GridCellKind.Uri || cell.kind === GridCellKind.Markdown) {
+            return cell.data ?? cell.displayData ?? '';
+        } else if (cell.kind === GridCellKind.Bubble) {
+            return Array.isArray(cell.data) ? cell.data.join(', ') : '';
+        } else if (cell.kind === GridCellKind.Drilldown) {
+            return Array.isArray(cell.data) ? cell.data.map(d => d.text || '').join(', ') : '';
+        } else if (cell.kind === GridCellKind.Image) {
+            return Array.isArray(cell.data) ? cell.data[0] || '' : '';
+        }
+        return '';
+    }, [getCellContent]);
 
     // Handle paste events (for multi-cell paste like Excel)
     const handlePaste = useCallback((target, values) => {
@@ -1876,71 +2166,7 @@ const GlideGrid = (props) => {
 
                 const pastedValue = values[i][j];
                 const oldValue = newData[actualPasteRow][columnId];
-
-                // Preserve format (object vs simple value) and convert pasted string to appropriate type
-                let newCellValue;
-                if (oldValue && typeof oldValue === 'object' && oldValue.kind) {
-                    // Cell object - check for custom cell renderer with onPaste method
-                    const renderer = customRenderersRef.current?.find(r =>
-                        r.isMatch?.({ data: oldValue })
-                    );
-                    if (renderer?.onPaste) {
-                        // Call custom renderer's onPaste to transform the pasted value
-                        const transformed = renderer.onPaste(pastedValue, oldValue);
-                        // If onPaste returns undefined, keep the old value (reject paste)
-                        newCellValue = transformed !== undefined ? transformed : oldValue;
-                    } else if (oldValue.kind === 'number') {
-                        const num = parseFloat(pastedValue);
-                        // Reject paste if not a valid number - keep old value
-                        newCellValue = isNaN(num) ? oldValue : { ...oldValue, data: num };
-                    } else if (oldValue.kind === 'boolean') {
-                        const lowerVal = pastedValue.toLowerCase().trim();
-                        if (lowerVal === 'true') {
-                            newCellValue = { ...oldValue, data: true };
-                        } else if (lowerVal === 'false') {
-                            newCellValue = { ...oldValue, data: false };
-                        } else {
-                            // Reject paste - keep old value
-                            newCellValue = { ...oldValue };
-                        }
-                    } else if (oldValue.kind === 'bubble') {
-                        // Bubble data is an array of strings - parse comma-separated values
-                        const bubbles = pastedValue
-                            .split(',')
-                            .map(s => s.trim())
-                            .filter(s => s.length > 0);
-                        newCellValue = { ...oldValue, data: bubbles };
-                    } else if (oldValue.kind === 'drilldown') {
-                        // Drilldown data is an array of objects with text property
-                        const items = pastedValue
-                            .split(',')
-                            .map(s => s.trim())
-                            .filter(s => s.length > 0)
-                            .map(text => ({ text }));
-                        newCellValue = { ...oldValue, data: items };
-                    } else {
-                        newCellValue = { ...oldValue, data: pastedValue };
-                    }
-                } else {
-                    // Simple value - try to preserve type
-                    if (typeof oldValue === 'number') {
-                        const num = parseFloat(pastedValue);
-                        // Reject paste if not a valid number - keep old value
-                        newCellValue = isNaN(num) ? oldValue : num;
-                    } else if (typeof oldValue === 'boolean') {
-                        const lowerVal = pastedValue.toLowerCase().trim();
-                        if (lowerVal === 'true') {
-                            newCellValue = true;
-                        } else if (lowerVal === 'false') {
-                            newCellValue = false;
-                        } else {
-                            // Reject paste - keep old value
-                            newCellValue = oldValue;
-                        }
-                    } else {
-                        newCellValue = pastedValue;
-                    }
-                }
+                const newCellValue = coercePastedValue(pastedValue, oldValue);
 
                 newData[actualPasteRow] = { ...newData[actualPasteRow], [columnId]: newCellValue };
 
@@ -2562,6 +2788,401 @@ const GlideGrid = (props) => {
         }
     }, [headerMenuConfig, localColumns, localData, setProps]);
 
+    // Handle cell context menu close
+    const handleContextMenuClose = useCallback(() => {
+        setContextMenuState({
+            isOpen: false,
+            col: null,
+            row: null,
+            position: null
+        });
+    }, []);
+
+    // Handle cell context menu item click
+    const handleContextMenuItemClick = useCallback((item) => {
+        const { col, row } = contextMenuState;
+        const itemId = item.id;
+        const action = item.action;
+
+        // Handle built-in actions
+        if (action === 'copyClickedCell') {
+            // Copy the clicked cell value to clipboard
+            if (localData && localColumns && col !== null && row !== null) {
+                navigator.clipboard.writeText(getCellCopyValue(col, row)).catch(err => {
+                    console.error('Failed to copy cell:', err);
+                });
+            }
+        } else if (action === 'copySelection') {
+            // Copy the current selection as TSV
+            if (localData && localColumns && gridSelection.current?.range) {
+                const range = gridSelection.current.range;
+                const startCol = range.x;
+                const endCol = range.x + range.width - 1;
+                const startRow = range.y;
+                const endRow = range.y + range.height - 1;
+
+                const lines = [];
+                for (let r = startRow; r <= endRow; r++) {
+                    if (r < localData.length) {
+                        const rowValues = [];
+                        for (let c = startCol; c <= endCol; c++) {
+                            rowValues.push(getCellCopyValue(c, r));
+                        }
+                        lines.push(rowValues.join('\t'));
+                    }
+                }
+                navigator.clipboard.writeText(lines.join('\n')).catch(err => {
+                    console.error('Failed to copy selection:', err);
+                });
+            } else if (col !== null && row !== null) {
+                // No range selection, copy single cell
+                navigator.clipboard.writeText(getCellCopyValue(col, row)).catch(err => {
+                    console.error('Failed to copy cell:', err);
+                });
+            }
+        } else if (action === 'pasteAtClickedCell') {
+            // Paste from clipboard starting at clicked cell
+            if (col !== null && row !== null && localData && localColumns) {
+                navigator.clipboard.readText().then(text => {
+                    if (!text) return;
+
+                    // Parse TSV/CSV content
+                    const lines = text.split('\n').filter(line => line.length > 0);
+                    const newData = [...localData];
+                    const edits = [];
+
+                    lines.forEach((line, lineIdx) => {
+                        const targetRow = row + lineIdx;
+                        if (targetRow >= newData.length) return;
+
+                        const values = line.split('\t');
+                        const newRowData = { ...newData[targetRow] };
+
+                        values.forEach((val, valIdx) => {
+                            const targetCol = col + valIdx;
+                            if (targetCol >= localColumns.length) return;
+
+                            const columnDef = localColumns[targetCol];
+                            const columnId = columnDef?.id;
+                            if (columnId && !columnDef.readonly) {
+                                const oldValue = newRowData[columnId];
+                                const newValue = coercePastedValue(val, oldValue);
+                                newRowData[columnId] = newValue;
+                                edits.push({ col: targetCol, row: targetRow, value: newValue });
+                            }
+                        });
+
+                        newData[targetRow] = newRowData;
+                    });
+
+                    if (edits.length > 0) {
+                        setLocalData(newData);
+                        if (setProps) {
+                            setProps({
+                                data: newData,
+                                cellsEdited: {
+                                    edits,
+                                    count: edits.length,
+                                    timestamp: Date.now()
+                                }
+                            });
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Failed to paste:', err);
+                });
+            }
+        } else if (action === 'pasteAtSelection') {
+            // Paste from clipboard starting at top-left of current selection
+            if (localData && localColumns && gridSelection.current?.range) {
+                const range = gridSelection.current.range;
+                const startCol = range.x;
+                const startRow = range.y;
+
+                navigator.clipboard.readText().then(text => {
+                    if (!text) return;
+
+                    // Parse TSV/CSV content
+                    const lines = text.split('\n').filter(line => line.length > 0);
+                    const newData = [...localData];
+                    const edits = [];
+
+                    lines.forEach((line, lineIdx) => {
+                        const targetRow = startRow + lineIdx;
+                        if (targetRow >= newData.length) return;
+
+                        const values = line.split('\t');
+                        const newRowData = { ...newData[targetRow] };
+
+                        values.forEach((val, valIdx) => {
+                            const targetCol = startCol + valIdx;
+                            if (targetCol >= localColumns.length) return;
+
+                            const columnDef = localColumns[targetCol];
+                            const columnId = columnDef?.id;
+                            if (columnId && !columnDef.readonly) {
+                                const oldValue = newRowData[columnId];
+                                const newValue = coercePastedValue(val, oldValue);
+                                newRowData[columnId] = newValue;
+                                edits.push({ col: targetCol, row: targetRow, value: newValue });
+                            }
+                        });
+
+                        newData[targetRow] = newRowData;
+                    });
+
+                    if (edits.length > 0) {
+                        setLocalData(newData);
+                        if (setProps) {
+                            setProps({
+                                data: newData,
+                                cellsEdited: {
+                                    edits,
+                                    count: edits.length,
+                                    timestamp: Date.now()
+                                }
+                            });
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Failed to paste selection:', err);
+                });
+            } else if (col !== null && row !== null && localData && localColumns) {
+                // No range selection, fall back to paste at clicked cell
+                navigator.clipboard.readText().then(text => {
+                    if (!text) return;
+
+                    const lines = text.split('\n').filter(line => line.length > 0);
+                    const newData = [...localData];
+                    const edits = [];
+
+                    lines.forEach((line, lineIdx) => {
+                        const targetRow = row + lineIdx;
+                        if (targetRow >= newData.length) return;
+
+                        const values = line.split('\t');
+                        const newRowData = { ...newData[targetRow] };
+
+                        values.forEach((val, valIdx) => {
+                            const targetCol = col + valIdx;
+                            if (targetCol >= localColumns.length) return;
+
+                            const columnDef = localColumns[targetCol];
+                            const columnId = columnDef?.id;
+                            if (columnId && !columnDef.readonly) {
+                                const oldValue = newRowData[columnId];
+                                const newValue = coercePastedValue(val, oldValue);
+                                newRowData[columnId] = newValue;
+                                edits.push({ col: targetCol, row: targetRow, value: newValue });
+                            }
+                        });
+
+                        newData[targetRow] = newRowData;
+                    });
+
+                    if (edits.length > 0) {
+                        setLocalData(newData);
+                        if (setProps) {
+                            setProps({
+                                data: newData,
+                                cellsEdited: {
+                                    edits,
+                                    count: edits.length,
+                                    timestamp: Date.now()
+                                }
+                            });
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Failed to paste:', err);
+                });
+            }
+        } else if (action === 'clearClickedCell') {
+            // Clear the clicked cell value
+            if (col !== null && row !== null && localData && localColumns) {
+                const columnDef = localColumns[col];
+                const columnId = columnDef?.id;
+                if (columnId && !columnDef.readonly) {
+                    const oldValue = localData[row]?.[columnId];
+                    const newValue = getClearedValue(col, row, oldValue);
+                    const newData = [...localData];
+                    newData[row] = { ...newData[row], [columnId]: newValue };
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits: [{ col, row, value: newValue }],
+                                count: 1,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                }
+            }
+        } else if (action === 'clearSelection') {
+            // Clear all cells in the current selection
+            if (localData && localColumns && gridSelection.current?.range) {
+                const range = gridSelection.current.range;
+                const newData = [...localData];
+                const edits = [];
+
+                for (let r = range.y; r < range.y + range.height; r++) {
+                    if (r >= newData.length) continue;
+                    const newRowData = { ...newData[r] };
+
+                    for (let c = range.x; c < range.x + range.width; c++) {
+                        if (c >= localColumns.length) continue;
+                        const columnDef = localColumns[c];
+                        const columnId = columnDef?.id;
+                        if (columnId && !columnDef.readonly) {
+                            const oldValue = newRowData[columnId];
+                            const newValue = getClearedValue(c, r, oldValue);
+                            newRowData[columnId] = newValue;
+                            edits.push({ col: c, row: r, value: newValue });
+                        }
+                    }
+                    newData[r] = newRowData;
+                }
+
+                if (edits.length > 0) {
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits,
+                                count: edits.length,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                }
+            } else if (col !== null && row !== null && localData && localColumns) {
+                // No range selection, fall back to clear single clicked cell
+                const columnDef = localColumns[col];
+                const columnId = columnDef?.id;
+                if (columnId && !columnDef.readonly) {
+                    const oldValue = localData[row]?.[columnId];
+                    const newValue = getClearedValue(col, row, oldValue);
+                    const newData = [...localData];
+                    newData[row] = { ...newData[row], [columnId]: newValue };
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits: [{ col, row, value: newValue }],
+                                count: 1,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                }
+            }
+        } else if (isFunctionRef(action)) {
+            // Handle clientside function action
+            const columnDef = localColumns?.[col];
+            const columnId = columnDef?.id;
+            const rowData = localData?.[row];
+            const cellData = rowData?.[columnId];
+
+            // Build utility functions
+            const utils = {
+                setData: (newData) => {
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({ data: newData });
+                    }
+                },
+                setCells: (edits) => {
+                    const newData = [...localData];
+                    edits.forEach(edit => {
+                        const colIdx = typeof edit.col === 'number'
+                            ? edit.col
+                            : localColumns.findIndex(c => c.id === edit.columnId);
+                        const colId = localColumns[colIdx]?.id;
+                        if (colId && edit.row >= 0 && edit.row < newData.length) {
+                            newData[edit.row] = { ...newData[edit.row], [colId]: edit.value };
+                        }
+                    });
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({
+                            data: newData,
+                            cellsEdited: {
+                                edits: edits.map(e => ({ col: e.col, row: e.row, value: e.value })),
+                                count: edits.length,
+                                timestamp: Date.now()
+                            }
+                        });
+                    }
+                },
+                getClipboard: () => navigator.clipboard.readText(),
+                setClipboard: (text) => navigator.clipboard.writeText(text)
+            };
+
+            const params = {
+                col,
+                row,
+                columnId,
+                cellData,
+                rowData,
+                selection: {
+                    range: gridSelection.current?.range || null,
+                    cell: gridSelection.current?.cell || null
+                },
+                columns: localColumns,
+                data: localData,
+                utils
+            };
+
+            // Helper to emit callback and close menu
+            const emitAndClose = () => {
+                if (setProps) {
+                    setProps({
+                        contextMenuItemClicked: {
+                            col,
+                            row,
+                            itemId,
+                            timestamp: Date.now()
+                        }
+                    });
+                }
+                handleContextMenuClose();
+            };
+
+            // Execute the function (may be async)
+            try {
+                const result = executeFunction(action.function, params);
+                // Handle async functions - wait for completion before emitting callback
+                Promise.resolve(result).then(emitAndClose).catch((err) => {
+                    console.error('[GlideGrid] Error executing context menu action:', err);
+                    emitAndClose();
+                });
+            } catch (err) {
+                console.error('[GlideGrid] Error executing context menu action:', err);
+                emitAndClose();
+            }
+
+            // Return early - callback and close handled above
+            return;
+        }
+
+        // Always emit the event for Python callbacks
+        if (setProps) {
+            setProps({
+                contextMenuItemClicked: {
+                    col,
+                    row,
+                    itemId,
+                    timestamp: Date.now()
+                }
+            });
+        }
+        handleContextMenuClose();
+    }, [setProps, contextMenuState, handleContextMenuClose, localData, localColumns, gridSelection, getClearedValue]);
+
     // Handle header menu click (dropdown arrow on columns with hasMenu or filterable)
     const handleHeaderMenuClick = useCallback((col, screenPosition) => {
         // Check if this column is filterable
@@ -2681,17 +3302,39 @@ const GlideGrid = (props) => {
     }, [setProps, localColumns]);
 
     // Handle cell context menu (right-click on cell)
-    const handleCellContextMenu = useCallback((cell, event) => {
+    const handleContextMenu = useCallback((cell, event) => {
+        const hasConfig = contextMenuConfig?.items?.length > 0;
+
+        // Prevent browser's default context menu
+        event.preventDefault();
+
+        // Use the mouse position captured by our native event listener
+        const screenX = lastContextMenuPosition.current.x;
+        const screenY = lastContextMenuPosition.current.y;
+
+        // Open built-in context menu if configured
+        if (hasConfig) {
+            setContextMenuState({
+                isOpen: true,
+                col: cell[0],
+                row: cell[1],
+                position: { x: screenX, y: screenY }
+            });
+        }
+
+        // Always emit prop for backwards compatibility (now with position)
         if (setProps) {
             setProps({
-                cellContextMenu: {
+                contextMenu: {
                     col: cell[0],
                     row: cell[1],
+                    screenX,
+                    screenY,
                     timestamp: Date.now()
                 }
             });
         }
-    }, [setProps]);
+    }, [setProps, contextMenuConfig]);
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
@@ -2775,7 +3418,7 @@ const GlideGrid = (props) => {
             const editsList = edits.map(edit => ({
                 col: edit.location[0],
                 row: edit.location[1],
-                value: edit.value?.data ?? edit.value
+                value: (edit.value?.data ?? edit.value) ?? ''
             }));
 
             setProps({
@@ -2863,6 +3506,11 @@ const GlideGrid = (props) => {
             setIsEditorOpen(false);
         }
 
+        // Close context menu on grid internal scroll if behavior is set
+        if (contextMenuScrollBehavior === 'close-overlay-on-scroll' && contextMenuState.isOpen) {
+            handleContextMenuClose();
+        }
+
         if (setProps) {
             setProps({
                 visibleRegion: {
@@ -2875,7 +3523,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps, editorScrollBehavior, isEditorOpen]);
+    }, [setProps, editorScrollBehavior, isEditorOpen, contextMenuScrollBehavior, contextMenuState.isOpen, handleContextMenuClose]);
 
     // ========== PHASE 3: ROW/COLUMN REORDERING ==========
 
@@ -3469,7 +4117,7 @@ const GlideGrid = (props) => {
                 onHeaderMenuClick={handleHeaderMenuClick}
                 drawHeader={handleDrawHeaderCustom || (headerMenuConfig?.menuIcon && headerMenuConfig.menuIcon !== 'chevron' ? handleDrawHeader : undefined)}
                 onGroupHeaderClicked={handleGroupHeaderClicked}
-                onCellContextMenu={handleCellContextMenu}
+                onCellContextMenu={handleContextMenu}
                 onCellActivated={handleCellActivated}
                 cellActivationBehavior={cellActivationBehavior}
                 editOnType={editOnType}
@@ -3518,6 +4166,17 @@ const GlideGrid = (props) => {
                 customItems={headerMenuConfig?.customItems}
                 onCustomItemClick={handleCustomItemClick}
                 anchorToHeader={headerMenuConfig?.anchorToHeader !== false}
+            />
+            {/* Cell Context Menu */}
+            <ContextMenu
+                isOpen={contextMenuState.isOpen}
+                onClose={handleContextMenuClose}
+                position={contextMenuState.position}
+                cellInfo={{ col: contextMenuState.col, row: contextMenuState.row }}
+                items={contextMenuConfig?.items}
+                onItemClick={handleContextMenuItemClick}
+                theme={theme}
+                maxHeight={contextMenuConfig?.maxHeight}
             />
         </div>
     );
@@ -4190,11 +4849,51 @@ GlideGrid.propTypes = {
     /**
      * Information about the last right-clicked cell.
      * Useful for implementing cell context menus.
-     * Format: {"col": 0, "row": 1, "timestamp": 1234567890}
+     * Format: {"col": 0, "row": 1, "screenX": 100, "screenY": 200, "timestamp": 1234567890}
      */
-    cellContextMenu: PropTypes.shape({
+    contextMenu: PropTypes.shape({
         col: PropTypes.number,
         row: PropTypes.number,
+        screenX: PropTypes.number,
+        screenY: PropTypes.number,
+        timestamp: PropTypes.number
+    }),
+
+    /**
+     * Configuration for built-in cell context menu.
+     * Provide an array of menu items to display when right-clicking a cell.
+     * maxHeight constrains the menu height (e.g., 100 or "100px"). Only px units supported.
+     * Example: { "items": [{"id": "edit", "label": "Edit"}], "maxHeight": "150px" }
+     */
+    contextMenuConfig: PropTypes.shape({
+        items: PropTypes.arrayOf(PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            label: PropTypes.string.isRequired,
+            icon: PropTypes.string,
+            dividerAfter: PropTypes.bool,
+            disabled: PropTypes.bool,
+            /** Action to execute when item is clicked.
+             * Built-in (string): 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'
+             * Clientside function (object): {function: 'myFunc(col, row, cellData, rowData, selection, columns, data, utils)'}
+             */
+            action: PropTypes.oneOfType([
+                PropTypes.string,
+                PropTypes.shape({
+                    function: PropTypes.string
+                })
+            ])
+        })),
+        maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+    }),
+
+    /**
+     * Information about the last clicked cell context menu item.
+     * Format: {"col": 0, "row": 1, "itemId": "edit", "timestamp": 1234567890}
+     */
+    contextMenuItemClicked: PropTypes.shape({
+        col: PropTypes.number,
+        row: PropTypes.number,
+        itemId: PropTypes.string,
         timestamp: PropTypes.number
     }),
 

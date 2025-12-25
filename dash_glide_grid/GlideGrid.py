@@ -97,19 +97,6 @@ Keyword arguments:
 
     - timestamp (number; optional)
 
-- cellContextMenu (dict; optional):
-    Information about the last right-clicked cell. Useful for
-    implementing cell context menus. Format: {\"col\": 0, \"row\": 1,
-    \"timestamp\": 1234567890}.
-
-    `cellContextMenu` is a dict with keys:
-
-    - col (number; optional)
-
-    - row (number; optional)
-
-    - timestamp (number; optional)
-
 - cellEdited (dict; optional):
     Information about the last edited cell. Format: {\"col\": 0,
     \"row\": 1, \"value\": \"new value\", \"timestamp\": 1234567890}.
@@ -271,6 +258,110 @@ Keyword arguments:
         `valueFormatter` is a dict with keys:
 
         - function (string; required)
+
+- contextMenu (dict; optional):
+    Information about the last right-clicked cell. Useful for
+    implementing cell context menus. Format: {\"col\": 0, \"row\": 1,
+    \"screenX\": 100, \"screenY\": 200, \"timestamp\": 1234567890}.
+
+    `contextMenu` is a dict with keys:
+
+    - col (number; optional)
+
+    - row (number; optional)
+
+    - screenX (number; optional)
+
+    - screenY (number; optional)
+
+    - timestamp (number; optional)
+
+- contextMenuConfig (dict; optional):
+    Configuration for built-in cell context menu. Provide an array of
+    menu items to display when right-clicking a cell. Example: {
+    \"items\": [{\"id\": \"edit\", \"label\": \"Edit\"}, {\"id\":
+    \"delete\", \"label\": \"Delete\"}] }.
+
+    `contextMenuConfig` is a dict with keys:
+
+    - items (list of dicts; optional)
+
+        `items` is a list of dicts with keys:
+
+        - id (string; required)
+
+        - label (string; required)
+
+        - icon (string; optional)
+
+        - iconSize (string; optional):
+
+            CSS font-size for the icon (e.g., '18px', '1.2em').
+
+        - iconColor (string; optional):
+
+            CSS color for the icon.
+
+        - iconWeight (string; optional):
+
+            CSS font-weight for the icon (e.g., 'bold', '600').
+
+        - color (string; optional):
+
+            CSS color for the label text.
+
+        - fontWeight (string; optional):
+
+            CSS font-weight for the label text (e.g., 'bold', '600').
+
+        - dividerAfter (boolean; optional)
+
+        - disabled (boolean; optional)
+
+        - action (dict; optional):
+
+            Action to execute when item is clicked. Built-in (string):
+
+            'copyClickedCell', 'copySelection', 'pasteAtClickedCell',
+
+            'pasteAtSelection' Clientside function (object): {function:
+
+            'myFunc(col, row, cellData, rowData, selection, columns, data,
+
+            utils)'}.
+
+            `action` is a string
+
+              Or dict with keys:
+
+            - function (string; optional)
+
+    - maxHeight (number | string; optional):
+        Max-height in pixels (e.g., 300 or '300px'). Only px units
+        supported. If set, enables scrolling.
+
+- contextMenuItemClicked (dict; optional):
+    Information about the last clicked cell context menu item. Format:
+    {\"col\": 0, \"row\": 1, \"itemId\": \"edit\", \"timestamp\":
+    1234567890}.
+
+    `contextMenuItemClicked` is a dict with keys:
+
+    - col (number; optional)
+
+    - row (number; optional)
+
+    - itemId (string; optional)
+
+    - timestamp (number; optional)
+
+- contextMenuScrollBehavior (a value equal to: 'default', 'close-overlay-on-scroll', 'lock-scroll'; default 'default'):
+    Controls how the grid behaves when the user scrolls while a
+    context menu is open. - \"default\": Context menu stays at
+    original position (standard behavior) -
+    \"close-overlay-on-scroll\": Context menu closes on any scroll -
+    \"lock-scroll\": Scrolling is prevented while context menu is open
+    Default: \"default\".
 
 - copyHeaders (boolean; default False):
     Include column headers when copying to clipboard. Default: False.
@@ -1420,11 +1511,55 @@ Keyword arguments:
         }
     )
 
-    CellContextMenu = TypedDict(
-        "CellContextMenu",
+    ContextMenu = TypedDict(
+        "ContextMenu",
             {
             "col": NotRequired[NumberType],
             "row": NotRequired[NumberType],
+            "screenX": NotRequired[NumberType],
+            "screenY": NotRequired[NumberType],
+            "timestamp": NotRequired[NumberType]
+        }
+    )
+
+    ContextMenuConfigItemsAction = TypedDict(
+        "ContextMenuConfigItemsAction",
+            {
+            "function": NotRequired[str]
+        }
+    )
+
+    ContextMenuConfigItems = TypedDict(
+        "ContextMenuConfigItems",
+            {
+            "id": str,
+            "label": str,
+            "icon": NotRequired[str],
+            "iconSize": NotRequired[str],
+            "iconColor": NotRequired[str],
+            "iconWeight": NotRequired[str],
+            "color": NotRequired[str],
+            "fontWeight": NotRequired[str],
+            "dividerAfter": NotRequired[bool],
+            "disabled": NotRequired[bool],
+            "action": NotRequired[typing.Union[str, "ContextMenuConfigItemsAction"]]
+        }
+    )
+
+    ContextMenuConfig = TypedDict(
+        "ContextMenuConfig",
+            {
+            "items": NotRequired[typing.Sequence["ContextMenuConfigItems"]],
+            "maxHeight": NotRequired[typing.Union[NumberType, str]]
+        }
+    )
+
+    ContextMenuItemClicked = TypedDict(
+        "ContextMenuItemClicked",
+            {
+            "col": NotRequired[NumberType],
+            "row": NotRequired[NumberType],
+            "itemId": NotRequired[str],
             "timestamp": NotRequired[NumberType]
         }
     )
@@ -1785,7 +1920,10 @@ Keyword arguments:
         headerContextMenu: typing.Optional["HeaderContextMenu"] = None,
         headerMenuClicked: typing.Optional["HeaderMenuClicked"] = None,
         groupHeaderClicked: typing.Optional["GroupHeaderClicked"] = None,
-        cellContextMenu: typing.Optional["CellContextMenu"] = None,
+        contextMenu: typing.Optional["ContextMenu"] = None,
+        contextMenuConfig: typing.Optional["ContextMenuConfig"] = None,
+        contextMenuScrollBehavior: typing.Optional[Literal["default", "close-overlay-on-scroll", "lock-scroll"]] = None,
+        contextMenuItemClicked: typing.Optional["ContextMenuItemClicked"] = None,
         cellActivated: typing.Optional["CellActivated"] = None,
         itemHovered: typing.Optional["ItemHovered"] = None,
         mouseMove: typing.Optional["MouseMove"] = None,
@@ -1838,9 +1976,9 @@ Keyword arguments:
         undoRedoPerformed: typing.Optional["UndoRedoPerformed"] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'allowDelete', 'allowedFillDirections', 'buttonClicked', 'canRedo', 'canUndo', 'cellActivated', 'cellActivationBehavior', 'cellClicked', 'cellContextMenu', 'cellEdited', 'cellsEdited', 'className', 'coercePasteValue', 'columnFilters', 'columnMovable', 'columnMoved', 'columnResize', 'columnSelect', 'columnSelectionBlending', 'columnSelectionMode', 'columnWidths', 'columns', 'copyHeaders', 'data', 'deletePressed', 'dragOverCell', 'dragStarted', 'drawCell', 'drawFocusRing', 'drawHeader', 'droppedOnCell', 'editOnType', 'editorScrollBehavior', 'enableCopyPaste', 'enableUndoRedo', 'experimental', 'fillHandle', 'fixedShadowX', 'fixedShadowY', 'freezeColumns', 'freezeTrailingRows', 'getRowThemeOverride', 'groupHeaderClicked', 'groupHeaderHeight', 'headerClicked', 'headerContextMenu', 'headerHeight', 'headerMenuClicked', 'headerMenuConfig', 'headerMenuItemClicked', 'height', 'highlightRegions', 'hoverRow', 'isDraggable', 'itemHovered', 'keybindings', 'linkClicked', 'maxColumnAutoWidth', 'maxColumnWidth', 'maxUndoSteps', 'minColumnWidth', 'mouseMove', 'nClicks', 'overscrollX', 'overscrollY', 'preventDiagonalScrolling', 'rangeSelect', 'rangeSelectionBlending', 'rangeSelectionColumnSpanning', 'readonly', 'redrawTrigger', 'rowAppended', 'rowHeight', 'rowMarkerStartIndex', 'rowMarkerTheme', 'rowMarkerWidth', 'rowMarkers', 'rowMovable', 'rowMoved', 'rowSelect', 'rowSelectionBlending', 'rowSelectionMode', 'rows', 'scaleToRem', 'scrollOffsetX', 'scrollOffsetY', 'scrollToActiveCell', 'scrollToCell', 'searchValue', 'selectedCell', 'selectedColumns', 'selectedRange', 'selectedRanges', 'selectedRows', 'selectionColumnMin', 'showCellFlash', 'showSearch', 'smoothScrollX', 'smoothScrollY', 'sortColumns', 'sortable', 'sortingOrder', 'spanRangeBehavior', 'tabWrapping', 'theme', 'trailingRowOptions', 'trapFocus', 'treeNodeToggled', 'undoRedoAction', 'undoRedoPerformed', 'unselectableColumns', 'unselectableRows', 'validateCell', 'verticalBorder', 'visibleRegion', 'visibleRowIndices', 'width']
+        self._prop_names = ['id', 'allowDelete', 'allowedFillDirections', 'buttonClicked', 'canRedo', 'canUndo', 'cellActivated', 'cellActivationBehavior', 'cellClicked', 'cellEdited', 'cellsEdited', 'className', 'coercePasteValue', 'columnFilters', 'columnMovable', 'columnMoved', 'columnResize', 'columnSelect', 'columnSelectionBlending', 'columnSelectionMode', 'columnWidths', 'columns', 'contextMenu', 'contextMenuConfig', 'contextMenuItemClicked', 'contextMenuScrollBehavior', 'copyHeaders', 'data', 'deletePressed', 'dragOverCell', 'dragStarted', 'drawCell', 'drawFocusRing', 'drawHeader', 'droppedOnCell', 'editOnType', 'editorScrollBehavior', 'enableCopyPaste', 'enableUndoRedo', 'experimental', 'fillHandle', 'fixedShadowX', 'fixedShadowY', 'freezeColumns', 'freezeTrailingRows', 'getRowThemeOverride', 'groupHeaderClicked', 'groupHeaderHeight', 'headerClicked', 'headerContextMenu', 'headerHeight', 'headerMenuClicked', 'headerMenuConfig', 'headerMenuItemClicked', 'height', 'highlightRegions', 'hoverRow', 'isDraggable', 'itemHovered', 'keybindings', 'linkClicked', 'maxColumnAutoWidth', 'maxColumnWidth', 'maxUndoSteps', 'minColumnWidth', 'mouseMove', 'nClicks', 'overscrollX', 'overscrollY', 'preventDiagonalScrolling', 'rangeSelect', 'rangeSelectionBlending', 'rangeSelectionColumnSpanning', 'readonly', 'redrawTrigger', 'rowAppended', 'rowHeight', 'rowMarkerStartIndex', 'rowMarkerTheme', 'rowMarkerWidth', 'rowMarkers', 'rowMovable', 'rowMoved', 'rowSelect', 'rowSelectionBlending', 'rowSelectionMode', 'rows', 'scaleToRem', 'scrollOffsetX', 'scrollOffsetY', 'scrollToActiveCell', 'scrollToCell', 'searchValue', 'selectedCell', 'selectedColumns', 'selectedRange', 'selectedRanges', 'selectedRows', 'selectionColumnMin', 'showCellFlash', 'showSearch', 'smoothScrollX', 'smoothScrollY', 'sortColumns', 'sortable', 'sortingOrder', 'spanRangeBehavior', 'tabWrapping', 'theme', 'trailingRowOptions', 'trapFocus', 'treeNodeToggled', 'undoRedoAction', 'undoRedoPerformed', 'unselectableColumns', 'unselectableRows', 'validateCell', 'verticalBorder', 'visibleRegion', 'visibleRowIndices', 'width']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'allowDelete', 'allowedFillDirections', 'buttonClicked', 'canRedo', 'canUndo', 'cellActivated', 'cellActivationBehavior', 'cellClicked', 'cellContextMenu', 'cellEdited', 'cellsEdited', 'className', 'coercePasteValue', 'columnFilters', 'columnMovable', 'columnMoved', 'columnResize', 'columnSelect', 'columnSelectionBlending', 'columnSelectionMode', 'columnWidths', 'columns', 'copyHeaders', 'data', 'deletePressed', 'dragOverCell', 'dragStarted', 'drawCell', 'drawFocusRing', 'drawHeader', 'droppedOnCell', 'editOnType', 'editorScrollBehavior', 'enableCopyPaste', 'enableUndoRedo', 'experimental', 'fillHandle', 'fixedShadowX', 'fixedShadowY', 'freezeColumns', 'freezeTrailingRows', 'getRowThemeOverride', 'groupHeaderClicked', 'groupHeaderHeight', 'headerClicked', 'headerContextMenu', 'headerHeight', 'headerMenuClicked', 'headerMenuConfig', 'headerMenuItemClicked', 'height', 'highlightRegions', 'hoverRow', 'isDraggable', 'itemHovered', 'keybindings', 'linkClicked', 'maxColumnAutoWidth', 'maxColumnWidth', 'maxUndoSteps', 'minColumnWidth', 'mouseMove', 'nClicks', 'overscrollX', 'overscrollY', 'preventDiagonalScrolling', 'rangeSelect', 'rangeSelectionBlending', 'rangeSelectionColumnSpanning', 'readonly', 'redrawTrigger', 'rowAppended', 'rowHeight', 'rowMarkerStartIndex', 'rowMarkerTheme', 'rowMarkerWidth', 'rowMarkers', 'rowMovable', 'rowMoved', 'rowSelect', 'rowSelectionBlending', 'rowSelectionMode', 'rows', 'scaleToRem', 'scrollOffsetX', 'scrollOffsetY', 'scrollToActiveCell', 'scrollToCell', 'searchValue', 'selectedCell', 'selectedColumns', 'selectedRange', 'selectedRanges', 'selectedRows', 'selectionColumnMin', 'showCellFlash', 'showSearch', 'smoothScrollX', 'smoothScrollY', 'sortColumns', 'sortable', 'sortingOrder', 'spanRangeBehavior', 'tabWrapping', 'theme', 'trailingRowOptions', 'trapFocus', 'treeNodeToggled', 'undoRedoAction', 'undoRedoPerformed', 'unselectableColumns', 'unselectableRows', 'validateCell', 'verticalBorder', 'visibleRegion', 'visibleRowIndices', 'width']
+        self.available_properties = ['id', 'allowDelete', 'allowedFillDirections', 'buttonClicked', 'canRedo', 'canUndo', 'cellActivated', 'cellActivationBehavior', 'cellClicked', 'cellEdited', 'cellsEdited', 'className', 'coercePasteValue', 'columnFilters', 'columnMovable', 'columnMoved', 'columnResize', 'columnSelect', 'columnSelectionBlending', 'columnSelectionMode', 'columnWidths', 'columns', 'contextMenu', 'contextMenuConfig', 'contextMenuItemClicked', 'contextMenuScrollBehavior', 'copyHeaders', 'data', 'deletePressed', 'dragOverCell', 'dragStarted', 'drawCell', 'drawFocusRing', 'drawHeader', 'droppedOnCell', 'editOnType', 'editorScrollBehavior', 'enableCopyPaste', 'enableUndoRedo', 'experimental', 'fillHandle', 'fixedShadowX', 'fixedShadowY', 'freezeColumns', 'freezeTrailingRows', 'getRowThemeOverride', 'groupHeaderClicked', 'groupHeaderHeight', 'headerClicked', 'headerContextMenu', 'headerHeight', 'headerMenuClicked', 'headerMenuConfig', 'headerMenuItemClicked', 'height', 'highlightRegions', 'hoverRow', 'isDraggable', 'itemHovered', 'keybindings', 'linkClicked', 'maxColumnAutoWidth', 'maxColumnWidth', 'maxUndoSteps', 'minColumnWidth', 'mouseMove', 'nClicks', 'overscrollX', 'overscrollY', 'preventDiagonalScrolling', 'rangeSelect', 'rangeSelectionBlending', 'rangeSelectionColumnSpanning', 'readonly', 'redrawTrigger', 'rowAppended', 'rowHeight', 'rowMarkerStartIndex', 'rowMarkerTheme', 'rowMarkerWidth', 'rowMarkers', 'rowMovable', 'rowMoved', 'rowSelect', 'rowSelectionBlending', 'rowSelectionMode', 'rows', 'scaleToRem', 'scrollOffsetX', 'scrollOffsetY', 'scrollToActiveCell', 'scrollToCell', 'searchValue', 'selectedCell', 'selectedColumns', 'selectedRange', 'selectedRanges', 'selectedRows', 'selectionColumnMin', 'showCellFlash', 'showSearch', 'smoothScrollX', 'smoothScrollY', 'sortColumns', 'sortable', 'sortingOrder', 'spanRangeBehavior', 'tabWrapping', 'theme', 'trailingRowOptions', 'trapFocus', 'treeNodeToggled', 'undoRedoAction', 'undoRedoPerformed', 'unselectableColumns', 'unselectableRows', 'validateCell', 'verticalBorder', 'visibleRegion', 'visibleRowIndices', 'width']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
