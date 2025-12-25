@@ -2759,7 +2759,7 @@ const GlideGrid = (props) => {
                     // Parse TSV/CSV content
                     const lines = text.split('\n').filter(line => line.length > 0);
                     const newData = [...localData];
-                    let dataChanged = false;
+                    const edits = [];
 
                     lines.forEach((line, lineIdx) => {
                         const targetRow = row + lineIdx;
@@ -2776,17 +2776,24 @@ const GlideGrid = (props) => {
                             const columnId = columnDef?.id;
                             if (columnId && !columnDef.readonly) {
                                 newRowData[columnId] = val;
-                                dataChanged = true;
+                                edits.push({ col: targetCol, row: targetRow, value: val });
                             }
                         });
 
                         newData[targetRow] = newRowData;
                     });
 
-                    if (dataChanged) {
+                    if (edits.length > 0) {
                         setLocalData(newData);
                         if (setProps) {
-                            setProps({ data: newData });
+                            setProps({
+                                data: newData,
+                                cellsEdited: {
+                                    edits,
+                                    count: edits.length,
+                                    timestamp: Date.now()
+                                }
+                            });
                         }
                     }
                 }).catch(err => {
@@ -2806,7 +2813,7 @@ const GlideGrid = (props) => {
                     // Parse TSV/CSV content
                     const lines = text.split('\n').filter(line => line.length > 0);
                     const newData = [...localData];
-                    let dataChanged = false;
+                    const edits = [];
 
                     lines.forEach((line, lineIdx) => {
                         const targetRow = startRow + lineIdx;
@@ -2823,17 +2830,24 @@ const GlideGrid = (props) => {
                             const columnId = columnDef?.id;
                             if (columnId && !columnDef.readonly) {
                                 newRowData[columnId] = val;
-                                dataChanged = true;
+                                edits.push({ col: targetCol, row: targetRow, value: val });
                             }
                         });
 
                         newData[targetRow] = newRowData;
                     });
 
-                    if (dataChanged) {
+                    if (edits.length > 0) {
                         setLocalData(newData);
                         if (setProps) {
-                            setProps({ data: newData });
+                            setProps({
+                                data: newData,
+                                cellsEdited: {
+                                    edits,
+                                    count: edits.length,
+                                    timestamp: Date.now()
+                                }
+                            });
                         }
                     }
                 }).catch(err => {
@@ -2846,7 +2860,7 @@ const GlideGrid = (props) => {
 
                     const lines = text.split('\n').filter(line => line.length > 0);
                     const newData = [...localData];
-                    let dataChanged = false;
+                    const edits = [];
 
                     lines.forEach((line, lineIdx) => {
                         const targetRow = row + lineIdx;
@@ -2863,17 +2877,24 @@ const GlideGrid = (props) => {
                             const columnId = columnDef?.id;
                             if (columnId && !columnDef.readonly) {
                                 newRowData[columnId] = val;
-                                dataChanged = true;
+                                edits.push({ col: targetCol, row: targetRow, value: val });
                             }
                         });
 
                         newData[targetRow] = newRowData;
                     });
 
-                    if (dataChanged) {
+                    if (edits.length > 0) {
                         setLocalData(newData);
                         if (setProps) {
-                            setProps({ data: newData });
+                            setProps({
+                                data: newData,
+                                cellsEdited: {
+                                    edits,
+                                    count: edits.length,
+                                    timestamp: Date.now()
+                                }
+                            });
                         }
                     }
                 }).catch(err => {
