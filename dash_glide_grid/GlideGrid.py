@@ -318,11 +318,23 @@ Keyword arguments:
 
         - disabled (boolean; optional)
 
-        - action (a value equal to: 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'; optional):
+        - action (dict; optional):
 
-            Built-in action: 'copyClickedCell', 'copySelection',
+            Action to execute when item is clicked. Built-in (string):
 
-            'pasteAtClickedCell', 'pasteAtSelection'.
+            'copyClickedCell', 'copySelection', 'pasteAtClickedCell',
+
+            'pasteAtSelection' Clientside function (object): {function:
+
+            'myFunc(col, row, cellData, rowData, selection, columns, data,
+
+            utils)'}.
+
+            `action` is a string
+
+              Or dict with keys:
+
+            - function (string; optional)
 
     - maxHeight (number | string; optional):
         Max-height in pixels (e.g., 300 or '300px'). Only px units
@@ -1510,6 +1522,13 @@ Keyword arguments:
         }
     )
 
+    ContextMenuConfigItemsAction = TypedDict(
+        "ContextMenuConfigItemsAction",
+            {
+            "function": NotRequired[str]
+        }
+    )
+
     ContextMenuConfigItems = TypedDict(
         "ContextMenuConfigItems",
             {
@@ -1523,7 +1542,7 @@ Keyword arguments:
             "fontWeight": NotRequired[str],
             "dividerAfter": NotRequired[bool],
             "disabled": NotRequired[bool],
-            "action": NotRequired[Literal["copyClickedCell", "copySelection", "pasteAtClickedCell", "pasteAtSelection"]]
+            "action": NotRequired[typing.Union[str, "ContextMenuConfigItemsAction"]]
         }
     )
 

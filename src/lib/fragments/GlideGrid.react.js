@@ -2880,6 +2880,86 @@ const GlideGrid = (props) => {
                     console.error('Failed to paste:', err);
                 });
             }
+        } else if (isFunctionRef(action)) {
+            // Handle clientside function action
+            const columnDef = localColumns?.[col];
+            const columnId = columnDef?.id;
+            const rowData = localData?.[row];
+            const cellData = rowData?.[columnId];
+
+            // Build utility functions
+            const utils = {
+                setData: (newData) => {
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({ data: newData });
+                    }
+                },
+                setCells: (edits) => {
+                    const newData = [...localData];
+                    edits.forEach(edit => {
+                        const colIdx = typeof edit.col === 'number'
+                            ? edit.col
+                            : localColumns.findIndex(c => c.id === edit.columnId);
+                        const colId = localColumns[colIdx]?.id;
+                        if (colId && edit.row >= 0 && edit.row < newData.length) {
+                            newData[edit.row] = { ...newData[edit.row], [colId]: edit.value };
+                        }
+                    });
+                    setLocalData(newData);
+                    if (setProps) {
+                        setProps({ data: newData });
+                    }
+                },
+                getClipboard: () => navigator.clipboard.readText(),
+                setClipboard: (text) => navigator.clipboard.writeText(text)
+            };
+
+            const params = {
+                col,
+                row,
+                columnId,
+                cellData,
+                rowData,
+                selection: {
+                    range: gridSelection.current?.range || null,
+                    cell: gridSelection.current?.cell || null
+                },
+                columns: localColumns,
+                data: localData,
+                utils
+            };
+
+            // Helper to emit callback and close menu
+            const emitAndClose = () => {
+                if (setProps) {
+                    setProps({
+                        contextMenuItemClicked: {
+                            col,
+                            row,
+                            itemId,
+                            timestamp: Date.now()
+                        }
+                    });
+                }
+                handleContextMenuClose();
+            };
+
+            // Execute the function (may be async)
+            try {
+                const result = executeFunction(action.function, params);
+                // Handle async functions - wait for completion before emitting callback
+                Promise.resolve(result).then(emitAndClose).catch((err) => {
+                    console.error('[GlideGrid] Error executing context menu action:', err);
+                    emitAndClose();
+                });
+            } catch (err) {
+                console.error('[GlideGrid] Error executing context menu action:', err);
+                emitAndClose();
+            }
+
+            // Return early - callback and close handled above
+            return;
         }
 
         // Always emit the event for Python callbacks
@@ -4584,7 +4664,17 @@ GlideGrid.propTypes = {
             label: PropTypes.string.isRequired,
             icon: PropTypes.string,
             dividerAfter: PropTypes.bool,
-            disabled: PropTypes.bool
+            disabled: PropTypes.bool,
+            /** Action to execute when item is clicked.
+             * Built-in (string): 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'
+             * Clientside function (object): {function: 'myFunc(col, row, cellData, rowData, selection, columns, data, utils)'}
+             */
+            action: PropTypes.oneOfType([
+                PropTypes.string,
+                PropTypes.shape({
+                    function: PropTypes.string
+                })
+            ])
         })),
         maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
     }),

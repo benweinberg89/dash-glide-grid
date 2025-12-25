@@ -291,8 +291,16 @@ ContextMenu.propTypes = {
         fontWeight: PropTypes.string,
         dividerAfter: PropTypes.bool,
         disabled: PropTypes.bool,
-        /** Built-in action: 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection' */
-        action: PropTypes.oneOf(['copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'])
+        /** Action to execute when item is clicked.
+         * Built-in (string): 'copyClickedCell', 'copySelection', 'pasteAtClickedCell', 'pasteAtSelection'
+         * Clientside function (object): {function: 'myFunc(col, row, cellData, rowData, selection, columns, data, utils)'}
+         */
+        action: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.shape({
+                function: PropTypes.string
+            })
+        ])
     })),
     /** Callback when an item is clicked: (item) => void */
     onItemClick: PropTypes.func.isRequired,

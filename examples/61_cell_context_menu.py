@@ -171,6 +171,28 @@ app.layout = html.Div(
                                 "action": "pasteAtSelection",
                                 "dividerAfter": True,
                             },
+                            # Clientside function actions (defined in assets/dashGlideGridFunctions.js)
+                            {
+                                "id": "clear",
+                                "label": "Clear Cell",
+                                "icon": "⌀",
+                                "action": {"function": "clearCell(col, row, columnId, utils)"},
+                            },
+                            {
+                                "id": "uppercase",
+                                "label": "Uppercase",
+                                "icon": "Aa",
+                                "iconSize": "11px",
+                                "action": {"function": "uppercaseCell(col, row, columnId, cellData, utils)"},
+                            },
+                            {
+                                "id": "paste-upper",
+                                "label": "Paste Uppercase",
+                                "icon": "⎘",
+                                "iconSize": "19px",
+                                "action": {"function": "pasteUppercase(col, row, utils)"},
+                                "dividerAfter": True,
+                            },
                             # Custom actions handled by Python callback
                             {
                                 "id": "delete",
@@ -253,6 +275,24 @@ app.layout = html.Div(
                         ),
                         html.Li(
                             [
+                                html.Strong("Clear Cell"),
+                                " - Clears the cell value (clientside function)",
+                            ]
+                        ),
+                        html.Li(
+                            [
+                                html.Strong("Uppercase"),
+                                " - Converts cell text to uppercase (clientside function)",
+                            ]
+                        ),
+                        html.Li(
+                            [
+                                html.Strong("Paste Uppercase"),
+                                " - Pastes clipboard as uppercase (async clientside function)",
+                            ]
+                        ),
+                        html.Li(
+                            [
                                 html.Strong("Delete Row"),
                                 " - Removes the row from the grid (Python callback)",
                             ]
@@ -267,8 +307,9 @@ app.layout = html.Div(
                 ),
                 html.P(
                     [
-                        "Tip: Native actions (copy/paste) work directly in the browser without a server round-trip. ",
-                        "Custom actions trigger Python callbacks for more complex logic.",
+                        "Actions can be: (1) built-in strings like 'copyClickedCell', ",
+                        "(2) clientside functions via {\"function\": \"myFunc(...)\"}, or ",
+                        "(3) Python callbacks for complex logic.",
                     ],
                     style={"fontStyle": "italic", "marginTop": "10px"},
                 ),
@@ -428,6 +469,16 @@ def handle_context_menu(item, current_data):
 
     elif item_id == "paste":
         action_msg = "Pasted from clipboard"
+
+    # Clientside function actions - just show a message (action already executed in browser)
+    elif item_id == "clear":
+        action_msg = f"Cleared cell at row {row + 1}, column '{col_id}'"
+
+    elif item_id == "uppercase":
+        action_msg = f"Uppercased cell at row {row + 1}, column '{col_id}'"
+
+    elif item_id == "paste-upper":
+        action_msg = f"Pasted uppercase at row {row + 1}, column '{col_id}'"
 
     elif item_id == "delete":
         # Delete action - remove the row
