@@ -1961,7 +1961,7 @@ const GlideGrid = (props) => {
             cellEdited: {
                 col: col,
                 row: actualRow,
-                value: newValue.kind === GridCellKind.Custom ? newValue.data : newValue.data,
+                value: (newValue.kind === GridCellKind.Custom ? newValue.data : newValue.data) ?? '',
                 timestamp: Date.now()
             }
         });
@@ -3418,7 +3418,7 @@ const GlideGrid = (props) => {
             const editsList = edits.map(edit => ({
                 col: edit.location[0],
                 row: edit.location[1],
-                value: edit.value?.data ?? edit.value
+                value: (edit.value?.data ?? edit.value) ?? ''
             }));
 
             setProps({
