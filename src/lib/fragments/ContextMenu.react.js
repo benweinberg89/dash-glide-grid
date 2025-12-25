@@ -167,6 +167,9 @@ const ContextMenu = ({
 
         const menuWidth = 200;
         const menuHeight = (items?.length || 0) * 36 + 8; // Approximate height
+        // Parse maxHeight to number for positioning (supports "100" or "100px")
+        const maxHeightNum = maxHeight ? parseInt(maxHeight, 10) : null;
+        const effectiveHeight = maxHeightNum ? Math.min(menuHeight, maxHeightNum) : menuHeight;
 
         let left = position.x;
         let top = position.y;
@@ -179,8 +182,8 @@ const ContextMenu = ({
             }
 
             // Flip vertically if would overflow bottom edge
-            if (top + menuHeight > window.innerHeight - 10) {
-                top = Math.max(10, position.y - menuHeight);
+            if (top + effectiveHeight > window.innerHeight - 10) {
+                top = Math.max(10, position.y - effectiveHeight);
             }
         }
 
@@ -189,7 +192,7 @@ const ContextMenu = ({
             left: `${left}px`,
             top: `${top}px`
         };
-    }, [position, styles.container, items]);
+    }, [position, styles.container, items, maxHeight]);
 
     // Handle item click - pass full item so parent can check for action property
     const handleItemClick = useCallback((item) => {

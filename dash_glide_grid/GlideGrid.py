@@ -324,9 +324,9 @@ Keyword arguments:
 
             'pasteAtClickedCell', 'pasteAtSelection'.
 
-    - maxHeight (string; optional):
-        CSS max-height for the menu (e.g., '300px'). If set, enables
-        scrolling.
+    - maxHeight (number | string; optional):
+        Max-height in pixels (e.g., 300 or '300px'). Only px units
+        supported. If set, enables scrolling.
 
 - contextMenuItemClicked (dict; optional):
     Information about the last clicked cell context menu item. Format:
@@ -1531,7 +1531,7 @@ Keyword arguments:
         "ContextMenuConfig",
             {
             "items": NotRequired[typing.Sequence["ContextMenuConfigItems"]],
-            "maxHeight": NotRequired[str]
+            "maxHeight": NotRequired[typing.Union[NumberType, str]]
         }
     )
 

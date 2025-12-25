@@ -4575,7 +4575,8 @@ GlideGrid.propTypes = {
     /**
      * Configuration for built-in cell context menu.
      * Provide an array of menu items to display when right-clicking a cell.
-     * Example: { "items": [{"id": "edit", "label": "Edit"}, {"id": "delete", "label": "Delete"}] }
+     * maxHeight constrains the menu height (e.g., 100 or "100px"). Only px units supported.
+     * Example: { "items": [{"id": "edit", "label": "Edit"}], "maxHeight": "150px" }
      */
     contextMenuConfig: PropTypes.shape({
         items: PropTypes.arrayOf(PropTypes.shape({
@@ -4584,7 +4585,8 @@ GlideGrid.propTypes = {
             icon: PropTypes.string,
             dividerAfter: PropTypes.bool,
             disabled: PropTypes.bool
-        }))
+        })),
+        maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
     }),
 
     /**
