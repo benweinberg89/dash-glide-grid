@@ -258,6 +258,25 @@ app.layout = html.Div(
                             },
                         ),
                     ],
+                    style={"flex": "1", "marginRight": "10px"},
+                ),
+                html.Div(
+                    [
+                        html.H4("cellsEdited (for server sync):"),
+                        html.Div(
+                            id="cells-edited-output",
+                            children="No edits yet",
+                            style={
+                                "fontFamily": "monospace",
+                                "padding": "15px",
+                                "backgroundColor": "#e8e8f4",
+                                "borderRadius": "5px",
+                                "minHeight": "40px",
+                                "whiteSpace": "pre-wrap",
+                                "fontSize": "12px",
+                            },
+                        ),
+                    ],
                     style={"flex": "1"},
                 ),
             ],
@@ -636,6 +655,35 @@ def update_max_height(value, current_config):
     else:
         new_config["maxHeight"] = value
     return new_config
+
+
+@callback(
+    Output("cells-edited-output", "children"),
+    Input("context-menu-grid", "cellsEdited"),
+    prevent_initial_call=True,
+)
+def show_cells_edited(edited):
+    """Display cellsEdited prop - this is what you'd use to sync to a database."""
+    if not edited:
+        return "No edits"
+
+    edits = edited.get("edits", [])
+    count = edited.get("count", 0)
+
+    # Format the edits for display
+    lines = [f"Received {count} edit(s):"]
+    for edit in edits[:5]:  # Show max 5 edits
+        col = edit.get("col", "?")
+        row = edit.get("row", "?")
+        value = edit.get("value", "")
+        # Truncate long values
+        val_str = str(value)[:20] + "..." if len(str(value)) > 20 else str(value)
+        lines.append(f"  [{row}, {col}] = '{val_str}'")
+
+    if count > 5:
+        lines.append(f"  ... and {count - 5} more")
+
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
