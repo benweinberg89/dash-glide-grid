@@ -2098,6 +2098,12 @@ const GlideGrid = (props) => {
                     return { ...oldValue, data: [] };
                 }
                 return [];
+            case GridCellKind.Image:
+                // Clear image to empty array, preserving object structure
+                if (oldValue && typeof oldValue === 'object') {
+                    return { ...oldValue, data: [] };
+                }
+                return { kind: 'image', data: [] };
             default:
                 return oldValue;
         }
@@ -3437,38 +3443,39 @@ const GlideGrid = (props) => {
 
     // Handle delete key press
     const handleDelete = useCallback((selection) => {
-        if (setProps) {
-            // Extract selection info for Dash
-            const selectedCells = [];
-            const selectedRowIndices = [];
-            const selectedColIndices = [];
+        // Extract selection info for Dash callback
+        const selectedCells = [];
+        const selectedRowIndices = [];
+        const selectedColIndices = [];
 
-            // Get selected rows
-            if (selection.rows) {
-                for (const row of selection.rows) {
-                    selectedRowIndices.push(row);
-                }
+        // Get selected rows
+        if (selection.rows) {
+            for (const row of selection.rows) {
+                selectedRowIndices.push(row);
             }
+        }
 
-            // Get selected columns
-            if (selection.columns) {
-                for (const col of selection.columns) {
-                    selectedColIndices.push(col);
-                }
+        // Get selected columns
+        if (selection.columns) {
+            for (const col of selection.columns) {
+                selectedColIndices.push(col);
             }
+        }
 
-            // Get selected cell/range
-            if (selection.current) {
-                const range = selection.current.range;
-                if (range) {
-                    for (let row = range.y; row < range.y + range.height; row++) {
-                        for (let col = range.x; col < range.x + range.width; col++) {
-                            selectedCells.push({ col, row });
-                        }
+        // Get selected cell/range
+        if (selection.current) {
+            const range = selection.current.range;
+            if (range) {
+                for (let row = range.y; row < range.y + range.height; row++) {
+                    for (let col = range.x; col < range.x + range.width; col++) {
+                        selectedCells.push({ col, row });
                     }
                 }
             }
+        }
 
+        // Fire deletePressed callback for user notification
+        if (setProps) {
             setProps({
                 deletePressed: {
                     cells: selectedCells,
@@ -3479,10 +3486,61 @@ const GlideGrid = (props) => {
             });
         }
 
-        // Return based on allowDelete prop
-        // false = prevent deletion, true = allow deletion
-        return allowDelete !== false;
-    }, [setProps, allowDelete]);
+        // If deletion is disabled or grid is readonly, prevent deletion
+        if (allowDelete === false || readonly || !setProps) {
+            return false;
+        }
+
+        // Handle deletion ourselves using getClearedValue
+        // This ensures all cell types (including Bubble, Drilldown, Image, custom cells)
+        // are properly cleared, unlike Glide's internal clearing which only handles basic types
+        const currentData = localDataRef.current;
+        const currentColumns = localColumnsRef.current;
+        if (!currentData || !currentColumns) {
+            return false;
+        }
+
+        const newData = currentData.map(r => ({...r}));
+        const edits = [];
+
+        // Process range selection
+        if (selection.current?.range) {
+            const range = selection.current.range;
+            for (let displayRow = range.y; displayRow < range.y + range.height; displayRow++) {
+                // Translate display row to data row if sorting is active
+                const dataRow = sortedIndices ? sortedIndices[displayRow] : displayRow;
+                if (dataRow >= newData.length) continue;
+
+                for (let col = range.x; col < range.x + range.width; col++) {
+                    if (col >= currentColumns.length) continue;
+                    const columnDef = currentColumns[col];
+                    const columnId = columnDef?.id;
+                    if (columnId && !columnDef.readonly) {
+                        const oldValue = newData[dataRow][columnId];
+                        const newValue = getClearedValue(col, displayRow, oldValue);
+                        newData[dataRow][columnId] = newValue;
+                        edits.push({ col, row: displayRow, value: newValue });
+                    }
+                }
+            }
+        }
+
+        if (edits.length > 0) {
+            setLocalData(newData);
+            setProps({
+                data: newData,
+                cellsEdited: {
+                    edits,
+                    count: edits.length,
+                    timestamp: Date.now()
+                }
+            });
+        }
+
+        // Return false to prevent Glide from doing its own clearing
+        // We've already handled all the cell clearing ourselves
+        return false;
+    }, [setProps, allowDelete, readonly, getClearedValue, sortedIndices]);
 
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {

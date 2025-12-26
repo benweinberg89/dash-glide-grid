@@ -166,8 +166,13 @@ export function createTreeViewCellRenderer(onToggle) {
             }
         },
 
-        // No editor for tree view cells
-        provideEditor: undefined,
+        // No visual editor, but provide deletedValue for clearing
+        provideEditor: () => ({
+            deletedValue: (v) => ({
+                ...v,
+                data: { ...v.data, text: '' }
+            }),
+        }),
 
         // Parse pasted tree data - supports format: text|depth|canOpen|isOpen
         onPaste: (val, data) => {

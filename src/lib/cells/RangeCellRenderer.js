@@ -199,10 +199,21 @@ export function createRangeCellRenderer() {
         provideEditor: () => ({
             editor: RangeEditor,
             disablePadding: true,
-            deletedValue: (v) => ({
-                ...v,
-                data: { ...v.data, value: v.data.min || 0 }
-            }),
+            deletedValue: (v) => {
+                const clearedValue = v.data.min || 0;
+                // Preserve label format (e.g., "85%" -> "0%")
+                let newLabel = `${clearedValue}`;
+                if (typeof v.data.label === 'string') {
+                    const suffixMatch = v.data.label.match(/[\d.]+(.*)$/);
+                    if (suffixMatch && suffixMatch[1]) {
+                        newLabel = `${clearedValue}${suffixMatch[1]}`;
+                    }
+                }
+                return {
+                    ...v,
+                    data: { ...v.data, value: clearedValue, label: newLabel }
+                };
+            },
         }),
 
         onPaste: (val, data) => {
