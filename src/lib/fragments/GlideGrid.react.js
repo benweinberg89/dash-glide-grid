@@ -552,6 +552,40 @@ const GlideGrid = (props) => {
         return false;
     }, [showCellFlash]);
 
+    // Helper to trigger flash effect for copied cells
+    const triggerCopyFlash = useCallback(() => {
+        if (!gridSelection.current) return;
+
+        const now = performance.now();
+        const updatedCells = {};
+
+        // Handle range selection
+        if (gridSelection.current.range) {
+            const range = gridSelection.current.range;
+            for (let row = range.y; row < range.y + range.height; row++) {
+                for (let col = range.x; col < range.x + range.width; col++) {
+                    // Get actual row index if sorted
+                    const actualRow = sortedIndices ? sortedIndices[row] : row;
+                    if (actualRow !== undefined && actualRow < (localData?.length || 0)) {
+                        updatedCells[`${actualRow},${col}`] = now;
+                    }
+                }
+            }
+        }
+        // Handle single cell (no range, just the focused cell)
+        else if (gridSelection.current.cell) {
+            const [col, row] = gridSelection.current.cell;
+            const actualRow = sortedIndices ? sortedIndices[row] : row;
+            if (actualRow !== undefined && actualRow < (localData?.length || 0)) {
+                updatedCells[`${actualRow},${col}`] = now;
+            }
+        }
+
+        if (Object.keys(updatedCells).length > 0) {
+            setLastUpdatedCells(prev => ({ ...prev, ...updatedCells }));
+        }
+    }, [gridSelection, sortedIndices, localData]);
+
     // ========== UNDO/REDO STATE ==========
     // Undo/redo history stacks
     const [undoStack, setUndoStack] = useState([]);  // Array of edit batches
@@ -2817,6 +2851,14 @@ const GlideGrid = (props) => {
                 navigator.clipboard.writeText(getCellCopyValue(col, row)).catch(err => {
                     console.error('Failed to copy cell:', err);
                 });
+                // Trigger flash for the copied cell
+                if (shouldFlash('copy')) {
+                    const actualRow = sortedIndices ? sortedIndices[row] : row;
+                    setLastUpdatedCells(prev => ({
+                        ...prev,
+                        [`${actualRow},${col}`]: performance.now()
+                    }));
+                }
             }
         } else if (action === 'copySelection') {
             // Copy the current selection as TSV
@@ -2840,11 +2882,31 @@ const GlideGrid = (props) => {
                 navigator.clipboard.writeText(lines.join('\n')).catch(err => {
                     console.error('Failed to copy selection:', err);
                 });
+                // Trigger flash for all copied cells
+                if (shouldFlash('copy')) {
+                    const now = performance.now();
+                    const updatedCells = {};
+                    for (let r = startRow; r <= endRow; r++) {
+                        const actualRow = sortedIndices ? sortedIndices[r] : r;
+                        for (let c = startCol; c <= endCol; c++) {
+                            updatedCells[`${actualRow},${c}`] = now;
+                        }
+                    }
+                    setLastUpdatedCells(prev => ({ ...prev, ...updatedCells }));
+                }
             } else if (col !== null && row !== null) {
                 // No range selection, copy single cell
                 navigator.clipboard.writeText(getCellCopyValue(col, row)).catch(err => {
                     console.error('Failed to copy cell:', err);
                 });
+                // Trigger flash for the copied cell
+                if (shouldFlash('copy')) {
+                    const actualRow = sortedIndices ? sortedIndices[row] : row;
+                    setLastUpdatedCells(prev => ({
+                        ...prev,
+                        [`${actualRow},${col}`]: performance.now()
+                    }));
+                }
             }
         } else if (action === 'pasteAtClickedCell') {
             // Paste from clipboard starting at clicked cell
@@ -3875,25 +3937,31 @@ const GlideGrid = (props) => {
     // Theme is passed directly (camelCase)
     const glideTheme = theme;
 
-    // Keyboard handler for undo/redo shortcuts
+    // Keyboard handler for undo/redo shortcuts and copy flash
     const handleKeyDown = useCallback((e) => {
-        if (!enableUndoRedo) return;
-
         const isMod = e.metaKey || e.ctrlKey;
 
         // Undo: Cmd+Z (Mac) or Ctrl+Z (Windows/Linux)
-        if (isMod && e.key === 'z' && !e.shiftKey) {
+        if (enableUndoRedo && isMod && e.key === 'z' && !e.shiftKey) {
             e.preventDefault();
             e.stopPropagation();
             performUndo();
         }
         // Redo: Cmd+Shift+Z (Mac) or Ctrl+Shift+Z or Ctrl+Y (Windows/Linux)
-        else if ((isMod && e.key === 'z' && e.shiftKey) || (isMod && e.key === 'y')) {
+        else if (enableUndoRedo && ((isMod && e.key === 'z' && e.shiftKey) || (isMod && e.key === 'y'))) {
             e.preventDefault();
             e.stopPropagation();
             performRedo();
         }
-    }, [enableUndoRedo, performUndo, performRedo]);
+        // Copy: Cmd+C (Mac) or Ctrl+C (Windows/Linux) - trigger flash effect
+        else if (isMod && e.key === 'c' && !e.shiftKey) {
+            // Don't prevent default - let Glide handle the actual copy
+            // Just trigger the flash effect
+            if (shouldFlash('copy') && enableCopyPaste) {
+                triggerCopyFlash();
+            }
+        }
+    }, [enableUndoRedo, performUndo, performRedo, shouldFlash, enableCopyPaste, triggerCopyFlash]);
 
     // ========== TAB WRAPPING NAVIGATION ==========
 
@@ -4118,7 +4186,7 @@ const GlideGrid = (props) => {
     };
 
     return (
-        <div id={id} ref={containerRef} style={containerStyle} className={className} onKeyDown={enableUndoRedo ? handleKeyDown : undefined}>
+        <div id={id} ref={containerRef} style={containerStyle} className={className} onKeyDown={(enableUndoRedo || shouldFlash('copy')) ? handleKeyDown : undefined}>
             <DataEditor
                 ref={gridRef}
                 columns={glideColumns}
@@ -5145,15 +5213,15 @@ GlideGrid.propTypes = {
      * Enable cell flash effect when cells are changed.
      * When enabled, cells will briefly highlight and fade out to indicate changes.
      * Can be:
-     * - true: Flash on all operations (edit, paste, undo, redo)
+     * - true: Flash on all operations (edit, paste, undo, redo, copy)
      * - false: No flash (default)
      * - Array of strings: Flash only on specified operations.
-     *   Valid values: "edit", "paste", "undo", "redo"
-     *   Example: ["paste", "undo", "redo"] to flash on paste and undo/redo but not regular edits
+     *   Valid values: "edit", "paste", "undo", "redo", "copy"
+     *   Example: ["paste", "undo", "redo", "copy"] to flash on paste, undo/redo, and copy but not regular edits
      */
     showCellFlash: PropTypes.oneOfType([
         PropTypes.bool,
-        PropTypes.arrayOf(PropTypes.oneOf(["edit", "paste", "undo", "redo"]))
+        PropTypes.arrayOf(PropTypes.oneOf(["edit", "paste", "undo", "redo", "copy"]))
     ]),
 
     /**

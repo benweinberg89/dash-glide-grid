@@ -993,15 +993,15 @@ GlideGrid.propTypes = {
      * Enable cell flash effect when cells are changed.
      * When enabled, cells will briefly highlight and fade out to indicate changes.
      * Can be:
-     * - true: Flash on all operations (edit, paste, undo, redo)
+     * - true: Flash on all operations (edit, paste, undo, redo, copy)
      * - false: No flash (default)
      * - Array of strings: Flash only on specified operations.
-     *   Valid values: "edit", "paste", "undo", "redo"
-     *   Example: ["paste", "undo", "redo"] to flash on paste and undo/redo but not regular edits
+     *   Valid values: "edit", "paste", "undo", "redo", "copy"
+     *   Example: ["paste", "undo", "redo", "copy"] to flash on paste, undo/redo, and copy but not regular edits
      */
     showCellFlash: PropTypes.oneOfType([
         PropTypes.bool,
-        PropTypes.arrayOf(PropTypes.oneOf(["edit", "paste", "undo", "redo"]))
+        PropTypes.arrayOf(PropTypes.oneOf(["edit", "paste", "undo", "redo", "copy"]))
     ]),
 
     /**
