@@ -445,6 +445,7 @@ const GlideGrid = (props) => {
         editorScrollBehavior,
         contextMenuScrollBehavior,
         redrawTrigger,
+        remeasureColumns,
         showCellFlash,
         allowDelete,
         setProps
@@ -562,6 +563,7 @@ const GlideGrid = (props) => {
     const batchTimeoutRef = useRef(null);            // For batching rapid edits
     const currentBatchRef = useRef([]);              // Current batch of edits being collected
     const lastUndoRedoActionRef = useRef(null);      // Track last processed undoRedoAction
+    const lastRemeasureColumnsRef = useRef(null);    // Track last processed remeasureColumns action
     const pendingWrapRef = useRef(null);             // Track pending Tab wrap for row boundaries
 
     // Ref to hold custom renderers for use in handlePaste
@@ -775,6 +777,39 @@ const GlideGrid = (props) => {
             performRedo();
         }
     }, [undoRedoAction, enableUndoRedo, performUndo, performRedo]);
+
+    // Handle remeasureColumns prop from Dash - triggers column auto-resize
+    useEffect(() => {
+        if (!remeasureColumns || !gridRef.current) return;
+
+        // Avoid processing the same action twice
+        if (lastRemeasureColumnsRef.current &&
+            lastRemeasureColumnsRef.current.timestamp === remeasureColumns.timestamp) {
+            return;
+        }
+        lastRemeasureColumnsRef.current = remeasureColumns;
+
+        // Build CompactSelection from column indices
+        const columnIndices = remeasureColumns.columns;
+        let selection;
+
+        if (!columnIndices || columnIndices.length === 0) {
+            // Remeasure all columns
+            const numCols = localColumns ? localColumns.length : 0;
+            selection = CompactSelection.empty();
+            for (let i = 0; i < numCols; i++) {
+                selection = selection.add(i);
+            }
+        } else {
+            // Remeasure specific columns
+            selection = CompactSelection.empty();
+            for (const idx of columnIndices) {
+                selection = selection.add(idx);
+            }
+        }
+
+        gridRef.current.remeasureColumns(selection);
+    }, [remeasureColumns, localColumns]);
 
     // Clear undo/redo history when data changes externally
     useEffect(() => {
@@ -1709,7 +1744,7 @@ const GlideGrid = (props) => {
             return {
                 title: title,
                 id: col.id || col.title,
-                width: col.width || 150,
+                width: col.width,
                 icon: col.icon,
                 overlayIcon: col.overlayIcon,
                 hasMenu: showMenu,
@@ -2473,24 +2508,29 @@ const GlideGrid = (props) => {
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
-        if (!setProps || !localColumns) return;
+        if (!setProps) return;
 
-        // Update local columns immediately for visual feedback
-        const newColumns = localColumns.map((col, idx) => {
-            if (idx === columnIndex) {
-                return { ...col, width: newSize };
-            }
-            return col;
+        // Use functional update to avoid stale closure when multiple resizes fire rapidly
+        // (e.g., from remeasureColumns triggering resize events for multiple columns)
+        setLocalColumns(prevColumns => {
+            if (!prevColumns) return prevColumns;
+
+            const newColumns = prevColumns.map((col, idx) => {
+                if (idx === columnIndex) {
+                    return { ...col, width: newSize };
+                }
+                return col;
+            });
+
+            // Send new widths to Dash
+            const newWidths = newColumns.map(col => col.width || 150);
+            setProps({
+                columnWidths: newWidths
+            });
+
+            return newColumns;
         });
-
-        setLocalColumns(newColumns);
-
-        // Send new widths to Dash
-        const newWidths = newColumns.map(col => col.width || 150);
-        setProps({
-            columnWidths: newWidths
-        });
-    }, [setProps, localColumns]);
+    }, [setProps]);
 
     // Handle search close
     const handleSearchClose = useCallback(() => {
@@ -5140,6 +5180,19 @@ GlideGrid.propTypes = {
      * periodic updates (animations, hover effects, etc.)
      */
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+    /**
+     * Trigger column remeasurement for auto-sized columns.
+     * When columns don't have a fixed width, they auto-size to fit content.
+     * Use this prop to trigger re-measurement after data changes.
+     * Shape: { columns: number[], timestamp: number }
+     * - columns: Array of column indices to remeasure. Empty array or omitted = all columns.
+     * - timestamp: Unique value to trigger the action (e.g., Date.now())
+     */
+    remeasureColumns: PropTypes.shape({
+        columns: PropTypes.arrayOf(PropTypes.number),
+        timestamp: PropTypes.number
+    }),
 
     /**
      * Enable cell flash effect when cells are changed.
