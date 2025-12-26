@@ -207,8 +207,13 @@ export function createLinksCellRenderer(onLinkClick) {
             // Not clicking on a link - allow selection
         },
 
-        // No editor for links
-        provideEditor: undefined,
+        // No visual editor, but provide deletedValue for clearing
+        provideEditor: () => ({
+            deletedValue: (v) => ({
+                ...v,
+                data: { ...v.data, links: [] }
+            }),
+        }),
 
         // Parse pasted links - supports markdown format [title](url) or plain URLs
         onPaste: (val, data) => {

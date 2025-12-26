@@ -146,8 +146,13 @@ export function createUserProfileCellRenderer() {
         // No click handling - read only
         onClick: () => undefined,
 
-        // No editor - read only
-        provideEditor: undefined,
+        // No visual editor, but provide deletedValue for clearing
+        provideEditor: () => ({
+            deletedValue: (v) => ({
+                ...v,
+                data: { ...v.data, name: '', initial: '' }
+            }),
+        }),
 
         // Copy name as text
         onPaste: (val, data) => ({

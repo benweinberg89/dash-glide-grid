@@ -283,7 +283,14 @@ export function createSparklineCellRenderer() {
         },
 
         onClick: () => undefined,
-        provideEditor: () => undefined,
+
+        // No visual editor, but provide deletedValue for clearing
+        provideEditor: () => ({
+            deletedValue: (v) => ({
+                ...v,
+                data: { ...v.data, values: [] }
+            }),
+        }),
 
         onPaste: (val, data) => {
             const values = val.split(",").map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
