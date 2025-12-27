@@ -977,10 +977,11 @@ Keyword arguments:
     How row selection blends with other selections. 'exclusive' clears
     other selections, 'mixed' allows combining. Default: 'exclusive'.
 
-- rowSelectionMode (a value equal to: 'auto', 'multi'; default 'auto'):
+- rowSelectionMode (a value equal to: 'auto', 'multi', 'modifier-only'; default 'auto'):
     Row selection behavior. 'auto' requires modifier keys for
-    multi-select, 'multi' allows multi-select without modifiers.
-    Default: 'auto'.
+    multi-select, 'multi' allows multi-select without modifiers,
+    'modifier-only' only selects rows when Ctrl/Cmd is held (plain
+    clicks don't affect row selection). Default: 'auto'.
 
 - rows (number; optional):
     Number of rows to display. If not provided, inferred from
@@ -1904,7 +1905,7 @@ Keyword arguments:
         rowSelect: typing.Optional[Literal["none", "single", "multi"]] = None,
         columnSelect: typing.Optional[Literal["none", "single", "multi"]] = None,
         rangeSelect: typing.Optional[Literal["none", "cell", "rect", "multi-cell", "multi-rect"]] = None,
-        rowSelectionMode: typing.Optional[Literal["auto", "multi"]] = None,
+        rowSelectionMode: typing.Optional[Literal["auto", "multi", "modifier-only"]] = None,
         columnSelectionBlending: typing.Optional[Literal["exclusive", "mixed"]] = None,
         rowSelectionBlending: typing.Optional[Literal["exclusive", "mixed"]] = None,
         rangeSelectionBlending: typing.Optional[Literal["exclusive", "mixed"]] = None,

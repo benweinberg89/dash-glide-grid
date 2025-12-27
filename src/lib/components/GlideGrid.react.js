@@ -339,9 +339,10 @@ GlideGrid.propTypes = {
 
     /**
      * Row selection behavior. 'auto' requires modifier keys for multi-select,
-     * 'multi' allows multi-select without modifiers. Default: 'auto'
+     * 'multi' allows multi-select without modifiers, 'modifier-only' only selects
+     * rows when Ctrl/Cmd is held (plain clicks don't affect row selection). Default: 'auto'
      */
-    rowSelectionMode: PropTypes.oneOf(['auto', 'multi']),
+    rowSelectionMode: PropTypes.oneOf(['auto', 'multi', 'modifier-only']),
 
     /**
      * How column selection blends with other selections.

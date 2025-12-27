@@ -7,7 +7,7 @@ by clicking on any cell, not just the row marker column.
 Features demonstrated:
 - rowSelectOnCellClick: Enable row selection on any cell click
 - rowSelect: 'single' or 'multi' selection modes
-- rowSelectionMode: 'auto' (requires modifiers) or 'multi' (toggle mode)
+- rowSelectionMode: 'auto', 'multi' (toggle), or 'modifier-only'
 - Modifier keys: Ctrl/Cmd to toggle, Shift for range selection
 """
 
@@ -61,11 +61,12 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id="selection-mode",
                 options=[
-                    {"label": "Auto (use modifiers)", "value": "auto"},
+                    {"label": "Auto (plain click selects)", "value": "auto"},
                     {"label": "Multi (always toggle)", "value": "multi"},
+                    {"label": "Modifier-only (Ctrl/Cmd required)", "value": "modifier-only"},
                 ],
                 value="auto",
-                style={"width": "200px"}
+                style={"width": "250px"}
             ),
         ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
 
@@ -109,13 +110,18 @@ app.layout = html.Div([
         html.H4("How it works:"),
         html.Ul([
             html.Li([html.Strong("Single mode: "), "Clicking any cell selects only that row"]),
-            html.Li([html.Strong("Multi mode + Auto: ")]),
+            html.Li([html.Strong("Multi + Auto: ")]),
             html.Ul([
                 html.Li("Plain click: Select only that row"),
                 html.Li("Ctrl/Cmd + click: Toggle row in selection"),
                 html.Li("Shift + click: Select range from last clicked row"),
             ]),
-            html.Li([html.Strong("Multi mode + Multi: "), "Every click toggles the row (no modifiers needed)"]),
+            html.Li([html.Strong("Multi + Multi: "), "Every click toggles the row (no modifiers needed)"]),
+            html.Li([html.Strong("Multi + Modifier-only: "), "Plain clicks don't affect row selection"]),
+            html.Ul([
+                html.Li("Ctrl/Cmd + click: Toggle row in selection"),
+                html.Li("Shift + click: Select range from last clicked row"),
+            ]),
         ]),
         html.P([
             html.Strong("Note: "),

@@ -2328,7 +2328,6 @@ const GlideGrid = (props) => {
 
     // Handle selection changes
     const handleSelectionChanged = useCallback((selection) => {
-        console.log('[handleSelectionChanged] START - incoming rows:', selection.rows?.length, 'hasCell:', !!selection.current?.cell);
         let adjustedSelection = selection;
 
         // Apply selectionColumnMin restriction if set
@@ -2506,7 +2505,6 @@ const GlideGrid = (props) => {
                 // This handles both "check all" (rows > 0) and "uncheck all" (rows = 0)
                 currentRowSelectionRef.current = adjustedSelection.rows || CompactSelection.empty();
                 lastRowSelectionCellRef.current = null;
-                console.log('[handleSelectionChanged] row marker action - synced rows:', [...(adjustedSelection.rows || [])]);
             } else if (selection.current?.cell) {
                 // Cell selection - apply row selection on mousedown
                 const [col, cellRow] = selection.current.cell;
@@ -2526,22 +2524,33 @@ const GlideGrid = (props) => {
                 }
                 const cellKey = `${col},${targetRow}`;
 
-                console.log('[handleSelectionChanged] cell click - col:', col, 'cellRow:', cellRow, 'targetRow:', targetRow, 'cellKey:', cellKey, 'lastCellKey:', lastRowSelectionCellRef.current, 'isShift:', isShift, 'range:', range);
-
                 // Skip row marker column and already-processed cells
                 if (col >= 0 && lastRowSelectionCellRef.current !== cellKey) {
                     lastRowSelectionCellRef.current = cellKey;
 
                     // Check if row is unselectable
                     if (!unselectableRows || !unselectableRows.includes(targetRow)) {
-                        console.log('[handleSelectionChanged] processing - isShift:', isShift, 'isCtrlOrCmd:', isCtrlOrCmd, 'lastSelectedRow:', lastSelectedRowRef.current);
-
                         let newRows;
                         const currentRows = currentRowSelectionRef.current || CompactSelection.empty();
 
                         if (rowSelect === 'single') {
-                            newRows = CompactSelection.empty().add(targetRow);
-                            lastSelectedRowRef.current = targetRow;
+                            if (rowSelectionMode === 'modifier-only') {
+                                if (isCtrlOrCmd) {
+                                    // Toggle: if already selected, deselect; otherwise select
+                                    if (currentRows.hasIndex(targetRow)) {
+                                        newRows = CompactSelection.empty();
+                                    } else {
+                                        newRows = CompactSelection.empty().add(targetRow);
+                                        lastSelectedRowRef.current = targetRow;
+                                    }
+                                } else {
+                                    // Plain click - preserve current selection
+                                    newRows = currentRows;
+                                }
+                            } else {
+                                newRows = CompactSelection.empty().add(targetRow);
+                                lastSelectedRowRef.current = targetRow;
+                            }
                         } else {
                             // Multi selection mode
                             // Shift+click always does range selection (both 'auto' and 'multi' modes)
@@ -2561,6 +2570,20 @@ const GlideGrid = (props) => {
                                 } else {
                                     newRows = currentRows.add(targetRow);
                                     lastSelectedRowRef.current = targetRow;
+                                }
+                            } else if (rowSelectionMode === 'modifier-only') {
+                                // 'modifier-only' mode: only select rows when Ctrl/Cmd is held
+                                // Plain clicks don't affect row selection
+                                if (isCtrlOrCmd) {
+                                    if (currentRows.hasIndex(targetRow)) {
+                                        newRows = currentRows.remove(targetRow);
+                                    } else {
+                                        newRows = currentRows.add(targetRow);
+                                        lastSelectedRowRef.current = targetRow;
+                                    }
+                                } else {
+                                    // Plain click - preserve current row selection
+                                    newRows = currentRows;
                                 }
                             } else {
                                 // 'auto' mode: respect modifier keys
@@ -2584,7 +2607,6 @@ const GlideGrid = (props) => {
                             rows: newRows,
                             columns: rowSelectionBlending === 'mixed' ? adjustedSelection.columns : CompactSelection.empty()
                         };
-                        console.log('[handleSelectionChanged] mousedown row selection:', [...newRows]);
                     }
                 } else {
                     // Same cell or row marker - preserve current rows
@@ -2603,7 +2625,6 @@ const GlideGrid = (props) => {
 
         // Update internal state for visual feedback and editing
         setGridSelection(adjustedSelection);
-        console.log('[handleSelectionChanged] END - set gridSelection with rows:', adjustedSelection.rows?.length);
 
         if (!setProps) return;
 
