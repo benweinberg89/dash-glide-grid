@@ -70,7 +70,8 @@ GlideGrid.defaultProps = {
     contextMenuScrollBehavior: 'default',
     redrawTrigger: null,
     showCellFlash: false,
-    allowDelete: true
+    allowDelete: true,
+    rowSelectOnCellClick: false
 };
 
 GlideGrid.propTypes = {
@@ -386,6 +387,15 @@ GlideGrid.propTypes = {
      * header rows or border rows.
      */
     unselectableRows: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * When true, clicking on any cell will select its entire row.
+     * Works with rowSelect ('single' or 'multi') and respects rowSelectionMode
+     * for modifier key behavior (Ctrl/Cmd for toggle, Shift for range).
+     * Also respects rowSelectionBlending and unselectableRows.
+     * Default: false
+     */
+    rowSelectOnCellClick: PropTypes.bool,
 
     // ========== FEATURE TOGGLES ==========
 

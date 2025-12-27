@@ -431,6 +431,7 @@ const GlideGrid = (props) => {
         selectionColumnMin,
         unselectableColumns,
         unselectableRows,
+        rowSelectOnCellClick,
         hoverRow,
         cellActivationBehavior,
         editOnType,
@@ -1831,13 +1832,71 @@ const GlideGrid = (props) => {
         return cellResult;
     }, [localData, localColumns, sortedIndices, lastUpdatedCells]);
 
-    // Handle cell clicks
-    const handleCellClicked = useCallback((cell) => {
+    // Track the last selected row for shift+click range selection
+    const lastSelectedRowRef = useRef(null);
+    // Track pending row selection from cell click (to be applied in handleSelectionChanged)
+    const pendingRowSelectionRef = useRef(null);
+    // Track current row selection for rowSelectOnCellClick multi-selection
+    // (needed because glide-data-grid's selection change doesn't preserve our row selections)
+    const currentRowSelectionRef = useRef(CompactSelection.empty());
+    // Track the last cell that triggered row selection (to avoid re-selecting on same cell)
+    const lastRowSelectionCellRef = useRef(null);
+    // Track modifier keys for mousedown row selection
+    const modifierKeysRef = useRef({ ctrlKey: false, metaKey: false, shiftKey: false });
+
+    // Track modifier keys globally for mousedown row selection
+    useEffect(() => {
+        if (!rowSelectOnCellClick) return;
+
+        const handleKeyDown = (e) => {
+            modifierKeysRef.current = {
+                ctrlKey: e.ctrlKey,
+                metaKey: e.metaKey,
+                shiftKey: e.shiftKey
+            };
+        };
+        const handleKeyUp = (e) => {
+            modifierKeysRef.current = {
+                ctrlKey: e.ctrlKey,
+                metaKey: e.metaKey,
+                shiftKey: e.shiftKey
+            };
+        };
+        // Also track on mousedown to catch modifier state at click time
+        const handleMouseDown = (e) => {
+            modifierKeysRef.current = {
+                ctrlKey: e.ctrlKey,
+                metaKey: e.metaKey,
+                shiftKey: e.shiftKey
+            };
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('mousedown', handleMouseDown, true);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('mousedown', handleMouseDown, true);
+        };
+    }, [rowSelectOnCellClick]);
+
+    // Handle cell clicks - row selection is done on mousedown in handleSelectionChanged
+    const handleCellClicked = useCallback((cell, event) => {
+        const [col, row] = cell;
+
+        // Skip row marker clicks (col = -1)
+        if (col < 0) {
+            return;
+        }
+
+        // Fire the cellClicked event
         if (setProps) {
             setProps({
                 cellClicked: {
-                    col: cell[0],
-                    row: cell[1],
+                    col: col,
+                    row: row,
                     timestamp: Date.now()
                 },
                 nClicks: (nClicks || 0) + 1
@@ -2269,6 +2328,7 @@ const GlideGrid = (props) => {
 
     // Handle selection changes
     const handleSelectionChanged = useCallback((selection) => {
+        console.log('[handleSelectionChanged] START - incoming rows:', selection.rows?.length, 'hasCell:', !!selection.current?.cell);
         let adjustedSelection = selection;
 
         // Apply selectionColumnMin restriction if set
@@ -2439,8 +2499,111 @@ const GlideGrid = (props) => {
             }
         }
 
+        // Handle row selection syncing
+        if (rowSelectOnCellClick && (rowSelect === 'single' || rowSelect === 'multi')) {
+            if (!selection.current?.cell) {
+                // Row marker action (no cell) - sync with glide's selection
+                // This handles both "check all" (rows > 0) and "uncheck all" (rows = 0)
+                currentRowSelectionRef.current = adjustedSelection.rows || CompactSelection.empty();
+                lastRowSelectionCellRef.current = null;
+                console.log('[handleSelectionChanged] row marker action - synced rows:', [...(adjustedSelection.rows || [])]);
+            } else if (selection.current?.cell) {
+                // Cell selection - apply row selection on mousedown
+                const [col, cellRow] = selection.current.cell;
+                const range = selection.current.range;
+                const isCtrlOrCmd = modifierKeysRef.current.ctrlKey || modifierKeysRef.current.metaKey;
+                const isShift = modifierKeysRef.current.shiftKey;
+
+                // For shift+click, use the range to determine the actual target row
+                // (selection.current.cell stays at anchor, but range extends to clicked cell)
+                // The target is at the opposite end of the range from the anchor (cellRow)
+                let targetRow = cellRow;
+                if (isShift && range && range.height > 1) {
+                    const rangeStart = range.y;
+                    const rangeEnd = range.y + range.height - 1;
+                    // If anchor is at start, target is at end; if anchor is at end, target is at start
+                    targetRow = (cellRow === rangeStart) ? rangeEnd : rangeStart;
+                }
+                const cellKey = `${col},${targetRow}`;
+
+                console.log('[handleSelectionChanged] cell click - col:', col, 'cellRow:', cellRow, 'targetRow:', targetRow, 'cellKey:', cellKey, 'lastCellKey:', lastRowSelectionCellRef.current, 'isShift:', isShift, 'range:', range);
+
+                // Skip row marker column and already-processed cells
+                if (col >= 0 && lastRowSelectionCellRef.current !== cellKey) {
+                    lastRowSelectionCellRef.current = cellKey;
+
+                    // Check if row is unselectable
+                    if (!unselectableRows || !unselectableRows.includes(targetRow)) {
+                        console.log('[handleSelectionChanged] processing - isShift:', isShift, 'isCtrlOrCmd:', isCtrlOrCmd, 'lastSelectedRow:', lastSelectedRowRef.current);
+
+                        let newRows;
+                        const currentRows = currentRowSelectionRef.current || CompactSelection.empty();
+
+                        if (rowSelect === 'single') {
+                            newRows = CompactSelection.empty().add(targetRow);
+                            lastSelectedRowRef.current = targetRow;
+                        } else {
+                            // Multi selection mode
+                            // Shift+click always does range selection (both 'auto' and 'multi' modes)
+                            if (isShift && lastSelectedRowRef.current !== null) {
+                                const start = Math.min(lastSelectedRowRef.current, targetRow);
+                                const end = Math.max(lastSelectedRowRef.current, targetRow);
+                                newRows = isCtrlOrCmd ? currentRows : CompactSelection.empty();
+                                for (let i = start; i <= end; i++) {
+                                    if (!unselectableRows || !unselectableRows.includes(i)) {
+                                        newRows = newRows.add(i);
+                                    }
+                                }
+                            } else if (rowSelectionMode === 'multi') {
+                                // 'multi' mode: always toggle (Ctrl/Cmd not required)
+                                if (currentRows.hasIndex(targetRow)) {
+                                    newRows = currentRows.remove(targetRow);
+                                } else {
+                                    newRows = currentRows.add(targetRow);
+                                    lastSelectedRowRef.current = targetRow;
+                                }
+                            } else {
+                                // 'auto' mode: respect modifier keys
+                                if (isCtrlOrCmd) {
+                                    if (currentRows.hasIndex(targetRow)) {
+                                        newRows = currentRows.remove(targetRow);
+                                    } else {
+                                        newRows = currentRows.add(targetRow);
+                                        lastSelectedRowRef.current = targetRow;
+                                    }
+                                } else {
+                                    newRows = CompactSelection.empty().add(targetRow);
+                                    lastSelectedRowRef.current = targetRow;
+                                }
+                            }
+                        }
+
+                        currentRowSelectionRef.current = newRows;
+                        adjustedSelection = {
+                            ...adjustedSelection,
+                            rows: newRows,
+                            columns: rowSelectionBlending === 'mixed' ? adjustedSelection.columns : CompactSelection.empty()
+                        };
+                        console.log('[handleSelectionChanged] mousedown row selection:', [...newRows]);
+                    }
+                } else {
+                    // Same cell or row marker - preserve current rows
+                    adjustedSelection = {
+                        ...adjustedSelection,
+                        rows: currentRowSelectionRef.current || CompactSelection.empty()
+                    };
+                }
+            }
+        } else if (!rowSelectOnCellClick) {
+            // Not using rowSelectOnCellClick - sync our ref with glide-data-grid's selection
+            if (adjustedSelection.rows) {
+                currentRowSelectionRef.current = adjustedSelection.rows;
+            }
+        }
+
         // Update internal state for visual feedback and editing
         setGridSelection(adjustedSelection);
+        console.log('[handleSelectionChanged] END - set gridSelection with rows:', adjustedSelection.rows?.length);
 
         if (!setProps) return;
 
@@ -2504,7 +2667,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rowSelectionMode, rowSelectionBlending]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
