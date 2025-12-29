@@ -4203,6 +4203,9 @@ const GlideGrid = (props) => {
             <rect x="5" y="6" width="10" height="2" rx="0.5" fill="${fgColor}"/>
             <rect x="5" y="9" width="10" height="2" rx="0.5" fill="${fgColor}"/>
             <rect x="5" y="12" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+        </svg>`,
+        filter: ({ fgColor }) => `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 5h12l-4.5 5v5l-3-1.5V10L4 5z" stroke="${fgColor}" fill="none" stroke-width="1.5" stroke-linejoin="round"/>
         </svg>`
     }), []);
 
@@ -5621,7 +5624,7 @@ GlideGrid.propTypes = {
      * ```
      */
     headerMenuConfig: PropTypes.shape({
-        menuIcon: PropTypes.oneOf(['chevron', 'hamburger', 'dots']),
+        menuIcon: PropTypes.oneOf(['chevron', 'hamburger', 'dots', 'filter']),
         filterActiveColor: PropTypes.string,
         anchorToHeader: PropTypes.bool,
         zIndex: PropTypes.number,
