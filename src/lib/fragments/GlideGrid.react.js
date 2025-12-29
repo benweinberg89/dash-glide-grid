@@ -3958,17 +3958,19 @@ const GlideGrid = (props) => {
         return undefined;
     };
 
-    // Theme with fallback for fgIconHeader to ensure custom icons are visible
-    // Native menu icons use textHeader, but headerIcons receive fgIconHeader
-    // Glide's default fgIconHeader is white/light, so we need to set a dark fallback
+    // Theme with override for fgIconHeader to ensure custom menu icons are visible
+    // Native menu icons (dots, triangle) use textHeader for color, but custom icons
+    // via headerIcons receive fgIconHeader. Many themes set fgIconHeader to white
+    // (for use with bgIconHeader background circle), making custom icons invisible.
+    // Force fgIconHeader to match textHeader so custom menu icons match native ones.
     const glideTheme = useMemo(() => {
-        const fgIconHeader = theme?.fgIconHeader || theme?.textHeader || theme?.textDark || '#000000';
         if (!theme) {
-            return { fgIconHeader };
+            return { fgIconHeader: '#000000' };
         }
         return {
             ...theme,
-            fgIconHeader
+            // Override fgIconHeader to use textHeader (like native menu icons do)
+            fgIconHeader: theme.textHeader || theme.textDark || '#000000'
         };
     }, [theme]);
 
