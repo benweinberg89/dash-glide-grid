@@ -82,6 +82,35 @@ app.layout = html.Div([
                 style={"width": "150px"}
             ),
         ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
+            html.Label("Focus Ring:"),
+            dcc.Dropdown(
+                id="focus-ring",
+                options=[
+                    {"label": "On", "value": True},
+                    {"label": "Off", "value": False},
+                ],
+                value=False,
+                style={"width": "100px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
+            html.Label("Range Select:"),
+            dcc.Dropdown(
+                id="range-select",
+                options=[
+                    {"label": "Cell", "value": "cell"},
+                    {"label": "Rect", "value": "rect"},
+                    {"label": "Multi-Cell", "value": "multi-cell"},
+                    {"label": "Multi-Rect", "value": "multi-rect"},
+                    {"label": "None", "value": "none"},
+                ],
+                value="cell",
+                style={"width": "130px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
     ], style={"marginBottom": "10px"}),
 
     dgg.GlideGrid(
@@ -98,6 +127,10 @@ app.layout = html.Div([
         rowSelect="multi",
         rowSelectionMode="auto",
         rowMarkers="checkbox",
+
+        # Hide focus ring border but keep row/column highlighting
+        drawFocusRing=False,
+        rangeSelect="cell",
     ),
 
     html.Div([
@@ -146,6 +179,22 @@ def update_selection_mode(value):
     Input("row-markers", "value"),
 )
 def update_row_markers(value):
+    return value
+
+
+@app.callback(
+    Output("grid", "drawFocusRing"),
+    Input("focus-ring", "value"),
+)
+def update_focus_ring(value):
+    return value
+
+
+@app.callback(
+    Output("grid", "rangeSelect"),
+    Input("range-select", "value"),
+)
+def update_range_select(value):
     return value
 
 
