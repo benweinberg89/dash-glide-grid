@@ -4427,7 +4427,7 @@ const GlideGrid = (props) => {
                 customItems={headerMenuConfig?.customItems}
                 onCustomItemClick={handleCustomItemClick}
                 anchorToHeader={headerMenuConfig?.anchorToHeader !== false}
-                zIndex={headerMenuConfig?.zIndex}
+                zIndex={headerMenuConfig?.zIndex ?? 1000}
             />
             {/* Cell Context Menu */}
             <ContextMenu
