@@ -3959,13 +3959,16 @@ const GlideGrid = (props) => {
     };
 
     // Theme with fallback for fgIconHeader to ensure custom icons are visible
+    // Native menu icons use textHeader, but headerIcons receive fgIconHeader
+    // Glide's default fgIconHeader is white/light, so we need to set a dark fallback
     const glideTheme = useMemo(() => {
-        if (!theme) return undefined;
+        const fgIconHeader = theme?.fgIconHeader || theme?.textHeader || theme?.textDark || '#000000';
+        if (!theme) {
+            return { fgIconHeader };
+        }
         return {
             ...theme,
-            // Ensure fgIconHeader is set for custom headerIcons visibility
-            // Native menu icons use textHeader, but headerIcons receive fgIconHeader
-            fgIconHeader: theme.fgIconHeader || theme.textHeader || theme.textDark
+            fgIconHeader
         };
     }, [theme]);
 
