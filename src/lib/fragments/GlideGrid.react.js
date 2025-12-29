@@ -3439,44 +3439,14 @@ const GlideGrid = (props) => {
             return;
         }
 
-        // Determine base background color based on selection state
-        // Priority: selected > normal
-        let bgBase;
-        if (isSelected || hasSelectedCell) {
-            bgBase = headerTheme.bgHeaderHasFocus || headerTheme.bgHeader || '#f7f7f8';
-        } else {
-            bgBase = headerTheme.bgHeader || '#f7f7f8';
-        }
-        const bgHovered = headerTheme.bgHeaderHovered || bgBase;
+        // Sample the actual background color from the canvas (theme-agnostic)
+        // Sample from top-left corner of menuBounds to avoid the chevron icon in the center
+        const sampleX = Math.floor(menuBounds.x + 2);
+        const sampleY = Math.floor(menuBounds.y + 2);
+        const imageData = ctx.getImageData(sampleX, sampleY, 1, 1).data;
+        const bgColor = `rgb(${imageData[0]}, ${imageData[1]}, ${imageData[2]})`;
 
-        // Simple color interpolation (works for hex colors)
-        const interpolateColor = (c1, c2, t) => {
-            const parse = (c) => {
-                // Handle rgb() format
-                if (c.startsWith('rgb')) {
-                    const match = c.match(/\d+/g);
-                    return { r: parseInt(match[0]), g: parseInt(match[1]), b: parseInt(match[2]) };
-                }
-                // Handle hex format
-                const hex = c.replace('#', '');
-                return {
-                    r: parseInt(hex.substr(0, 2), 16),
-                    g: parseInt(hex.substr(2, 2), 16),
-                    b: parseInt(hex.substr(4, 2), 16)
-                };
-            };
-            const p1 = parse(c1);
-            const p2 = parse(c2);
-            const r = Math.round(p1.r + (p2.r - p1.r) * t);
-            const g = Math.round(p1.g + (p2.g - p1.g) * t);
-            const b = Math.round(p1.b + (p2.b - p1.b) * t);
-            return `rgb(${r},${g},${b})`;
-        };
-
-        // Get interpolated background color based on hover amount
-        const bgColor = interpolateColor(bgBase, bgHovered, hoverAmount);
-
-        // Clear the menu area with the interpolated background color
+        // Clear the menu area with the sampled background color
         ctx.fillStyle = bgColor;
         ctx.fillRect(menuBounds.x, menuBounds.y, menuBounds.width, menuBounds.height);
 
