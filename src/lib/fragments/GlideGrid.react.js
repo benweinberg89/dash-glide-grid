@@ -1691,6 +1691,7 @@ const GlideGrid = (props) => {
                 columnThemeOverride = {
                     ...col.themeOverride,
                     bgIconHeader: filterActiveColor,
+                    fgIconHeader: filterActiveColor,
                     textHeader: filterActiveColor
                 };
             }
