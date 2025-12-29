@@ -2287,6 +2287,40 @@ const GlideGrid = (props) => {
     // Handle selection changes
     const handleSelectionChanged = useCallback((selection) => {
         console.log('[handleSelectionChanged] START - incoming rows:', selection.rows?.length, 'hasCell:', !!selection.current?.cell);
+
+        // If rangeSelect is 'none', strip cell/range selection but preserve row/column selection
+        if (rangeSelect === 'none') {
+            const strippedSelection = {
+                columns: selection.columns || CompactSelection.empty(),
+                rows: selection.rows || CompactSelection.empty(),
+                current: undefined  // No cell or range selection
+            };
+            setGridSelection(strippedSelection);
+
+            // Still update row/column selections if setProps available
+            if (setProps) {
+                const updates = {};
+                if (strippedSelection.rows && strippedSelection.rows.length > 0) {
+                    const rowsArray = [];
+                    for (const row of strippedSelection.rows) {
+                        rowsArray.push(row);
+                    }
+                    updates.selectedRows = rowsArray;
+                }
+                if (strippedSelection.columns && strippedSelection.columns.length > 0) {
+                    const colsArray = [];
+                    for (const col of strippedSelection.columns) {
+                        colsArray.push(col);
+                    }
+                    updates.selectedColumns = colsArray;
+                }
+                if (Object.keys(updates).length > 0) {
+                    setProps(updates);
+                }
+            }
+            return;
+        }
+
         let adjustedSelection = selection;
 
         // Apply selectionColumnMin restriction if set
@@ -2625,7 +2659,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rowSelectionMode, rowSelectionBlending]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rowSelectionMode, rowSelectionBlending, rangeSelect]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
