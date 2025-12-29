@@ -3958,8 +3958,16 @@ const GlideGrid = (props) => {
         return undefined;
     };
 
-    // Theme is passed directly (camelCase)
-    const glideTheme = theme;
+    // Theme with fallback for fgIconHeader to ensure custom icons are visible
+    const glideTheme = useMemo(() => {
+        if (!theme) return undefined;
+        return {
+            ...theme,
+            // Ensure fgIconHeader is set for custom headerIcons visibility
+            // Native menu icons use textHeader, but headerIcons receive fgIconHeader
+            fgIconHeader: theme.fgIconHeader || theme.textHeader || theme.textDark
+        };
+    }, [theme]);
 
     // Keyboard handler for undo/redo shortcuts
     const handleKeyDown = useCallback((e) => {
