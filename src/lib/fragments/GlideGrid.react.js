@@ -51,53 +51,6 @@ const staticRenderers = [
 ];
 
 /**
- * Draw hamburger icon (three horizontal lines) for header menu
- */
-function drawHamburgerIcon(ctx, bounds, theme) {
-    const { x, y, width, height } = bounds;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-    const lineWidth = 10;
-    const lineHeight = 2;
-    const gap = 3;
-
-    ctx.fillStyle = theme.textHeader || theme.textDark || '#000';
-
-    // Top bar
-    ctx.fillRect(centerX - lineWidth / 2, centerY - gap - lineHeight / 2, lineWidth, lineHeight);
-    // Middle bar
-    ctx.fillRect(centerX - lineWidth / 2, centerY - lineHeight / 2, lineWidth, lineHeight);
-    // Bottom bar
-    ctx.fillRect(centerX - lineWidth / 2, centerY + gap - lineHeight / 2, lineWidth, lineHeight);
-}
-
-/**
- * Draw dots icon (three vertical dots) for header menu
- */
-function drawDotsIcon(ctx, bounds, theme) {
-    const { x, y, width, height } = bounds;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-    const dotRadius = 1.5;
-    const gap = 4;
-
-    ctx.fillStyle = theme.textHeader || theme.textDark || '#000';
-
-    // Top dot
-    ctx.beginPath();
-    ctx.arc(centerX, centerY - gap, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-    // Middle dot
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-    // Bottom dot
-    ctx.beginPath();
-    ctx.arc(centerX, centerY + gap, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-}
-
-/**
  * Helper function to auto-detect cell type from simple JavaScript values
  */
 function autoDetectCellType(value) {
@@ -1742,6 +1695,9 @@ const GlideGrid = (props) => {
                 };
             }
 
+            // Map menuIcon value: 'chevron' means use default (undefined), otherwise pass through
+            const menuIconValue = headerMenuConfig?.menuIcon === 'chevron' ? undefined : headerMenuConfig?.menuIcon;
+
             return {
                 title: title,
                 id: col.id || col.title,
@@ -1749,6 +1705,7 @@ const GlideGrid = (props) => {
                 icon: col.icon,
                 overlayIcon: col.overlayIcon,
                 hasMenu: showMenu,
+                menuIcon: showMenu ? menuIconValue : undefined,
                 group: col.group,
                 themeOverride: columnThemeOverride
             };
@@ -3420,51 +3377,6 @@ const GlideGrid = (props) => {
         }
     }, [setProps, localColumns]);
 
-    // Custom header drawing callback for menu icon customization
-    const handleDrawHeader = useCallback((args, drawContent) => {
-        const { ctx, column, theme: headerTheme, menuBounds, hoverAmount, isSelected, hasSelectedCell } = args;
-
-        // First, draw the default header content
-        drawContent();
-
-        // If no custom menu icon or column has no menu, we're done
-        const menuIcon = headerMenuConfig?.menuIcon;
-        if (!menuIcon || menuIcon === 'chevron' || !column.hasMenu) {
-            return;
-        }
-
-        // Only draw custom icon when hovering (hoverAmount > 0)
-        // This matches Glide's default behavior of fading in the menu icon
-        if (hoverAmount <= 0) {
-            return;
-        }
-
-        // Sample the actual background color from the canvas (theme-agnostic)
-        // Sample from top-left corner of menuBounds to avoid the chevron icon in the center
-        const sampleX = Math.floor(menuBounds.x + 2);
-        const sampleY = Math.floor(menuBounds.y + 2);
-        const imageData = ctx.getImageData(sampleX, sampleY, 1, 1).data;
-        const bgColor = `rgb(${imageData[0]}, ${imageData[1]}, ${imageData[2]})`;
-
-        // Clear the menu area with the sampled background color
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(menuBounds.x, menuBounds.y, menuBounds.width, menuBounds.height);
-
-        // Save alpha and set for icon fade-in
-        const prevAlpha = ctx.globalAlpha;
-        ctx.globalAlpha = hoverAmount;
-
-        // Draw the custom icon
-        if (menuIcon === 'hamburger') {
-            drawHamburgerIcon(ctx, menuBounds, headerTheme);
-        } else if (menuIcon === 'dots') {
-            drawDotsIcon(ctx, menuBounds, headerTheme);
-        }
-
-        // Restore alpha
-        ctx.globalAlpha = prevAlpha;
-    }, [headerMenuConfig]);
-
     // Handle group header clicks
     const handleGroupHeaderClicked = useCallback((colIndex, event) => {
         if (setProps) {
@@ -4284,6 +4196,15 @@ const GlideGrid = (props) => {
         return () => document.removeEventListener('keydown', handleTabCapture, true);
     }, [tabWrapping, glideColumns.length, gridSelection, isEditorOpen, setProps]);
 
+    // Custom header icons for menu icon customization
+    const headerIcons = useMemo(() => ({
+        hamburger: ({ fgColor }) => `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="6" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+            <rect x="5" y="9" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+            <rect x="5" y="12" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+        </svg>`
+    }), []);
+
     // Container style with explicit height
     const containerStyle = {
         height: typeof height === 'number' ? `${height}px` : height,
@@ -4338,6 +4259,7 @@ const GlideGrid = (props) => {
                 maxColumnAutoWidth={maxColumnAutoWidth}
                 copyHeaders={copyHeaders}
                 theme={glideTheme}
+                headerIcons={headerIcons}
                 getCellsForSelection={enableCopyPaste}
                 showSearch={showSearch}
                 searchValue={localSearchValue}
@@ -4346,7 +4268,7 @@ const GlideGrid = (props) => {
                 onHeaderClicked={handleHeaderClicked}
                 onHeaderContextMenu={handleHeaderContextMenu}
                 onHeaderMenuClick={handleHeaderMenuClick}
-                drawHeader={handleDrawHeaderCustom || (headerMenuConfig?.menuIcon && headerMenuConfig.menuIcon !== 'chevron' ? handleDrawHeader : undefined)}
+                drawHeader={handleDrawHeaderCustom}
                 onGroupHeaderClicked={handleGroupHeaderClicked}
                 onCellContextMenu={handleContextMenu}
                 onCellActivated={handleCellActivated}
