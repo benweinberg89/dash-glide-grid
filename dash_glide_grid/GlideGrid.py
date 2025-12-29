@@ -689,7 +689,7 @@ Keyword arguments:
 
     `headerMenuConfig` is a dict with keys:
 
-    - menuIcon (a value equal to: 'chevron', 'hamburger', 'dots'; optional)
+    - menuIcon (a value equal to: 'chevron', 'hamburger', 'dots', 'filter'; optional)
 
     - filterActiveColor (string; optional)
 
@@ -1852,7 +1852,7 @@ Keyword arguments:
     HeaderMenuConfig = TypedDict(
         "HeaderMenuConfig",
             {
-            "menuIcon": NotRequired[Literal["chevron", "hamburger", "dots"]],
+            "menuIcon": NotRequired[Literal["chevron", "hamburger", "dots", "filter"]],
             "filterActiveColor": NotRequired[str],
             "anchorToHeader": NotRequired[bool],
             "zIndex": NotRequired[NumberType],
