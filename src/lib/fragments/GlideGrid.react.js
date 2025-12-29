@@ -4427,6 +4427,7 @@ const GlideGrid = (props) => {
                 customItems={headerMenuConfig?.customItems}
                 onCustomItemClick={handleCustomItemClick}
                 anchorToHeader={headerMenuConfig?.anchorToHeader !== false}
+                zIndex={headerMenuConfig?.zIndex}
             />
             {/* Cell Context Menu */}
             <ContextMenu
@@ -5707,6 +5708,7 @@ GlideGrid.propTypes = {
      * - customItems: Array of custom menu items with onClick handlers
      * - filterActiveColor: Color for header when filter is active (default: theme accentColor)
      * - anchorToHeader: Whether menu stays anchored to header when page scrolls (default: true)
+     * - zIndex: z-index for the menu (default: 1000)
      *
      * Example:
      * ```
@@ -5714,6 +5716,7 @@ GlideGrid.propTypes = {
      *     "menuIcon": "hamburger",
      *     "filterActiveColor": "#2563eb",
      *     "anchorToHeader": true,
+     *     "zIndex": 1000,
      *     "customItems": [
      *         {
      *             "id": "export",
@@ -5728,6 +5731,7 @@ GlideGrid.propTypes = {
         menuIcon: PropTypes.oneOf(['chevron', 'hamburger', 'dots']),
         filterActiveColor: PropTypes.string,
         anchorToHeader: PropTypes.bool,
+        zIndex: PropTypes.number,
         customItems: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string.isRequired,
             label: PropTypes.string.isRequired,
