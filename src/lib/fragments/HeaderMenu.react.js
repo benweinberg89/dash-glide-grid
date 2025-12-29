@@ -280,9 +280,10 @@ const HeaderMenu = ({
         return {
             ...styles.container,
             left: `${left}px`,
-            top: `${top}px`
+            top: `${top}px`,
+            zIndex: zIndex  // Explicitly set to ensure it's applied
         };
-    }, [position, styles.container, scrollOffset, customItems, selectedValues, uniqueValues]);
+    }, [position, styles.container, scrollOffset, customItems, selectedValues, uniqueValues, zIndex]);
 
     // Filter unique values based on search
     const filteredValues = useMemo(() => {
