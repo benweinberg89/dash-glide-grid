@@ -693,6 +693,10 @@ Keyword arguments:
 
     - filterActiveColor (string; optional)
 
+    - anchorToHeader (boolean; optional)
+
+    - zIndex (number; optional)
+
     - customItems (list of dicts; optional)
 
         `customItems` is a list of dicts with keys:
@@ -1850,6 +1854,8 @@ Keyword arguments:
             {
             "menuIcon": NotRequired[Literal["chevron", "hamburger", "dots"]],
             "filterActiveColor": NotRequired[str],
+            "anchorToHeader": NotRequired[bool],
+            "zIndex": NotRequired[NumberType],
             "customItems": NotRequired[typing.Sequence["HeaderMenuConfigCustomItems"]]
         }
     )

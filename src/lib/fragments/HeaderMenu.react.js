@@ -21,11 +21,6 @@ const HeaderMenu = ({
     anchorToHeader = true,
     zIndex = 1000
 }) => {
-    // Debug: log zIndex prop value
-    if (isOpen) {
-        console.log('HeaderMenu zIndex:', zIndex);
-    }
-
     // Local state for search within filter list
     const [filterSearch, setFilterSearch] = useState('');
     const menuRef = useRef(null);

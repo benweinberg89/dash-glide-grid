@@ -1344,6 +1344,8 @@ GlideGrid.propTypes = {
     headerMenuConfig: PropTypes.shape({
         menuIcon: PropTypes.oneOf(['chevron', 'hamburger', 'dots']),
         filterActiveColor: PropTypes.string,
+        anchorToHeader: PropTypes.bool,
+        zIndex: PropTypes.number,
         customItems: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string.isRequired,
             label: PropTypes.string.isRequired,

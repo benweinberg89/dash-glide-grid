@@ -4414,7 +4414,6 @@ const GlideGrid = (props) => {
                 height="100%"
             />
             {/* Header Filter Menu */}
-            {filterMenuState.isOpen && console.log('GlideGrid headerMenuConfig.zIndex:', headerMenuConfig?.zIndex)}
             <HeaderMenu
                 isOpen={filterMenuState.isOpen}
                 onClose={handleFilterMenuClose}
