@@ -2566,17 +2566,20 @@ const GlideGrid = (props) => {
                 // or respect glide's blending logic
 
                 // Check if blending has cleared our rows:
-                // - If rowSelectionBlending='exclusive' and columns/ranges are selected, rows get cleared
+                // - If rowSelectionBlending='exclusive' and columns are selected, rows get cleared
+                // - If rangeSelectionBlending='exclusive' and a multi-column range is selected, rows get cleared
                 // - If glide's selection has no rows but we have rows, blending cleared them
+                // Note: For range selection, we only consider width > 1 (multi-column) as a "real" range.
+                // Shift+click for row selection creates height > 1 but width = 1, which should preserve rows.
                 const glideRows = adjustedSelection.rows || CompactSelection.empty();
                 const ourRows = currentRowSelectionRef.current || CompactSelection.empty();
                 const hasColumnSelection = (adjustedSelection.columns?.length || 0) > 0;
-                const hasRangeSelection = adjustedSelection.current?.range &&
-                    (adjustedSelection.current.range.width > 1 || adjustedSelection.current.range.height > 1);
+                const hasMultiColumnRange = adjustedSelection.current?.range &&
+                    adjustedSelection.current.range.width > 1;
 
-                // Respect blending: if glide cleared rows due to column/range selection with exclusive blending
+                // Respect blending: if glide cleared rows due to column or multi-column range selection
                 const blendingClearedRows = ourRows.length > 0 && glideRows.length === 0 &&
-                    (hasColumnSelection || hasRangeSelection);
+                    (hasColumnSelection || hasMultiColumnRange);
 
                 if (blendingClearedRows) {
                     // Blending mode cleared our rows - sync with glide
