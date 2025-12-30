@@ -2318,11 +2318,37 @@ const GlideGrid = (props) => {
     const handleSelectionChanged = useCallback((selection) => {
         // If rangeSelect is 'none', strip cell/range selection but preserve row/column selection
         if (rangeSelect === 'none') {
-            // When rowSelectOnCellClick is enabled, preserve our managed row selection
-            // Otherwise glide's selection.rows gets cleared on mousedown causing flicker
-            const rowsToUse = rowSelectOnCellClick
-                ? (currentRowSelectionRef.current || CompactSelection.empty())
-                : (selection.rows || CompactSelection.empty());
+            let rowsToUse;
+
+            if (rowSelectOnCellClick && (rowSelect === 'single' || rowSelect === 'multi')) {
+                if (!selection.current?.cell) {
+                    // Row marker action or column header click (no cell) - sync with glide's selection
+                    // This handles toggle/unselect from row markers and blending from column clicks
+                    rowsToUse = selection.rows || CompactSelection.empty();
+                    currentRowSelectionRef.current = rowsToUse;
+                    lastSelectedRowRef.current = null;
+                } else {
+                    // Cell click - check if blending cleared our rows
+                    const glideRows = selection.rows || CompactSelection.empty();
+                    const ourRows = currentRowSelectionRef.current || CompactSelection.empty();
+                    const hasColumnSelection = (selection.columns?.length || 0) > 0;
+
+                    // Respect blending: if glide cleared rows due to column selection with exclusive blending
+                    const blendingClearedRows = ourRows.length > 0 && glideRows.length === 0 && hasColumnSelection;
+
+                    if (blendingClearedRows) {
+                        // Blending mode cleared our rows - sync with glide
+                        rowsToUse = glideRows;
+                        currentRowSelectionRef.current = glideRows;
+                    } else {
+                        // Normal cell click - preserve our row selection (updated in handleCellClicked)
+                        rowsToUse = ourRows;
+                    }
+                }
+            } else {
+                // Not using rowSelectOnCellClick - use glide's selection
+                rowsToUse = selection.rows || CompactSelection.empty();
+            }
 
             const strippedSelection = {
                 columns: selection.columns || CompactSelection.empty(),
@@ -2340,6 +2366,9 @@ const GlideGrid = (props) => {
                         rowsArray.push(row);
                     }
                     updates.selectedRows = rowsArray;
+                } else {
+                    // Explicitly set empty array when no rows selected
+                    updates.selectedRows = [];
                 }
                 if (strippedSelection.columns && strippedSelection.columns.length > 0) {
                     const colsArray = [];
