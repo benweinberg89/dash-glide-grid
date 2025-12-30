@@ -568,6 +568,7 @@ const GlideGrid = (props) => {
     // Refs for rowSelectOnCellClick feature
     const lastSelectedRowRef = useRef(null);         // Track last selected row for shift+click range selection
     const currentRowSelectionRef = useRef(CompactSelection.empty()); // Track current row selection state
+    const modifierKeysRef = useRef({ shiftKey: false, ctrlKey: false, metaKey: false }); // Track modifier keys globally
 
     // Ref to hold custom renderers for use in handlePaste
     const customRenderersRef = useRef(null);
@@ -580,6 +581,27 @@ const GlideGrid = (props) => {
     useEffect(() => {
         localColumnsRef.current = localColumns;
     }, [localColumns]);
+
+    // Track modifier keys globally for row marker shift+click detection
+    useEffect(() => {
+        const handleModifierChange = (e) => {
+            modifierKeysRef.current = {
+                shiftKey: e.shiftKey,
+                ctrlKey: e.ctrlKey,
+                metaKey: e.metaKey
+            };
+        };
+
+        window.addEventListener('keydown', handleModifierChange);
+        window.addEventListener('keyup', handleModifierChange);
+        window.addEventListener('mousedown', handleModifierChange, true);
+
+        return () => {
+            window.removeEventListener('keydown', handleModifierChange);
+            window.removeEventListener('keyup', handleModifierChange);
+            window.removeEventListener('mousedown', handleModifierChange, true);
+        };
+    }, []);
 
     // Sync local data with props when props change from outside (but not from our own updates)
     useEffect(() => {
@@ -2323,11 +2345,41 @@ const GlideGrid = (props) => {
 
             if (rowSelectOnCellClick && (rowSelect === 'single' || rowSelect === 'multi')) {
                 if (!selection.current?.cell) {
-                    // Row marker action or column header click (no cell) - sync with glide's selection
-                    // This handles toggle/unselect from row markers and blending from column clicks
-                    rowsToUse = selection.rows || CompactSelection.empty();
-                    currentRowSelectionRef.current = rowsToUse;
-                    lastSelectedRowRef.current = null;
+                    // Row marker action or column header click (no cell)
+                    const glideRows = selection.rows || CompactSelection.empty();
+                    const isShift = modifierKeysRef.current.shiftKey;
+                    const ourRows = currentRowSelectionRef.current || CompactSelection.empty();
+
+                    if (isShift && ourRows.length > 0 && rowSelect === 'multi') {
+                        // Shift+click on row marker: merge glide's range with our previous selection
+                        let mergedRows = ourRows;
+                        for (const row of glideRows) {
+                            mergedRows = mergedRows.add(row);
+                        }
+                        rowsToUse = mergedRows;
+                        currentRowSelectionRef.current = mergedRows;
+                        // Update lastSelectedRowRef to the last row in the new range
+                        if (glideRows.length > 0) {
+                            let lastRow = 0;
+                            for (const row of glideRows) {
+                                lastRow = row;
+                            }
+                            lastSelectedRowRef.current = lastRow;
+                        }
+                    } else {
+                        // Normal click or cmd+click: sync with glide's selection
+                        rowsToUse = glideRows;
+                        currentRowSelectionRef.current = glideRows;
+                        if (glideRows.length > 0) {
+                            let lastRow = 0;
+                            for (const row of glideRows) {
+                                lastRow = row;
+                            }
+                            lastSelectedRowRef.current = lastRow;
+                        } else {
+                            lastSelectedRowRef.current = null;
+                        }
+                    }
                 } else {
                     // Cell click - check if blending cleared our rows
                     const glideRows = selection.rows || CompactSelection.empty();
@@ -2559,9 +2611,44 @@ const GlideGrid = (props) => {
         if (rowSelectOnCellClick && (rowSelect === 'single' || rowSelect === 'multi')) {
             if (!selection.current?.cell) {
                 // Row marker action or column header click (no cell selected)
-                // Sync with glide's selection - this respects blending modes
-                currentRowSelectionRef.current = adjustedSelection.rows || CompactSelection.empty();
-                lastSelectedRowRef.current = null;
+                const glideRows = adjustedSelection.rows || CompactSelection.empty();
+                const isShift = modifierKeysRef.current.shiftKey;
+                const ourRows = currentRowSelectionRef.current || CompactSelection.empty();
+
+                if (isShift && ourRows.length > 0 && rowSelect === 'multi') {
+                    // Shift+click on row marker: merge glide's range with our previous selection
+                    // This enables AG Grid-style multi-range selection
+                    let mergedRows = ourRows;
+                    for (const row of glideRows) {
+                        mergedRows = mergedRows.add(row);
+                    }
+                    currentRowSelectionRef.current = mergedRows;
+                    adjustedSelection = {
+                        ...adjustedSelection,
+                        rows: mergedRows
+                    };
+                    // Update lastSelectedRowRef to the last row in the new range
+                    if (glideRows.length > 0) {
+                        let lastRow = 0;
+                        for (const row of glideRows) {
+                            lastRow = row;
+                        }
+                        lastSelectedRowRef.current = lastRow;
+                    }
+                } else {
+                    // Normal click or cmd+click: sync with glide's selection
+                    currentRowSelectionRef.current = glideRows;
+                    // Update lastSelectedRowRef to the last selected row
+                    if (glideRows.length > 0) {
+                        let lastRow = 0;
+                        for (const row of glideRows) {
+                            lastRow = row;
+                        }
+                        lastSelectedRowRef.current = lastRow;
+                    } else {
+                        lastSelectedRowRef.current = null;
+                    }
+                }
             } else {
                 // Cell is selected - need to determine if we should preserve our row selection
                 // or respect glide's blending logic
