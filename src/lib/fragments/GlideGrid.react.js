@@ -2528,16 +2528,37 @@ const GlideGrid = (props) => {
         // Handle rowSelectOnCellClick row selection syncing
         if (rowSelectOnCellClick && (rowSelect === 'single' || rowSelect === 'multi')) {
             if (!selection.current?.cell) {
-                // Row marker action (no cell selected) - sync with glide's selection
-                // This handles "check all" (rows > 0) and "uncheck all" (rows = 0) from row markers
+                // Row marker action or column header click (no cell selected)
+                // Sync with glide's selection - this respects blending modes
                 currentRowSelectionRef.current = adjustedSelection.rows || CompactSelection.empty();
                 lastSelectedRowRef.current = null;
             } else {
-                // Cell click - preserve our row selection (handled in handleCellClicked)
-                adjustedSelection = {
-                    ...adjustedSelection,
-                    rows: currentRowSelectionRef.current || CompactSelection.empty()
-                };
+                // Cell is selected - need to determine if we should preserve our row selection
+                // or respect glide's blending logic
+
+                // Check if blending has cleared our rows:
+                // - If rowSelectionBlending='exclusive' and columns/ranges are selected, rows get cleared
+                // - If glide's selection has no rows but we have rows, blending cleared them
+                const glideRows = adjustedSelection.rows || CompactSelection.empty();
+                const ourRows = currentRowSelectionRef.current || CompactSelection.empty();
+                const hasColumnSelection = (adjustedSelection.columns?.length || 0) > 0;
+                const hasRangeSelection = adjustedSelection.current?.range &&
+                    (adjustedSelection.current.range.width > 1 || adjustedSelection.current.range.height > 1);
+
+                // Respect blending: if glide cleared rows due to column/range selection with exclusive blending
+                const blendingClearedRows = ourRows.length > 0 && glideRows.length === 0 &&
+                    (hasColumnSelection || hasRangeSelection);
+
+                if (blendingClearedRows) {
+                    // Blending mode cleared our rows - sync with glide
+                    currentRowSelectionRef.current = glideRows;
+                } else {
+                    // Normal cell click - preserve our row selection (handled in handleCellClicked)
+                    adjustedSelection = {
+                        ...adjustedSelection,
+                        rows: ourRows
+                    };
+                }
             }
         } else {
             // Not using rowSelectOnCellClick - sync our ref with glide's selection
