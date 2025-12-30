@@ -130,7 +130,12 @@ app.layout = html.Div([
 
         # Hide focus ring border but keep row/column highlighting
         drawFocusRing=False,
-        rangeSelect="cell",
+        rangeSelect="rect",  # Use rect to test range selection color
+
+        # Custom range selection color (only affects data cells in selection range)
+        theme={
+            "rangeSelectionColor": "rgba(200, 100, 0, 0.2)",  # orange for range selection
+        },
     ),
 
     html.Div([

@@ -3888,14 +3888,18 @@ const GlideGrid = (props) => {
 
     // Create drawCell callback for custom cell rendering
     // Allows complete control over cell drawing via Canvas API
-    // Also handles fix for drawFocusRing=false losing row/column accent highlighting
+    // Also handles:
+    // - Fix for drawFocusRing=false losing row/column accent highlighting
+    // - Custom range selection color via theme.rangeSelectionColor
     const handleDrawCell = useMemo(() => {
         // When drawFocusRing=false, the focused cell loses its accent background
         // even if it's part of a selected row/column. We need to compensate.
         const needsFocusHighlightFix = drawFocusRing === false;
+        // Check if custom range selection color is defined
+        const hasCustomRangeColor = !!theme?.rangeSelectionColor;
 
-        // Skip if no fix needed and no custom drawCell
-        if (!needsFocusHighlightFix && (!drawCell || !isFunctionRef(drawCell))) {
+        // Skip if nothing special needed and no custom drawCell
+        if (!needsFocusHighlightFix && !hasCustomRangeColor && (!drawCell || !isFunctionRef(drawCell))) {
             return undefined;
         }
 
@@ -3919,6 +3923,24 @@ const GlideGrid = (props) => {
                         ctx.restore();
                     }
                 }
+            }
+
+            // Custom range selection color: draw on top of library's accentLight
+            // highlighted=true means cell is in selection range, but we only want
+            // to apply rangeSelectionColor for pure range selection, not row/column selection
+            const rowSelected = gridSelection.rows?.hasIndex?.(row);
+            const colSelected = gridSelection.columns?.hasIndex?.(col);
+            const isPureRangeSelection = highlighted && !rowSelected && !colSelected;
+
+            if (hasCustomRangeColor && isPureRangeSelection) {
+                ctx.save();
+                // Clear the library's accentLight by drawing bgCell first
+                ctx.fillStyle = cellTheme?.bgCell || '#ffffff';
+                ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                // Draw custom range color
+                ctx.fillStyle = theme.rangeSelectionColor;
+                ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                ctx.restore();
             }
 
             // Execute user's custom drawCell if provided
@@ -3958,7 +3980,7 @@ const GlideGrid = (props) => {
                 drawContent();
             }
         };
-    }, [drawCell, drawFocusRing, gridSelection, data, columns]);
+    }, [drawCell, drawFocusRing, gridSelection, data, columns, theme]);
 
     // Create custom drawHeader callback for header rendering
     // Allows complete control over header drawing via Canvas API
