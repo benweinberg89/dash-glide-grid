@@ -44,6 +44,19 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
+            html.Label("Row Select on Click:"),
+            dcc.Dropdown(
+                id="row-select-on-click",
+                options=[
+                    {"label": "On", "value": True},
+                    {"label": "Off", "value": False},
+                ],
+                value=True,
+                style={"width": "100px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
             html.Label("Row Select Mode:"),
             dcc.Dropdown(
                 id="row-select-mode",
@@ -198,6 +211,14 @@ app.layout = html.Div([
         ], style={"marginTop": "10px", "color": "#666"}),
     ], style={"padding": "20px", "backgroundColor": "#f5f5f5", "borderRadius": "8px"}),
 ])
+
+
+@app.callback(
+    Output("grid", "rowSelectOnCellClick"),
+    Input("row-select-on-click", "value"),
+)
+def update_row_select_on_click(value):
+    return value
 
 
 @app.callback(
