@@ -387,6 +387,14 @@ GlideGrid.propTypes = {
      */
     unselectableRows: PropTypes.arrayOf(PropTypes.number),
 
+    /**
+     * When True, clicking on any cell will select its entire row. Works with
+     * rowSelect ('single' or 'multi') and respects rowSelectionMode for modifier
+     * key behavior (Ctrl/Cmd for toggle, Shift for range). Also respects
+     * rowSelectionBlending and unselectableRows. Default: False.
+     */
+    rowSelectOnCellClick: PropTypes.bool,
+
     // ========== FEATURE TOGGLES ==========
 
     /**
