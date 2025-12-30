@@ -3937,9 +3937,12 @@ const GlideGrid = (props) => {
                 // Clear the library's accentLight by drawing bgCell first
                 ctx.fillStyle = cellTheme?.bgCell || '#ffffff';
                 ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-                // Draw custom range color
-                ctx.fillStyle = theme.rangeSelectionColor;
-                ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                // Draw custom range color (unless transparent/none - then just show border)
+                const rangeColor = theme.rangeSelectionColor;
+                if (rangeColor !== 'transparent' && rangeColor !== 'none') {
+                    ctx.fillStyle = rangeColor;
+                    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                }
                 ctx.restore();
             }
 

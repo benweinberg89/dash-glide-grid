@@ -107,8 +107,23 @@ app.layout = html.Div([
                     {"label": "Multi-Rect", "value": "multi-rect"},
                     {"label": "None", "value": "none"},
                 ],
-                value="cell",
+                value="rect",
                 style={"width": "130px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
+            html.Label("Range Selection Color:"),
+            dcc.Dropdown(
+                id="range-color",
+                options=[
+                    {"label": "Orange (custom)", "value": "rgba(200, 100, 0, 0.2)"},
+                    {"label": "Green (custom)", "value": "rgba(0, 200, 100, 0.2)"},
+                    {"label": "Transparent (border only)", "value": "transparent"},
+                    {"label": "None (border only)", "value": "none"},
+                ],
+                value="rgba(200, 100, 0, 0.2)",
+                style={"width": "200px"}
             ),
         ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
     ], style={"marginBottom": "10px"}),
@@ -201,6 +216,14 @@ def update_focus_ring(value):
 )
 def update_range_select(value):
     return value
+
+
+@app.callback(
+    Output("grid", "theme"),
+    Input("range-color", "value"),
+)
+def update_range_color(value):
+    return {"rangeSelectionColor": value}
 
 
 @app.callback(
