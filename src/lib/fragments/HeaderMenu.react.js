@@ -239,7 +239,26 @@ const HeaderMenu = ({
         if (!position) return { ...styles.container, display: 'none' };
 
         const menuWidth = 280;
-        const menuHeight = 400;
+
+        // Calculate actual menu height based on content
+        // Fixed elements: header (~35px) + search (~45px) + selectAll (~35px) = ~115px
+        const fixedHeight = 115;
+        // Filter list: 8px padding + 28px per item, capped at 250px (maxHeight in CSS)
+        // Use uniqueValues (not filteredValues) since search filtering happens after menu opens
+        const filterListHeight = Math.min(8 + (uniqueValues?.length || 0) * 28, 250);
+        // Custom items: 9px divider + 36px per item
+        const customItemsHeight = customItems && customItems.length > 0
+            ? 9 + customItems.length * 36
+            : 0;
+        // Clear button: ~25px (only shown when filter is active)
+        const hasActiveFilter = selectedValues !== null && selectedValues.length !== uniqueValues.length;
+        const clearButtonHeight = hasActiveFilter ? 25 : 0;
+
+        // Total height, capped at 400px (maxHeight in CSS)
+        const menuHeight = Math.min(
+            fixedHeight + filterListHeight + customItemsHeight + clearButtonHeight,
+            400
+        );
 
         // Apply scroll offset to keep menu anchored to header when page scrolls
         let left = position.x + scrollOffset.x;
@@ -264,7 +283,7 @@ const HeaderMenu = ({
             top: `${top}px`,
             zIndex: zIndex  // Explicitly set to ensure it's applied
         };
-    }, [position, styles.container, scrollOffset, zIndex]);
+    }, [position, styles.container, scrollOffset, zIndex, customItems, selectedValues, uniqueValues]);
 
     // Filter unique values based on search
     const filteredValues = useMemo(() => {
