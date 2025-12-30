@@ -570,6 +570,10 @@ const GlideGrid = (props) => {
     const currentRowSelectionRef = useRef(CompactSelection.empty()); // Track current row selection state
     const modifierKeysRef = useRef({ shiftKey: false, ctrlKey: false, metaKey: false }); // Track modifier keys globally
 
+    // Refs for column multi-range selection
+    const lastSelectedColumnRef = useRef(null);      // Track last selected column for shift+click range selection
+    const currentColumnSelectionRef = useRef(CompactSelection.empty()); // Track current column selection state
+
     // Ref to hold custom renderers for use in handlePaste
     const customRenderersRef = useRef(null);
 
@@ -2687,6 +2691,47 @@ const GlideGrid = (props) => {
             }
         }
 
+        // Handle column multi-range selection (shift+click on column headers)
+        if (columnSelect === 'multi' && !selection.current?.cell) {
+            const glideColumns = adjustedSelection.columns || CompactSelection.empty();
+            const isShift = modifierKeysRef.current.shiftKey;
+            const ourColumns = currentColumnSelectionRef.current || CompactSelection.empty();
+
+            if (isShift && ourColumns.length > 0 && glideColumns.length > 0) {
+                // Shift+click on column header: merge glide's range with our previous selection
+                let mergedColumns = ourColumns;
+                for (const col of glideColumns) {
+                    mergedColumns = mergedColumns.add(col);
+                }
+                currentColumnSelectionRef.current = mergedColumns;
+                adjustedSelection = {
+                    ...adjustedSelection,
+                    columns: mergedColumns
+                };
+                // Update lastSelectedColumnRef to the last column in the new range
+                let lastCol = 0;
+                for (const col of glideColumns) {
+                    lastCol = col;
+                }
+                lastSelectedColumnRef.current = lastCol;
+            } else {
+                // Normal click or cmd+click: sync with glide's selection
+                currentColumnSelectionRef.current = glideColumns;
+                if (glideColumns.length > 0) {
+                    let lastCol = 0;
+                    for (const col of glideColumns) {
+                        lastCol = col;
+                    }
+                    lastSelectedColumnRef.current = lastCol;
+                } else {
+                    lastSelectedColumnRef.current = null;
+                }
+            }
+        } else if (adjustedSelection.columns) {
+            // Sync our ref with glide's selection when not in multi mode
+            currentColumnSelectionRef.current = adjustedSelection.columns;
+        }
+
         // Update internal state for visual feedback and editing
         setGridSelection(adjustedSelection);
 
@@ -2752,7 +2797,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rangeSelect]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rangeSelect, columnSelect]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
