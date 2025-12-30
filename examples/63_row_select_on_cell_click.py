@@ -111,6 +111,45 @@ app.layout = html.Div([
                 style={"width": "130px"}
             ),
         ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
+            html.Label("Row Blending:"),
+            dcc.Dropdown(
+                id="row-blending",
+                options=[
+                    {"label": "Exclusive", "value": "exclusive"},
+                    {"label": "Mixed", "value": "mixed"},
+                ],
+                value="exclusive",
+                style={"width": "120px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
+            html.Label("Column Blending:"),
+            dcc.Dropdown(
+                id="column-blending",
+                options=[
+                    {"label": "Exclusive", "value": "exclusive"},
+                    {"label": "Mixed", "value": "mixed"},
+                ],
+                value="exclusive",
+                style={"width": "120px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
+
+        html.Div([
+            html.Label("Range Blending:"),
+            dcc.Dropdown(
+                id="range-blending",
+                options=[
+                    {"label": "Exclusive", "value": "exclusive"},
+                    {"label": "Mixed", "value": "mixed"},
+                ],
+                value="exclusive",
+                style={"width": "120px"}
+            ),
+        ], style={"display": "inline-block", "margin": "10px", "verticalAlign": "top"}),
     ], style={"marginBottom": "10px"}),
 
     dgg.GlideGrid(
@@ -127,6 +166,9 @@ app.layout = html.Div([
         rowSelect="multi",
         rowSelectionMode="auto",
         rowMarkers="checkbox",
+
+        # Column selection (click header to select column)
+        columnSelect="multi",
 
         # Hide focus ring border but keep row/column highlighting
         drawFocusRing=False,
@@ -195,6 +237,30 @@ def update_focus_ring(value):
     Input("range-select", "value"),
 )
 def update_range_select(value):
+    return value
+
+
+@app.callback(
+    Output("grid", "rowSelectionBlending"),
+    Input("row-blending", "value"),
+)
+def update_row_blending(value):
+    return value
+
+
+@app.callback(
+    Output("grid", "columnSelectionBlending"),
+    Input("column-blending", "value"),
+)
+def update_column_blending(value):
+    return value
+
+
+@app.callback(
+    Output("grid", "rangeSelectionBlending"),
+    Input("range-blending", "value"),
+)
+def update_range_blending(value):
     return value
 
 

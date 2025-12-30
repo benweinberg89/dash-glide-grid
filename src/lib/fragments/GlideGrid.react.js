@@ -2316,6 +2316,45 @@ const GlideGrid = (props) => {
 
     // Handle selection changes
     const handleSelectionChanged = useCallback((selection) => {
+        // If rangeSelect is 'none', strip cell/range selection but preserve row/column selection
+        if (rangeSelect === 'none') {
+            // When rowSelectOnCellClick is enabled, preserve our managed row selection
+            // Otherwise glide's selection.rows gets cleared on mousedown causing flicker
+            const rowsToUse = rowSelectOnCellClick
+                ? (currentRowSelectionRef.current || CompactSelection.empty())
+                : (selection.rows || CompactSelection.empty());
+
+            const strippedSelection = {
+                columns: selection.columns || CompactSelection.empty(),
+                rows: rowsToUse,
+                current: undefined  // No cell or range selection
+            };
+            setGridSelection(strippedSelection);
+
+            // Still update row/column selections if setProps available
+            if (setProps) {
+                const updates = {};
+                if (strippedSelection.rows && strippedSelection.rows.length > 0) {
+                    const rowsArray = [];
+                    for (const row of strippedSelection.rows) {
+                        rowsArray.push(row);
+                    }
+                    updates.selectedRows = rowsArray;
+                }
+                if (strippedSelection.columns && strippedSelection.columns.length > 0) {
+                    const colsArray = [];
+                    for (const col of strippedSelection.columns) {
+                        colsArray.push(col);
+                    }
+                    updates.selectedColumns = colsArray;
+                }
+                if (Object.keys(updates).length > 0) {
+                    setProps(updates);
+                }
+            }
+            return;
+        }
+
         let adjustedSelection = selection;
 
         // Apply selectionColumnMin restriction if set
@@ -2572,7 +2611,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rangeSelect]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
@@ -3871,46 +3910,77 @@ const GlideGrid = (props) => {
 
     // Create drawCell callback for custom cell rendering
     // Allows complete control over cell drawing via Canvas API
+    // Also handles fix for drawFocusRing=false losing row/column accent highlighting
     const handleDrawCell = useMemo(() => {
-        if (!drawCell || !isFunctionRef(drawCell)) {
+        // When drawFocusRing=false, the focused cell loses its accent background
+        // even if it's part of a selected row/column. We need to compensate.
+        const needsFocusHighlightFix = drawFocusRing === false;
+
+        // Skip if no fix needed and no custom drawCell
+        if (!needsFocusHighlightFix && (!drawCell || !isFunctionRef(drawCell))) {
             return undefined;
         }
 
         return (args, drawContent) => {
             const { ctx, cell, theme: cellTheme, rect, col, row, hoverAmount, highlighted } = args;
 
-            // Get row data for context
-            const rowData = data && data[row] ? data[row] : null;
-            // Get column id to access dict key
-            const columnDef = columns?.[col];
-            const columnId = columnDef?.id || columnDef?.title;
-            const cellData = rowData ? rowData[columnId] : null;
+            // Fix: Draw accent background for focused cell when drawFocusRing=false
+            // Only apply if the cell's row or column is selected (should have highlighting)
+            if (needsFocusHighlightFix && gridSelection.current?.cell) {
+                const [focusCol, focusRow] = gridSelection.current.cell;
+                if (col === focusCol && row === focusRow) {
+                    // Check if row or column is selected
+                    const rowSelected = gridSelection.rows?.hasIndex?.(row);
+                    const colSelected = gridSelection.columns?.hasIndex?.(col);
 
-            // Execute the custom draw function
-            // The function can return true to skip default drawing, or call drawContent() itself
-            const result = executeFunction(
-                drawCell.function,
-                {
-                    ctx,
-                    cell,
-                    theme: cellTheme,
-                    rect,
-                    col,
-                    row,
-                    hoverAmount,
-                    highlighted,
-                    cellData,
-                    rowData,
-                    drawContent
+                    if (rowSelected || colSelected) {
+                        const accentLight = cellTheme?.accentLight || 'rgba(62, 116, 253, 0.1)';
+                        ctx.save();
+                        ctx.fillStyle = accentLight;
+                        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                        ctx.restore();
+                    }
                 }
-            );
+            }
 
-            // If function returns true, it handled drawing; otherwise draw default content
-            if (result !== true) {
+            // Execute user's custom drawCell if provided
+            if (drawCell && isFunctionRef(drawCell)) {
+                // Get row data for context
+                const rowData = data && data[row] ? data[row] : null;
+                // Get column id to access dict key
+                const columnDef = columns?.[col];
+                const columnId = columnDef?.id || columnDef?.title;
+                const cellData = rowData ? rowData[columnId] : null;
+
+                // Execute the custom draw function
+                // The function can return true to skip default drawing, or call drawContent() itself
+                const result = executeFunction(
+                    drawCell.function,
+                    {
+                        ctx,
+                        cell,
+                        theme: cellTheme,
+                        rect,
+                        col,
+                        row,
+                        hoverAmount,
+                        highlighted,
+                        cellData,
+                        rowData,
+                        drawContent
+                    }
+                );
+
+                // If function returns true, it handled drawing; otherwise draw default content
+                if (result !== true) {
+                    drawContent();
+                }
+            } else {
+                // No custom drawCell, just draw default content
                 drawContent();
             }
         };
-    }, [drawCell, data]);
+    }, [drawCell, drawFocusRing, gridSelection, data, columns]);
 
     // Create custom drawHeader callback for header rendering
     // Allows complete control over header drawing via Canvas API
