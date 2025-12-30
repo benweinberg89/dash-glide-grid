@@ -1839,9 +1839,10 @@ const GlideGrid = (props) => {
                 // Multi selection mode
                 if (isShift && lastSelectedRowRef.current !== null) {
                     // Shift+click: range selection from last selected row
+                    // Always preserve existing selection (AG Grid style multi-range support)
                     const start = Math.min(lastSelectedRowRef.current, row);
                     const end = Math.max(lastSelectedRowRef.current, row);
-                    newRows = isCtrlOrCmd ? currentRows : CompactSelection.empty();
+                    newRows = currentRows;
                     for (let i = start; i <= end; i++) {
                         if (!unselectableRows || !unselectableRows.includes(i)) {
                             newRows = newRows.add(i);
