@@ -998,6 +998,19 @@ GlideGrid.propTypes = {
     redrawTrigger: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
+     * Trigger column remeasurement for auto-sized columns.
+     * When columns don't have a fixed width, they auto-size to fit content.
+     * Use this prop to trigger re-measurement after data changes.
+     * Shape: { columns: number[], timestamp: number }
+     * - columns: Array of column indices to remeasure. Empty array or omitted = all columns.
+     * - timestamp: Unique value to trigger the action (e.g., Date.now())
+     */
+    remeasureColumns: PropTypes.shape({
+        columns: PropTypes.arrayOf(PropTypes.number),
+        timestamp: PropTypes.number
+    }),
+
+    /**
      * Enable cell flash effect when cells are changed.
      * When enabled, cells will briefly highlight and fade out to indicate changes.
      * Can be:
@@ -1327,8 +1340,10 @@ GlideGrid.propTypes = {
      * ```
      */
     headerMenuConfig: PropTypes.shape({
-        menuIcon: PropTypes.oneOf(['chevron', 'hamburger', 'dots']),
+        menuIcon: PropTypes.oneOf(['chevron', 'hamburger', 'dots', 'filter']),
         filterActiveColor: PropTypes.string,
+        anchorToHeader: PropTypes.bool,
+        zIndex: PropTypes.number,
         customItems: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string.isRequired,
             label: PropTypes.string.isRequired,

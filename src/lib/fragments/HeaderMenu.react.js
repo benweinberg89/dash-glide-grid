@@ -18,7 +18,8 @@ const HeaderMenu = ({
     theme,
     customItems,
     onCustomItemClick,
-    anchorToHeader = true
+    anchorToHeader = true,
+    zIndex = 1000
 }) => {
     // Local state for search within filter list
     const [filterSearch, setFilterSearch] = useState('');
@@ -135,7 +136,7 @@ const HeaderMenu = ({
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
-                zIndex: 10000
+                zIndex: zIndex
             },
             header: {
                 padding: '10px 12px',
@@ -231,7 +232,7 @@ const HeaderMenu = ({
                 gap: '8px'
             }
         };
-    }, [theme]);
+    }, [theme, zIndex]);
 
     // Calculate menu position with viewport bounds checking and scroll offset
     const menuStyle = useMemo(() => {
@@ -260,9 +261,10 @@ const HeaderMenu = ({
         return {
             ...styles.container,
             left: `${left}px`,
-            top: `${top}px`
+            top: `${top}px`,
+            zIndex: zIndex  // Explicitly set to ensure it's applied
         };
-    }, [position, styles.container, scrollOffset]);
+    }, [position, styles.container, scrollOffset, zIndex]);
 
     // Filter unique values based on search
     const filteredValues = useMemo(() => {
@@ -343,7 +345,7 @@ const HeaderMenu = ({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 9999  // Just below the menu (which is 10000)
+        zIndex: zIndex - 1  // Just below the menu
     };
 
     // Render via portal - backdrop + menu
@@ -513,14 +515,17 @@ HeaderMenu.propTypes = {
     /** Callback when custom item is clicked: (itemId, columnIndex) => void */
     onCustomItemClick: PropTypes.func,
     /** Whether menu stays anchored to header when page scrolls. Default: true */
-    anchorToHeader: PropTypes.bool
+    anchorToHeader: PropTypes.bool,
+    /** z-index for the menu. Default: 1000 */
+    zIndex: PropTypes.number
 };
 
 HeaderMenu.defaultProps = {
     uniqueValues: [],
     selectedValues: null,
     customItems: [],
-    anchorToHeader: true
+    anchorToHeader: true,
+    zIndex: 1000
 };
 
 export default HeaderMenu;

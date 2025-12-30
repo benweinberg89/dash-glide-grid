@@ -51,53 +51,6 @@ const staticRenderers = [
 ];
 
 /**
- * Draw hamburger icon (three horizontal lines) for header menu
- */
-function drawHamburgerIcon(ctx, bounds, theme) {
-    const { x, y, width, height } = bounds;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-    const lineWidth = 10;
-    const lineHeight = 2;
-    const gap = 3;
-
-    ctx.fillStyle = theme.textHeader || theme.textDark || '#000';
-
-    // Top bar
-    ctx.fillRect(centerX - lineWidth / 2, centerY - gap - lineHeight / 2, lineWidth, lineHeight);
-    // Middle bar
-    ctx.fillRect(centerX - lineWidth / 2, centerY - lineHeight / 2, lineWidth, lineHeight);
-    // Bottom bar
-    ctx.fillRect(centerX - lineWidth / 2, centerY + gap - lineHeight / 2, lineWidth, lineHeight);
-}
-
-/**
- * Draw dots icon (three vertical dots) for header menu
- */
-function drawDotsIcon(ctx, bounds, theme) {
-    const { x, y, width, height } = bounds;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-    const dotRadius = 1.5;
-    const gap = 4;
-
-    ctx.fillStyle = theme.textHeader || theme.textDark || '#000';
-
-    // Top dot
-    ctx.beginPath();
-    ctx.arc(centerX, centerY - gap, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-    // Middle dot
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-    // Bottom dot
-    ctx.beginPath();
-    ctx.arc(centerX, centerY + gap, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-}
-
-/**
  * Helper function to auto-detect cell type from simple JavaScript values
  */
 function autoDetectCellType(value) {
@@ -446,6 +399,7 @@ const GlideGrid = (props) => {
         editorScrollBehavior,
         contextMenuScrollBehavior,
         redrawTrigger,
+        remeasureColumns,
         showCellFlash,
         allowDelete,
         setProps
@@ -563,6 +517,7 @@ const GlideGrid = (props) => {
     const batchTimeoutRef = useRef(null);            // For batching rapid edits
     const currentBatchRef = useRef([]);              // Current batch of edits being collected
     const lastUndoRedoActionRef = useRef(null);      // Track last processed undoRedoAction
+    const lastRemeasureColumnsRef = useRef(null);    // Track last processed remeasureColumns action
     const pendingWrapRef = useRef(null);             // Track pending Tab wrap for row boundaries
 
     // Refs for rowSelectOnCellClick feature
@@ -806,6 +761,39 @@ const GlideGrid = (props) => {
             performRedo();
         }
     }, [undoRedoAction, enableUndoRedo, performUndo, performRedo]);
+
+    // Handle remeasureColumns prop from Dash - triggers column auto-resize
+    useEffect(() => {
+        if (!remeasureColumns || !gridRef.current) return;
+
+        // Avoid processing the same action twice
+        if (lastRemeasureColumnsRef.current &&
+            lastRemeasureColumnsRef.current.timestamp === remeasureColumns.timestamp) {
+            return;
+        }
+        lastRemeasureColumnsRef.current = remeasureColumns;
+
+        // Build CompactSelection from column indices
+        const columnIndices = remeasureColumns.columns;
+        let selection;
+
+        if (!columnIndices || columnIndices.length === 0) {
+            // Remeasure all columns
+            const numCols = localColumns ? localColumns.length : 0;
+            selection = CompactSelection.empty();
+            for (let i = 0; i < numCols; i++) {
+                selection = selection.add(i);
+            }
+        } else {
+            // Remeasure specific columns
+            selection = CompactSelection.empty();
+            for (const idx of columnIndices) {
+                selection = selection.add(idx);
+            }
+        }
+
+        gridRef.current.remeasureColumns(selection);
+    }, [remeasureColumns, localColumns]);
 
     // Clear undo/redo history when data changes externally
     useEffect(() => {
@@ -1733,17 +1721,22 @@ const GlideGrid = (props) => {
                 columnThemeOverride = {
                     ...col.themeOverride,
                     bgIconHeader: filterActiveColor,
+                    fgIconHeader: filterActiveColor,
                     textHeader: filterActiveColor
                 };
             }
 
+            // Map menuIcon value: 'chevron' means use default (undefined), otherwise pass through
+            const menuIconValue = headerMenuConfig?.menuIcon === 'chevron' ? undefined : headerMenuConfig?.menuIcon;
+
             return {
                 title: title,
                 id: col.id || col.title,
-                width: col.width || 150,
+                width: col.width,
                 icon: col.icon,
                 overlayIcon: col.overlayIcon,
                 hasMenu: showMenu,
+                menuIcon: showMenu ? menuIconValue : undefined,
                 group: col.group,
                 themeOverride: columnThemeOverride
             };
@@ -2801,24 +2794,29 @@ const GlideGrid = (props) => {
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
-        if (!setProps || !localColumns) return;
+        if (!setProps) return;
 
-        // Update local columns immediately for visual feedback
-        const newColumns = localColumns.map((col, idx) => {
-            if (idx === columnIndex) {
-                return { ...col, width: newSize };
-            }
-            return col;
+        // Use functional update to avoid stale closure when multiple resizes fire rapidly
+        // (e.g., from remeasureColumns triggering resize events for multiple columns)
+        setLocalColumns(prevColumns => {
+            if (!prevColumns) return prevColumns;
+
+            const newColumns = prevColumns.map((col, idx) => {
+                if (idx === columnIndex) {
+                    return { ...col, width: newSize };
+                }
+                return col;
+            });
+
+            // Send new widths to Dash
+            const newWidths = newColumns.map(col => col.width || 150);
+            setProps({
+                columnWidths: newWidths
+            });
+
+            return newColumns;
         });
-
-        setLocalColumns(newColumns);
-
-        // Send new widths to Dash
-        const newWidths = newColumns.map(col => col.width || 150);
-        setProps({
-            columnWidths: newWidths
-        });
-    }, [setProps, localColumns]);
+    }, [setProps]);
 
     // Handle search close
     const handleSearchClose = useCallback(() => {
@@ -3545,81 +3543,6 @@ const GlideGrid = (props) => {
         }
     }, [setProps, localColumns]);
 
-    // Custom header drawing callback for menu icon customization
-    const handleDrawHeader = useCallback((args, drawContent) => {
-        const { ctx, column, theme: headerTheme, menuBounds, hoverAmount, isSelected, hasSelectedCell } = args;
-
-        // First, draw the default header content
-        drawContent();
-
-        // If no custom menu icon or column has no menu, we're done
-        const menuIcon = headerMenuConfig?.menuIcon;
-        if (!menuIcon || menuIcon === 'chevron' || !column.hasMenu) {
-            return;
-        }
-
-        // Only draw custom icon when hovering (hoverAmount > 0)
-        // This matches Glide's default behavior of fading in the menu icon
-        if (hoverAmount <= 0) {
-            return;
-        }
-
-        // Determine base background color based on selection state
-        // Priority: selected > normal
-        let bgBase;
-        if (isSelected || hasSelectedCell) {
-            bgBase = headerTheme.bgHeaderHasFocus || headerTheme.bgHeader || '#f7f7f8';
-        } else {
-            bgBase = headerTheme.bgHeader || '#f7f7f8';
-        }
-        const bgHovered = headerTheme.bgHeaderHovered || bgBase;
-
-        // Simple color interpolation (works for hex colors)
-        const interpolateColor = (c1, c2, t) => {
-            const parse = (c) => {
-                // Handle rgb() format
-                if (c.startsWith('rgb')) {
-                    const match = c.match(/\d+/g);
-                    return { r: parseInt(match[0]), g: parseInt(match[1]), b: parseInt(match[2]) };
-                }
-                // Handle hex format
-                const hex = c.replace('#', '');
-                return {
-                    r: parseInt(hex.substr(0, 2), 16),
-                    g: parseInt(hex.substr(2, 2), 16),
-                    b: parseInt(hex.substr(4, 2), 16)
-                };
-            };
-            const p1 = parse(c1);
-            const p2 = parse(c2);
-            const r = Math.round(p1.r + (p2.r - p1.r) * t);
-            const g = Math.round(p1.g + (p2.g - p1.g) * t);
-            const b = Math.round(p1.b + (p2.b - p1.b) * t);
-            return `rgb(${r},${g},${b})`;
-        };
-
-        // Get interpolated background color based on hover amount
-        const bgColor = interpolateColor(bgBase, bgHovered, hoverAmount);
-
-        // Clear the menu area with the interpolated background color
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(menuBounds.x, menuBounds.y, menuBounds.width, menuBounds.height);
-
-        // Save alpha and set for icon fade-in
-        const prevAlpha = ctx.globalAlpha;
-        ctx.globalAlpha = hoverAmount;
-
-        // Draw the custom icon
-        if (menuIcon === 'hamburger') {
-            drawHamburgerIcon(ctx, menuBounds, headerTheme);
-        } else if (menuIcon === 'dots') {
-            drawDotsIcon(ctx, menuBounds, headerTheme);
-        }
-
-        // Restore alpha
-        ctx.globalAlpha = prevAlpha;
-    }, [headerMenuConfig]);
-
     // Handle group header clicks
     const handleGroupHeaderClicked = useCallback((colIndex, event) => {
         if (setProps) {
@@ -4231,8 +4154,33 @@ const GlideGrid = (props) => {
         return undefined;
     };
 
-    // Theme is passed directly (camelCase)
-    const glideTheme = theme;
+    // Theme with override for fgIconHeader to ensure custom menu icons are visible
+    // Native menu icons (dots, triangle) use textHeader for color, but custom icons
+    // via headerIcons receive fgIconHeader. Many themes set fgIconHeader to white
+    // (for use with bgIconHeader background circle), making custom icons invisible.
+    // Force fgIconHeader to match textHeader so custom menu icons match native ones.
+    const glideTheme = useMemo(() => {
+        if (!theme) {
+            return { fgIconHeader: '#000000' };
+        }
+        return {
+            ...theme,
+            // Override fgIconHeader to use textHeader (like native menu icons do)
+            fgIconHeader: theme.textHeader || theme.textDark || '#000000'
+        };
+    }, [theme]);
+
+    // Custom header icons for menu (hamburger, filter)
+    const headerIcons = useMemo(() => ({
+        hamburger: ({ fgColor }) => `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="6" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+            <rect x="5" y="9" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+            <rect x="5" y="12" width="10" height="2" rx="0.5" fill="${fgColor}"/>
+        </svg>`,
+        filter: ({ fgColor }) => `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 5h12l-4.5 5v5l-3-1.5V10L4 5z" stroke="${fgColor}" fill="none" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>`
+    }), []);
 
     // Keyboard handler for undo/redo shortcuts
     const handleKeyDown = useCallback((e) => {
@@ -4524,6 +4472,7 @@ const GlideGrid = (props) => {
                 maxColumnAutoWidth={maxColumnAutoWidth}
                 copyHeaders={copyHeaders}
                 theme={glideTheme}
+                headerIcons={headerIcons}
                 getCellsForSelection={enableCopyPaste}
                 showSearch={showSearch}
                 searchValue={localSearchValue}
@@ -4532,7 +4481,7 @@ const GlideGrid = (props) => {
                 onHeaderClicked={handleHeaderClicked}
                 onHeaderContextMenu={handleHeaderContextMenu}
                 onHeaderMenuClick={handleHeaderMenuClick}
-                drawHeader={handleDrawHeaderCustom || (headerMenuConfig?.menuIcon && headerMenuConfig.menuIcon !== 'chevron' ? handleDrawHeader : undefined)}
+                drawHeader={handleDrawHeaderCustom}
                 onGroupHeaderClicked={handleGroupHeaderClicked}
                 onCellContextMenu={handleContextMenu}
                 onCellActivated={handleCellActivated}
@@ -4583,6 +4532,7 @@ const GlideGrid = (props) => {
                 customItems={headerMenuConfig?.customItems}
                 onCustomItemClick={handleCustomItemClick}
                 anchorToHeader={headerMenuConfig?.anchorToHeader !== false}
+                zIndex={headerMenuConfig?.zIndex}
             />
             {/* Cell Context Menu */}
             <ContextMenu
