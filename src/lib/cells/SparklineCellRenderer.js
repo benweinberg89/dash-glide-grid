@@ -44,6 +44,10 @@ export function createSparklineCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect, hoverAmount = 0, hoverX } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             let {
                 values,
                 yAxis,

@@ -1869,8 +1869,14 @@ const GlideGrid = (props) => {
             };
         }
 
+        // If row is hidden, strip properties that would cause visible rendering
+        if (hiddenRowsSet.has(actualRow)) {
+            delete cellResult.themeOverride;  // Prevents custom colors overriding transparency
+            delete cellResult.lastUpdated;    // Prevents flash effect on hidden cells
+        }
+
         return cellResult;
-    }, [localData, localColumns, sortedIndices, lastUpdatedCells]);
+    }, [localData, localColumns, sortedIndices, lastUpdatedCells, hiddenRowsSet]);
 
     // Handle cell clicks
     const handleCellClicked = useCallback((cell, event) => {
