@@ -72,6 +72,7 @@ GlideGrid.defaultProps = {
     showCellFlash: false,
     allowDelete: true,
     hiddenRows: [],
+    hiddenRowsConfig: {},
 };
 
 GlideGrid.propTypes = {
@@ -400,6 +401,24 @@ GlideGrid.propTypes = {
      * need to hide/show while maintaining their identity and selection state.
      */
     hiddenRows: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * Configuration object controlling how hidden rows affect grid operations.
+     * All options default to true, meaning hidden rows are skipped by default.
+     * Set specific options to false to include hidden rows in those operations.
+     */
+    hiddenRowsConfig: PropTypes.shape({
+        /** Skip hidden rows during copy operations (Cmd/Ctrl+C). Default: true */
+        skipOnCopy: PropTypes.bool,
+        /** Skip hidden rows during paste operations (Cmd/Ctrl+V). Default: true */
+        skipOnPaste: PropTypes.bool,
+        /** Skip hidden rows during fill handle drag operations. Default: true */
+        skipOnFill: PropTypes.bool,
+        /** Skip hidden rows during delete operations (Delete/Backspace). Default: true */
+        skipOnDelete: PropTypes.bool,
+        /** Skip hidden rows during keyboard navigation (Tab, Arrow keys). Default: true */
+        skipOnNavigation: PropTypes.bool,
+    }),
 
     /**
      * When True, clicking on any cell will select its entire row. Works with

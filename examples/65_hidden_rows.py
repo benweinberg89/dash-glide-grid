@@ -14,7 +14,10 @@ Also includes testing for hidden row edge cases:
 - Fill handle should not fill hidden cells
 - Delete should not clear hidden cells
 - Copy should not include hidden rows
+- Paste should skip hidden rows
 - Context menu should not appear on hidden rows
+
+The hiddenRowsConfig prop allows toggling each of these behaviors on/off.
 """
 
 import dash
@@ -206,6 +209,25 @@ app.layout = html.Div([
         ),
     ]),
 
+    html.Div([
+        html.Strong("Hidden Rows Config: ", style={"fontSize": "12px"}),
+        dcc.Checklist(
+            id="hidden-rows-config",
+            options=[
+                {"label": " Skip on Copy", "value": "skipOnCopy"},
+                {"label": " Skip on Paste", "value": "skipOnPaste"},
+                {"label": " Skip on Fill", "value": "skipOnFill"},
+                {"label": " Skip on Delete", "value": "skipOnDelete"},
+                {"label": " Skip on Navigation", "value": "skipOnNavigation"},
+            ],
+            value=["skipOnCopy", "skipOnPaste", "skipOnFill", "skipOnDelete", "skipOnNavigation"],
+            inline=True,
+            style={"marginBottom": "10px"},
+            inputStyle={"marginRight": "4px"},
+            labelStyle={"marginRight": "12px", "fontSize": "12px"},
+        ),
+    ]),
+
     html.Div(id="status", style={"marginBottom": "10px", "fontFamily": "monospace", "fontSize": "12px"}),
 
     html.Div([
@@ -220,6 +242,13 @@ app.layout = html.Div([
                 rowMarkers="both",
                 rowSelect="multi",
                 hiddenRows=compute_hidden_rows(INITIAL_COLLAPSED),
+                hiddenRowsConfig={
+                    "skipOnCopy": True,
+                    "skipOnPaste": True,
+                    "skipOnFill": True,
+                    "skipOnDelete": True,
+                    "skipOnNavigation": True,
+                },
                 unselectableRows=[],
                 rowSelectOnCellClick=False,
                 fillHandle=True,
@@ -229,14 +258,16 @@ app.layout = html.Div([
 
         html.Div([
             html.H4("Edge Case Testing", style={"marginTop": "0"}),
-            html.P("Collapse a folder, then test:", style={"fontSize": "13px", "marginBottom": "8px"}),
+            html.P("Collapse a folder or hide rows 3-5, then test:", style={"fontSize": "13px", "marginBottom": "8px"}),
             html.Ul([
                 html.Li("Tab/Arrow: Navigate - should skip hidden rows"),
                 html.Li("Fill handle: Drag across hidden rows"),
                 html.Li("Delete: Select range spanning hidden, press Delete"),
                 html.Li("Copy: Select range spanning hidden, Cmd+C"),
+                html.Li("Paste: Copy visible rows, paste into range with hidden"),
                 html.Li("Right-click: Should not work on hidden cells"),
             ], style={"fontSize": "12px", "marginBottom": "12px", "paddingLeft": "20px"}),
+            html.P("Toggle config checkboxes above to change skip behavior.", style={"fontSize": "11px", "color": "#666", "marginBottom": "8px"}),
 
             html.Div([
                 html.Strong("Selected Cell: ", style={"fontSize": "12px"}),
@@ -289,6 +320,22 @@ def update_options(options):
     draw_focus_ring = "draw-focus-ring" in options
     fill_handle = "fill-handle" in options
     return unselectable, row_select_on_click, draw_focus_ring, fill_handle
+
+
+@callback(
+    Output("grid", "hiddenRowsConfig"),
+    Input("hidden-rows-config", "value"),
+)
+def update_hidden_rows_config(config_values):
+    """Update hiddenRowsConfig based on checklist selection"""
+    config_values = config_values or []
+    return {
+        "skipOnCopy": "skipOnCopy" in config_values,
+        "skipOnPaste": "skipOnPaste" in config_values,
+        "skipOnFill": "skipOnFill" in config_values,
+        "skipOnDelete": "skipOnDelete" in config_values,
+        "skipOnNavigation": "skipOnNavigation" in config_values,
+    }
 
 
 @callback(

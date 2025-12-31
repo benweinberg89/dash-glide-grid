@@ -403,6 +403,7 @@ const GlideGrid = (props) => {
         showCellFlash,
         allowDelete,
         hiddenRows,
+        hiddenRowsConfig,
         setProps
     } = props;
 
@@ -457,6 +458,15 @@ const GlideGrid = (props) => {
     const hiddenRowsSet = useMemo(() => {
         return new Set(hiddenRows || []);
     }, [hiddenRows]);
+
+    // Extract hidden rows config options (all default to true - skip hidden rows)
+    const {
+        skipOnCopy = true,
+        skipOnPaste = true,
+        skipOnFill = true,
+        skipOnDelete = true,
+        skipOnNavigation = true,
+    } = hiddenRowsConfig || {};
 
     // Ref to track current data (to avoid stale closures in rapid callbacks)
     const localDataRef = useRef(data);
@@ -2297,9 +2307,30 @@ const GlideGrid = (props) => {
         // Create a deep copy of the data (array of objects)
         const newData = currentData.map(r => ({...r}));
 
-        // Apply pasted data to the grid
-        for (let i = 0; i < values.length; i++) {
-            const displayRow = targetRow + i;
+        // Build list of visible target rows if skipping hidden rows
+        let targetRows = [];
+        if (skipOnPaste && hiddenRowsSet.size > 0) {
+            // Collect visible rows starting from targetRow, up to values.length rows needed
+            let row = targetRow;
+            while (targetRows.length < values.length && row < currentData.length) {
+                if (!hiddenRowsSet.has(row)) {
+                    targetRows.push(row);
+                }
+                row++;
+            }
+        } else {
+            // No hidden row skipping - use sequential rows
+            for (let i = 0; i < values.length; i++) {
+                const row = targetRow + i;
+                if (row < currentData.length) {
+                    targetRows.push(row);
+                }
+            }
+        }
+
+        // Apply pasted data to visible target rows only
+        for (let i = 0; i < targetRows.length; i++) {
+            const displayRow = targetRows[i];
             if (displayRow >= newData.length) break;
 
             // Translate display row to actual data row if sorting is active
@@ -2335,8 +2366,8 @@ const GlideGrid = (props) => {
         if (shouldFlash('paste')) {
             const now = performance.now();
             const updatedCells = {};
-            for (let i = 0; i < values.length; i++) {
-                const displayRow = targetRow + i;
+            for (let i = 0; i < targetRows.length; i++) {
+                const displayRow = targetRows[i];
                 if (displayRow >= newData.length) break;
                 const actualPasteRow = sortedIndices ? sortedIndices[displayRow] : displayRow;
                 if (actualPasteRow >= newData.length) break;
@@ -2367,14 +2398,14 @@ const GlideGrid = (props) => {
             cellEdited: {
                 col: targetCol,
                 row: actualTargetRow,
-                value: `Pasted ${values.length}x${values[0]?.length || 0} range`,
+                value: `Pasted ${targetRows.length}x${values[0]?.length || 0} range`,
                 timestamp: Date.now()
             }
         });
 
         // Return false to prevent grid from also trying to paste (we handled it)
         return false;
-    }, [setProps, readonly, sortedIndices, addEditToBatch]);
+    }, [setProps, readonly, sortedIndices, addEditToBatch, skipOnPaste, hiddenRowsSet]);
 
     // Handle selection changes
     const handleSelectionChanged = useCallback((selection) => {
@@ -2940,8 +2971,8 @@ const GlideGrid = (props) => {
 
         // Fill the destination with pattern from source
         for (let destRow = fillDestination.y; destRow < fillDestination.y + fillDestination.height; destRow++) {
-            // Skip hidden rows
-            if (hiddenRowsSet.has(destRow)) continue;
+            // Skip hidden rows (only if skipOnFill is enabled)
+            if (skipOnFill && hiddenRowsSet.has(destRow)) continue;
 
             // Translate display row to actual data row if sorting is active
             const actualDestRow = sortedIndices ? sortedIndices[destRow] : destRow;
@@ -3005,7 +3036,7 @@ const GlideGrid = (props) => {
                 timestamp: Date.now()
             }
         });
-    }, [setProps, readonly, sortedIndices, addEditToBatch, hiddenRowsSet]);
+    }, [setProps, readonly, sortedIndices, addEditToBatch, hiddenRowsSet, skipOnFill]);
 
     // ========== PHASE 2: EVENT HANDLERS ==========
 
@@ -3841,8 +3872,8 @@ const GlideGrid = (props) => {
         if (selection.current?.range) {
             const range = selection.current.range;
             for (let displayRow = range.y; displayRow < range.y + range.height; displayRow++) {
-                // Skip hidden rows
-                if (hiddenRowsSet.has(displayRow)) continue;
+                // Skip hidden rows (only if skipOnDelete is enabled)
+                if (skipOnDelete && hiddenRowsSet.has(displayRow)) continue;
 
                 // Translate display row to data row if sorting is active
                 const dataRow = sortedIndices ? sortedIndices[displayRow] : displayRow;
@@ -3877,7 +3908,7 @@ const GlideGrid = (props) => {
         // Return false to prevent Glide from doing its own clearing
         // We've already handled all the cell clearing ourselves
         return false;
-    }, [setProps, allowDelete, readonly, getClearedValue, sortedIndices, hiddenRowsSet]);
+    }, [setProps, allowDelete, readonly, getClearedValue, sortedIndices, hiddenRowsSet, skipOnDelete]);
 
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {
@@ -4418,8 +4449,8 @@ const GlideGrid = (props) => {
             }
         }
 
-        // Skip hidden rows
-        if (hiddenRowsSet.size > 0) {
+        // Skip hidden rows (only if skipOnNavigation is enabled)
+        if (skipOnNavigation && hiddenRowsSet.size > 0) {
             let attempts = 0;
             const maxAttempts = numRows;
             while (hiddenRowsSet.has(nextRow) && attempts < maxAttempts) {
@@ -4432,7 +4463,7 @@ const GlideGrid = (props) => {
         }
 
         return { col: nextCol, row: nextRow, wrapped: true };
-    }, [glideColumns.length, unselectableColumns, unselectableRows, hiddenRowsSet]);
+    }, [glideColumns.length, unselectableColumns, unselectableRows, hiddenRowsSet, skipOnNavigation]);
 
     // Keyboard navigation handler for tab wrapping and arrow key skipping over hidden rows
     const handleKeyboardNavigation = useCallback((e) => {
@@ -4576,7 +4607,7 @@ const GlideGrid = (props) => {
     // Use capture phase on DOCUMENT to intercept Arrow keys before Glide handles them
     // This is needed because Glide's internal arrow handling happens before onKeyDown fires
     useEffect(() => {
-        if (hiddenRowsSet.size === 0) return;
+        if (!skipOnNavigation || hiddenRowsSet.size === 0) return;
 
         const handleArrowCapture = (e) => {
             if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
@@ -4642,7 +4673,7 @@ const GlideGrid = (props) => {
 
         document.addEventListener('keydown', handleArrowCapture, true);
         return () => document.removeEventListener('keydown', handleArrowCapture, true);
-    }, [hiddenRowsSet, gridSelection, setProps]);
+    }, [hiddenRowsSet, gridSelection, setProps, skipOnNavigation]);
 
     // Filter hidden rows from gridSelection for visual display
     // This prevents selection highlighting on hidden rows while preserving
@@ -4716,8 +4747,8 @@ const GlideGrid = (props) => {
         // selection is a Rectangle: { x, y, width, height }
         const result = [];
         for (let row = selection.y; row < selection.y + selection.height; row++) {
-            // Skip hidden rows
-            if (hiddenRowsSet.has(row)) continue;
+            // Skip hidden rows (only if skipOnCopy is enabled)
+            if (skipOnCopy && hiddenRowsSet.has(row)) continue;
 
             const rowCells = [];
             for (let col = selection.x; col < selection.x + selection.width; col++) {
@@ -4726,7 +4757,7 @@ const GlideGrid = (props) => {
             result.push(rowCells);
         }
         return result;
-    }, [getCellContent, hiddenRowsSet]);
+    }, [getCellContent, hiddenRowsSet, skipOnCopy]);
 
     // Container style with explicit height
     const containerStyle = {
@@ -4783,7 +4814,7 @@ const GlideGrid = (props) => {
                 copyHeaders={copyHeaders}
                 theme={glideTheme}
                 headerIcons={headerIcons}
-                getCellsForSelection={enableCopyPaste ? (hiddenRowsSet.size > 0 ? getCellsForSelectionFiltered : true) : undefined}
+                getCellsForSelection={enableCopyPaste ? (skipOnCopy && hiddenRowsSet.size > 0 ? getCellsForSelectionFiltered : true) : undefined}
                 showSearch={showSearch}
                 searchValue={localSearchValue}
                 onSearchClose={handleSearchClose}
@@ -4920,6 +4951,7 @@ GlideGrid.defaultProps = {
     showCellFlash: false,
     allowDelete: true,
     hiddenRows: [],
+    hiddenRowsConfig: {},
 };
 
 GlideGrid.propTypes = {
@@ -5225,6 +5257,24 @@ GlideGrid.propTypes = {
      * need to hide/show while maintaining their identity and selection state.
      */
     hiddenRows: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * Configuration object controlling how hidden rows affect grid operations.
+     * All options default to true, meaning hidden rows are skipped by default.
+     * Set specific options to false to include hidden rows in those operations.
+     */
+    hiddenRowsConfig: PropTypes.shape({
+        /** Skip hidden rows during copy operations (Cmd/Ctrl+C). Default: true */
+        skipOnCopy: PropTypes.bool,
+        /** Skip hidden rows during paste operations (Cmd/Ctrl+V). Default: true */
+        skipOnPaste: PropTypes.bool,
+        /** Skip hidden rows during fill handle drag operations. Default: true */
+        skipOnFill: PropTypes.bool,
+        /** Skip hidden rows during delete operations (Delete/Backspace). Default: true */
+        skipOnDelete: PropTypes.bool,
+        /** Skip hidden rows during keyboard navigation (Tab, Arrow keys). Default: true */
+        skipOnNavigation: PropTypes.bool,
+    }),
 
     /**
      * When True, clicking on any cell will select its entire row. Works with
