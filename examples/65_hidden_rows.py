@@ -154,7 +154,7 @@ app.layout = html.Div([
         height=450,
         width=500,
         theme=THEME,
-        rowMarkers="number",
+        rowMarkers="both",
         rowSelect="multi",
         hiddenRows=compute_hidden_rows(INITIAL_COLLAPSED),
     ),
