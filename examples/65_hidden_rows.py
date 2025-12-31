@@ -200,8 +200,9 @@ app.layout = html.Div([
                 {"label": " Row select on cell click", "value": "row-select-on-click"},
                 {"label": " Draw focus ring", "value": "draw-focus-ring"},
                 {"label": " Fill handle", "value": "fill-handle"},
+                {"label": " Tab wrapping", "value": "tab-wrapping"},
             ],
-            value=["draw-focus-ring", "fill-handle"],
+            value=["draw-focus-ring", "fill-handle", "tab-wrapping"],
             inline=True,
             style={"marginBottom": "10px"},
             inputStyle={"marginRight": "4px"},
@@ -252,6 +253,7 @@ app.layout = html.Div([
                 unselectableRows=[],
                 rowSelectOnCellClick=False,
                 fillHandle=True,
+                tabWrapping=True,
                 enableCopyPaste=True,
             ),
         ], style={"display": "inline-block", "verticalAlign": "top"}),
@@ -311,6 +313,7 @@ app.layout = html.Div([
     Output("grid", "rowSelectOnCellClick"),
     Output("grid", "drawFocusRing"),
     Output("grid", "fillHandle"),
+    Output("grid", "tabWrapping"),
     Input("options", "value"),
 )
 def update_options(options):
@@ -319,7 +322,8 @@ def update_options(options):
     row_select_on_click = "row-select-on-click" in options
     draw_focus_ring = "draw-focus-ring" in options
     fill_handle = "fill-handle" in options
-    return unselectable, row_select_on_click, draw_focus_ring, fill_handle
+    tab_wrapping = "tab-wrapping" in options
+    return unselectable, row_select_on_click, draw_focus_ring, fill_handle, tab_wrapping
 
 
 @callback(

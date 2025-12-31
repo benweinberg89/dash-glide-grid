@@ -4544,20 +4544,12 @@ const GlideGrid = (props) => {
 
             if (!needsWrap) return;
 
-            const numRows = localDataRef.current?.length || 0;
-            let newCol, newRow;
+            // Use getNextCellWithWrapping to properly skip hidden/unselectable rows
+            const { col: newCol, row: newRow, wrapped } = getNextCellWithWrapping(
+                currentCol, currentRow, direction
+            );
 
-            if (direction === 1) {
-                // Tab forward - wrap to next row
-                newCol = 0;
-                newRow = currentRow + 1;
-                if (newRow >= numRows) return; // At last cell - stay put
-            } else {
-                // Shift+Tab backward - wrap to previous row
-                newCol = numCols - 1;
-                newRow = currentRow - 1;
-                if (newRow < 0) return; // At first cell - stay put
-            }
+            if (!wrapped) return; // At grid boundary or all rows hidden - stay put
 
             // If editor is open, let Glide handle Tab to close the editor,
             // but set a pending wrap that handleCellEdited will apply
@@ -4602,7 +4594,7 @@ const GlideGrid = (props) => {
 
         document.addEventListener('keydown', handleTabCapture, true);
         return () => document.removeEventListener('keydown', handleTabCapture, true);
-    }, [tabWrapping, glideColumns.length, gridSelection, isEditorOpen, setProps]);
+    }, [tabWrapping, glideColumns.length, gridSelection, isEditorOpen, setProps, getNextCellWithWrapping]);
 
     // Use capture phase on DOCUMENT to intercept Arrow keys before Glide handles them
     // This is needed because Glide's internal arrow handling happens before onKeyDown fires
