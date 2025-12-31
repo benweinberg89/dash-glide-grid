@@ -4483,66 +4483,10 @@ const GlideGrid = (props) => {
             return;
         }
 
-        // Handle Arrow keys to skip hidden rows
-        if (hiddenRowsSet.size > 0 && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-            if (!gridSelection.current?.cell) return;
-            const [currentCol, currentRow] = gridSelection.current.cell;
-
-            const numRows = localDataRef.current?.length || 0;
-            const direction = e.key === 'ArrowDown' ? 1 : -1;
-            let nextRow = currentRow + direction;
-
-            // Check if the immediate next row is hidden
-            if (!hiddenRowsSet.has(nextRow)) {
-                // Not hidden, let Glide handle it normally
-                return;
-            }
-
-            // Skip over hidden rows
-            while (hiddenRowsSet.has(nextRow) && nextRow >= 0 && nextRow < numRows) {
-                nextRow += direction;
-            }
-
-            // If we went out of bounds, stay put
-            if (nextRow < 0 || nextRow >= numRows) {
-                e.preventDefault();
-                e.stopPropagation();
-                return;
-            }
-
-            // We found a visible row, navigate to it
-            e.preventDefault();
-            e.stopPropagation();
-
-            const newSelection = {
-                columns: CompactSelection.empty(),
-                rows: CompactSelection.empty(),
-                current: {
-                    cell: [currentCol, nextRow],
-                    range: { x: currentCol, y: nextRow, width: 1, height: 1 },
-                    rangeStack: []
-                }
-            };
-            setGridSelection(newSelection);
-
-            if (setProps) {
-                setProps({
-                    selectedCell: { col: currentCol, row: nextRow },
-                    selectedRange: {
-                        startCol: currentCol,
-                        startRow: nextRow,
-                        endCol: currentCol,
-                        endRow: nextRow
-                    }
-                });
-            }
-
-            if (gridRef.current) {
-                gridRef.current.scrollTo(currentCol, nextRow);
-            }
-        }
+        // Note: Arrow key handling for hidden rows is done via capture phase listener
+        // in a separate useEffect to ensure it runs before Glide's internal handling
     }, [tabWrapping, gridSelection, glideColumns.length,
-        getNextCellWithWrapping, setProps, hiddenRowsSet]);
+        getNextCellWithWrapping, setProps]);
 
     // Use capture phase on DOCUMENT to intercept Tab before the editor sees it
     // (Editor is in a portal outside our container, so container-level capture doesn't work)
@@ -4622,6 +4566,77 @@ const GlideGrid = (props) => {
         document.addEventListener('keydown', handleTabCapture, true);
         return () => document.removeEventListener('keydown', handleTabCapture, true);
     }, [tabWrapping, glideColumns.length, gridSelection, isEditorOpen, setProps]);
+
+    // Use capture phase on DOCUMENT to intercept Arrow keys before Glide handles them
+    // This is needed because Glide's internal arrow handling happens before onKeyDown fires
+    useEffect(() => {
+        if (hiddenRowsSet.size === 0) return;
+
+        const handleArrowCapture = (e) => {
+            if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+            if (!gridSelection.current?.cell) return;
+            const [currentCol, currentRow] = gridSelection.current.cell;
+
+            const numRows = localDataRef.current?.length || 0;
+            const direction = e.key === 'ArrowDown' ? 1 : -1;
+            let nextRow = currentRow + direction;
+
+            // Check if the immediate next row is hidden
+            if (!hiddenRowsSet.has(nextRow)) {
+                // Not hidden, let Glide handle it normally
+                return;
+            }
+
+            // Skip over hidden rows
+            while (hiddenRowsSet.has(nextRow) && nextRow >= 0 && nextRow < numRows) {
+                nextRow += direction;
+            }
+
+            // If we went out of bounds, stay put
+            if (nextRow < 0 || nextRow >= numRows) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // We found a visible row, navigate to it
+            e.preventDefault();
+            e.stopPropagation();
+
+            const newSelection = {
+                columns: CompactSelection.empty(),
+                rows: CompactSelection.empty(),
+                current: {
+                    cell: [currentCol, nextRow],
+                    range: { x: currentCol, y: nextRow, width: 1, height: 1 },
+                    rangeStack: []
+                }
+            };
+            setGridSelection(newSelection);
+
+            if (setProps) {
+                setProps({
+                    selectedCell: { col: currentCol, row: nextRow },
+                    selectedRange: {
+                        startCol: currentCol,
+                        startRow: nextRow,
+                        endCol: currentCol,
+                        endRow: nextRow
+                    }
+                });
+            }
+
+            if (gridRef.current) {
+                gridRef.current.scrollTo(currentCol, nextRow);
+                gridRef.current.focus();
+                gridRef.current.updateCells([{ cell: [currentCol, nextRow] }]);
+            }
+        };
+
+        document.addEventListener('keydown', handleArrowCapture, true);
+        return () => document.removeEventListener('keydown', handleArrowCapture, true);
+    }, [hiddenRowsSet, gridSelection, setProps]);
 
     // Filter hidden rows from gridSelection for visual display
     // This prevents selection highlighting on hidden rows while preserving
