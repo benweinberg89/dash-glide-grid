@@ -4559,32 +4559,15 @@ const GlideGrid = (props) => {
             filteredRows = newRows;
         }
 
-        // Filter current cell/range selection
+        // Filter current cell selection only if focused cell is on a hidden row
+        // Range selections that span hidden rows are allowed - the hidden rows
+        // won't show selection due to height 0 and transparent theme
         let filteredCurrent = gridSelection.current;
-        if (filteredCurrent) {
-            // Check if current cell is on a hidden row
-            if (filteredCurrent.cell) {
-                const [, cellRow] = filteredCurrent.cell;
-                if (hiddenRowsSet.has(cellRow)) {
-                    // Cell is on hidden row - clear current selection
-                    filteredCurrent = undefined;
-                }
-            }
-
-            // Check if range overlaps any hidden rows
-            if (filteredCurrent && filteredCurrent.range) {
-                const range = filteredCurrent.range;
-                let hasHiddenRow = false;
-                for (let r = range.y; r < range.y + range.height; r++) {
-                    if (hiddenRowsSet.has(r)) {
-                        hasHiddenRow = true;
-                        break;
-                    }
-                }
-                if (hasHiddenRow) {
-                    // Range includes hidden rows - clear current selection
-                    filteredCurrent = undefined;
-                }
+        if (filteredCurrent && filteredCurrent.cell) {
+            const [, cellRow] = filteredCurrent.cell;
+            if (hiddenRowsSet.has(cellRow)) {
+                // Focused cell is on hidden row - clear current selection
+                filteredCurrent = undefined;
             }
         }
 
