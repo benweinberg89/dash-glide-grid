@@ -257,3 +257,65 @@ dggfuncs.getAnimatedCell = function(col, row, colId, rowData, columns) {
         displayData: ""
     };
 };
+
+// =============================================================================
+// Hidden Rows Functions (example 64)
+// =============================================================================
+
+// Hidden rows - set in Python and read by JavaScript
+dggfuncs._hiddenRows = [];
+
+/**
+ * Set the list of hidden row indices.
+ * Call this from a clientside callback when hidden rows change.
+ */
+dggfuncs.setHiddenRows = function(rows) {
+    dggfuncs._hiddenRows = rows || [];
+};
+
+/**
+ * rowHeight function - returns 0 for hidden rows.
+ * Usage: rowHeight={"function": "getHiddenRowHeight(rowIndex)"}
+ */
+dggfuncs.getHiddenRowHeight = function(rowIndex) {
+    if (dggfuncs._hiddenRows.includes(rowIndex)) {
+        return 0;
+    }
+    return 34;  // Default row height
+};
+
+/**
+ * getRowThemeOverride function - makes hidden rows transparent.
+ * Usage: getRowThemeOverride={"function": "getHiddenRowTheme(row, rowData)"}
+ */
+dggfuncs.getHiddenRowTheme = function(row, rowData) {
+    if (dggfuncs._hiddenRows.includes(row)) {
+        return {
+            textDark: "transparent",
+            textMedium: "transparent",
+            textLight: "transparent",
+            bgCell: "transparent",
+            // Hide selection accent colors
+            accentColor: "transparent",
+            accentLight: "transparent",
+            accentFg: "transparent",
+            // Hide borders
+            borderColor: "transparent",
+            horizontalBorderColor: "transparent",
+        };
+    }
+    return undefined;
+};
+
+/**
+ * drawCell function - completely skips drawing for hidden rows.
+ * Usage: drawCell={"function": "drawHiddenRowCell(ctx, cell, theme, rect, col, row, hoverAmount, highlighted, cellData, rowData, drawContent)"}
+ */
+dggfuncs.drawHiddenRowCell = function(ctx, cell, theme, rect, col, row, hoverAmount, highlighted, cellData, rowData, drawContent) {
+    if (dggfuncs._hiddenRows.includes(row)) {
+        // Clear the entire cell area (including any selection highlighting)
+        ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+        return true;  // Tell Glide we handled the drawing
+    }
+    return false;  // Let Glide draw normally
+};
