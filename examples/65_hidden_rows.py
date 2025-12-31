@@ -152,6 +152,10 @@ app.layout = html.Div([
     html.Div([
         html.Button("Expand All", id="expand-all", style={"marginRight": "8px"}),
         html.Button("Collapse All", id="collapse-all", style={"marginRight": "8px"}),
+        html.Span(" | ", style={"color": "#999"}),
+        html.Button("Hide Rows 3-5", id="hide-simple", style={"marginRight": "8px"}),
+        html.Button("Show All", id="show-all", style={"marginRight": "8px"}),
+        html.Span("(simple mode - no data reset)", style={"fontSize": "11px", "color": "#666"}),
     ], style={"marginBottom": "10px"}),
 
     html.Div([
@@ -312,6 +316,29 @@ def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed):
         hidden_rows,
         f"{status} | Hidden: {hidden_rows if hidden_rows else 'none'} | Folders: {FOLDER_ROWS}",
     )
+
+
+@callback(
+    Output("grid", "hiddenRows", allow_duplicate=True),
+    Output("hidden-rows-store", "data", allow_duplicate=True),
+    Output("status", "children", allow_duplicate=True),
+    Input("hide-simple", "n_clicks"),
+    Input("show-all", "n_clicks"),
+    prevent_initial_call=True,
+)
+def handle_simple_hide(hide_clicks, show_clicks):
+    """Simple hide/show that doesn't reset data - useful for testing fill/delete"""
+    from dash import ctx
+
+    trigger = ctx.triggered_id
+    if trigger == "hide-simple":
+        hidden = [3, 4, 5]
+        status = "Simple mode: Hidden rows 3-5 (data NOT reset - edits preserved)"
+    else:
+        hidden = []
+        status = "Simple mode: All rows visible (data NOT reset - edits preserved)"
+
+    return hidden, hidden, status
 
 
 @callback(

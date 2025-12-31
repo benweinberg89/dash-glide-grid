@@ -2912,6 +2912,10 @@ const GlideGrid = (props) => {
 
     // Handle fill pattern (Excel-like fill handle drag)
     const handleFillPattern = useCallback((event) => {
+        // Always prevent default to stop Glide's built-in fill behavior
+        // We handle all fill operations ourselves for proper hidden row filtering
+        event.preventDefault();
+
         if (!setProps || readonly) {
             return;
         }
@@ -2933,9 +2937,12 @@ const GlideGrid = (props) => {
         const sourceHeight = patternSource.height;
 
         // Fill the destination with pattern from source
+        console.log(`[Fill] destination: y=${fillDestination.y}, height=${fillDestination.height}, hiddenRows=${Array.from(hiddenRowsSet)}`);
         for (let destRow = fillDestination.y; destRow < fillDestination.y + fillDestination.height; destRow++) {
             // Skip hidden rows
-            if (hiddenRowsSet.has(destRow)) continue;
+            const isHidden = hiddenRowsSet.has(destRow);
+            console.log(`[Fill] row ${destRow}: hidden=${isHidden}`);
+            if (isHidden) continue;
 
             // Translate display row to actual data row if sorting is active
             const actualDestRow = sortedIndices ? sortedIndices[destRow] : destRow;
