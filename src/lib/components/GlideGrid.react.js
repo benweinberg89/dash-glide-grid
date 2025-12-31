@@ -70,7 +70,8 @@ GlideGrid.defaultProps = {
     contextMenuScrollBehavior: 'default',
     redrawTrigger: null,
     showCellFlash: false,
-    allowDelete: true
+    allowDelete: true,
+    hiddenRows: [],
 };
 
 GlideGrid.propTypes = {
@@ -386,6 +387,19 @@ GlideGrid.propTypes = {
      * header rows or border rows.
      */
     unselectableRows: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * Array of row indices to hide. Hidden rows:
+     * - Have height 0 (visually collapsed)
+     * - Have fully transparent theme (invisible row marker and cells)
+     * - Are excluded from visual selection highlighting
+     * - Preserve their original row numbers (unlike filtering)
+     * - Keep their selection state internally (reappears when unhidden)
+     *
+     * Useful for tree view collapse/expand functionality where child rows
+     * need to hide/show while maintaining their identity and selection state.
+     */
+    hiddenRows: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * When True, clicking on any cell will select its entire row. Works with

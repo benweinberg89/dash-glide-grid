@@ -402,6 +402,7 @@ const GlideGrid = (props) => {
         remeasureColumns,
         showCellFlash,
         allowDelete,
+        hiddenRows,
         setProps
     } = props;
 
@@ -451,6 +452,11 @@ const GlideGrid = (props) => {
 
     // State for row hover effect
     const [hoveredRow, setHoveredRow] = useState(null);
+
+    // Create Set for O(1) hidden row lookups
+    const hiddenRowsSet = useMemo(() => {
+        return new Set(hiddenRows || []);
+    }, [hiddenRows]);
 
     // Ref to track current data (to avoid stale closures in rapid callbacks)
     const localDataRef = useRef(data);
@@ -4051,6 +4057,30 @@ const GlideGrid = (props) => {
     // Create getRowThemeOverride callback for Glide DataEditor
     // Combines user-defined row theme with row hover effect
     const handleGetRowThemeOverride = useCallback((rowIndex) => {
+        // Hidden rows get fully transparent theme (hides row marker and cells)
+        if (hiddenRowsSet.has(rowIndex)) {
+            return {
+                bgCell: 'transparent',
+                bgCellMedium: 'transparent',
+                textDark: 'transparent',
+                textMedium: 'transparent',
+                textLight: 'transparent',
+                textBubble: 'transparent',
+                bgBubble: 'transparent',
+                bgBubbleSelected: 'transparent',
+                textHeader: 'transparent',
+                textHeaderSelected: 'transparent',
+                accentColor: 'transparent',
+                accentLight: 'transparent',
+                borderColor: 'transparent',
+                horizontalBorderColor: 'transparent',
+                drilldownBorder: 'transparent',
+                linkColor: 'transparent',
+                cellHorizontalPadding: 0,
+                cellVerticalPadding: 0,
+            };
+        }
+
         let themeOverride = undefined;
 
         // Apply row hover effect if enabled
@@ -4077,7 +4107,7 @@ const GlideGrid = (props) => {
         }
 
         return themeOverride;
-    }, [getRowThemeOverride, data, hoverRow, hoveredRow, theme?.bgRowHovered]);
+    }, [getRowThemeOverride, data, hoverRow, hoveredRow, theme?.bgRowHovered, hiddenRowsSet]);
 
     // Create drawCell callback for custom cell rendering
     // Allows complete control over cell drawing via Canvas API
@@ -4188,6 +4218,28 @@ const GlideGrid = (props) => {
     // Process rowHeight - can be a number or an object with a function
     // Function format: rowHeight={"function": "getRowHeight(rowIndex)"}
     const processedRowHeight = useMemo(() => {
+        // If we have hidden rows, always return a function that checks hiddenRowsSet
+        if (hiddenRowsSet.size > 0) {
+            return (rowIndex) => {
+                // Hidden rows get height 0
+                if (hiddenRowsSet.has(rowIndex)) {
+                    return 0;
+                }
+                // Otherwise use configured height
+                if (typeof rowHeight === 'number') {
+                    return rowHeight;
+                }
+                if (rowHeight && isFunctionRef(rowHeight)) {
+                    const result = executeFunction(
+                        rowHeight.function,
+                        { rowIndex }
+                    );
+                    return typeof result === 'number' ? result : 34;
+                }
+                return 34;
+            };
+        }
+        // No hidden rows - use original logic
         if (typeof rowHeight === 'number') {
             return rowHeight;
         }
@@ -4201,7 +4253,7 @@ const GlideGrid = (props) => {
             };
         }
         return 34; // Default row height
-    }, [rowHeight]);
+    }, [rowHeight, hiddenRowsSet]);
 
     // Note: Row hover effect is handled via getRowThemeOverride (no dashed border)
 
@@ -4486,6 +4538,63 @@ const GlideGrid = (props) => {
         return () => document.removeEventListener('keydown', handleTabCapture, true);
     }, [tabWrapping, glideColumns.length, gridSelection, isEditorOpen, setProps]);
 
+    // Filter hidden rows from gridSelection for visual display
+    // This prevents selection highlighting on hidden rows while preserving
+    // the full selection state internally (for when rows unhide)
+    const filteredGridSelection = useMemo(() => {
+        if (hiddenRowsSet.size === 0) {
+            return gridSelection;
+        }
+
+        // Filter rows: remove hidden rows from the CompactSelection
+        let filteredRows = gridSelection.rows;
+        if (filteredRows && filteredRows.length > 0) {
+            // Build a new CompactSelection excluding hidden rows
+            let newRows = CompactSelection.empty();
+            for (const row of filteredRows) {
+                if (!hiddenRowsSet.has(row)) {
+                    newRows = newRows.add(row);
+                }
+            }
+            filteredRows = newRows;
+        }
+
+        // Filter current cell/range selection
+        let filteredCurrent = gridSelection.current;
+        if (filteredCurrent) {
+            // Check if current cell is on a hidden row
+            if (filteredCurrent.cell) {
+                const [, cellRow] = filteredCurrent.cell;
+                if (hiddenRowsSet.has(cellRow)) {
+                    // Cell is on hidden row - clear current selection
+                    filteredCurrent = undefined;
+                }
+            }
+
+            // Check if range overlaps any hidden rows
+            if (filteredCurrent && filteredCurrent.range) {
+                const range = filteredCurrent.range;
+                let hasHiddenRow = false;
+                for (let r = range.y; r < range.y + range.height; r++) {
+                    if (hiddenRowsSet.has(r)) {
+                        hasHiddenRow = true;
+                        break;
+                    }
+                }
+                if (hasHiddenRow) {
+                    // Range includes hidden rows - clear current selection
+                    filteredCurrent = undefined;
+                }
+            }
+        }
+
+        return {
+            ...gridSelection,
+            rows: filteredRows,
+            current: filteredCurrent
+        };
+    }, [gridSelection, hiddenRowsSet]);
+
     // Container style with explicit height
     const containerStyle = {
         height: typeof height === 'number' ? `${height}px` : height,
@@ -4499,7 +4608,7 @@ const GlideGrid = (props) => {
                 columns={glideColumns}
                 rows={numRows}
                 getCellContent={getCellContent}
-                gridSelection={gridSelection}
+                gridSelection={filteredGridSelection}
                 onCellClicked={handleCellClicked}
                 onCellEdited={!readonly ? handleCellEdited : undefined}
                 onPaste={!readonly && enableCopyPaste ? handlePaste : undefined}
@@ -4677,6 +4786,7 @@ GlideGrid.defaultProps = {
     canRedo: false,
     showCellFlash: false,
     allowDelete: true,
+    hiddenRows: [],
 };
 
 GlideGrid.propTypes = {
@@ -4969,6 +5079,19 @@ GlideGrid.propTypes = {
      * header rows or border rows.
      */
     unselectableRows: PropTypes.arrayOf(PropTypes.number),
+
+    /**
+     * Array of row indices to hide. Hidden rows:
+     * - Have height 0 (visually collapsed)
+     * - Have fully transparent theme (invisible row marker and cells)
+     * - Are excluded from visual selection highlighting
+     * - Preserve their original row numbers (unlike filtering)
+     * - Keep their selection state internally (reappears when unhidden)
+     *
+     * Useful for tree view collapse/expand functionality where child rows
+     * need to hide/show while maintaining their identity and selection state.
+     */
+    hiddenRows: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * When True, clicking on any cell will select its entire row. Works with
