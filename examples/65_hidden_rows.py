@@ -11,7 +11,7 @@ This approach is more efficient and preserves row identity.
 """
 
 import dash
-from dash import html, callback, Input, Output, State
+from dash import html, dcc, callback, Input, Output, State
 from dash_glide_grid import GlideGrid
 
 app = dash.Dash(__name__)
@@ -40,6 +40,9 @@ TREE_DATA = [
 # Build lookup tables
 ID_TO_ROW = {node["id"]: i for i, node in enumerate(TREE_DATA)}
 ROW_TO_ID = {i: node["id"] for i, node in enumerate(TREE_DATA)}
+
+# Folder row indices (for unselectableRows)
+FOLDER_ROWS = [i for i, node in enumerate(TREE_DATA) if node["type"] == "folder"]
 
 
 def get_depth(node_id):
@@ -135,17 +138,31 @@ app.layout = html.Div([
     html.P([
         "Click chevrons to expand/collapse. ",
         html.Strong("Row numbers are preserved"),
-        " - notice how collapsing doesn't renumber rows. ",
-        "Selection state is also preserved on hidden rows."
+        " - notice how collapsing doesn't renumber rows."
     ]),
 
     html.Div([
         html.Button("Expand All", id="expand-all", style={"marginRight": "8px"}),
         html.Button("Collapse All", id="collapse-all", style={"marginRight": "8px"}),
-        html.Button("Select Rows 3-5", id="select-rows", style={"marginRight": "8px"}),
     ], style={"marginBottom": "10px"}),
 
-    html.Div(id="status", style={"marginBottom": "10px", "fontFamily": "monospace"}),
+    html.Div([
+        dcc.Checklist(
+            id="options",
+            options=[
+                {"label": " Folders unselectable", "value": "folders-unselectable"},
+                {"label": " Row select on cell click", "value": "row-select-on-click"},
+                {"label": " Draw focus ring", "value": "draw-focus-ring"},
+            ],
+            value=["draw-focus-ring"],
+            inline=True,
+            style={"marginBottom": "10px"},
+            inputStyle={"marginRight": "4px"},
+            labelStyle={"marginRight": "16px"},
+        ),
+    ]),
+
+    html.Div(id="status", style={"marginBottom": "10px", "fontFamily": "monospace", "fontSize": "12px"}),
 
     GlideGrid(
         id="grid",
@@ -157,32 +174,43 @@ app.layout = html.Div([
         rowMarkers="both",
         rowSelect="multi",
         hiddenRows=compute_hidden_rows(INITIAL_COLLAPSED),
+        unselectableRows=[],
+        rowSelectOnCellClick=False,
     ),
 
-    html.Div(id="collapsed-store", style={"display": "none"}, children=str(INITIAL_COLLAPSED)),
+    dcc.Store(id="collapsed-store", data=INITIAL_COLLAPSED),
 ], style={"padding": "20px", "fontFamily": "system-ui, sans-serif"})
+
+
+@callback(
+    Output("grid", "unselectableRows"),
+    Output("grid", "rowSelectOnCellClick"),
+    Output("grid", "drawFocusRing"),
+    Input("options", "value"),
+)
+def update_options(options):
+    options = options or []
+    unselectable = FOLDER_ROWS if "folders-unselectable" in options else []
+    row_select_on_click = "row-select-on-click" in options
+    draw_focus_ring = "draw-focus-ring" in options
+    return unselectable, row_select_on_click, draw_focus_ring
 
 
 @callback(
     Output("grid", "data"),
     Output("grid", "hiddenRows"),
-    Output("collapsed-store", "children"),
+    Output("collapsed-store", "data"),
     Output("status", "children"),
     Input("grid", "treeNodeToggled"),
     Input("expand-all", "n_clicks"),
     Input("collapse-all", "n_clicks"),
-    State("collapsed-store", "children"),
+    State("collapsed-store", "data"),
     prevent_initial_call=True,
 )
-def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed_str):
+def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed):
     from dash import ctx
-    import ast
 
-    # Parse collapsed nodes from store
-    try:
-        collapsed = ast.literal_eval(collapsed_str) if collapsed_str else []
-    except (ValueError, SyntaxError):
-        collapsed = []
+    collapsed = collapsed or []
     collapsed_set = set(collapsed)
 
     trigger = ctx.triggered_id
@@ -194,7 +222,7 @@ def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed_str):
     elif trigger == "collapse-all":
         # Collapse all nodes that have children
         collapsed_set = {node["id"] for node in TREE_DATA if has_children(node["id"])}
-        status = f"All nodes collapsed"
+        status = "All nodes collapsed"
 
     elif trigger == "grid" and toggle_info:
         row_idx = toggle_info["row"]
@@ -219,19 +247,9 @@ def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed_str):
     return (
         build_grid_data(collapsed_list),
         hidden_rows,
-        str(collapsed_list),
-        f"{status} | Hidden rows: {hidden_rows if hidden_rows else 'none'}",
+        collapsed_list,
+        f"{status} | Hidden: {hidden_rows if hidden_rows else 'none'} | Folders: {FOLDER_ROWS}",
     )
-
-
-@callback(
-    Output("grid", "selectedRows"),
-    Input("select-rows", "n_clicks"),
-    prevent_initial_call=True,
-)
-def select_rows(n_clicks):
-    # Select rows 3, 4, 5 to demonstrate selection persistence
-    return [3, 4, 5]
 
 
 if __name__ == "__main__":
