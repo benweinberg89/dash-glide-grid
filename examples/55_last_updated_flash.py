@@ -2,12 +2,12 @@
 Example: Cell Flash Effect (lastUpdated)
 
 Demonstrates the lastUpdated feature that highlights cells when they change:
-- Cells flash when edited, undo/redo, or pasted
+- Cells flash when edited, undo/redo, pasted, or copied
 - The flash effect fades out over 500ms
 - Flash color can be customized via theme.bgSearchResult
 - Can control which operations trigger flash:
   - showCellFlash=True  (all operations)
-  - showCellFlash=["paste", "undo", "redo"]  (only specific operations)
+  - showCellFlash=["paste", "undo", "redo", "copy"]  (only specific operations)
 """
 
 import dash
@@ -38,15 +38,16 @@ columns = [
 
 app.layout = html.Div([
     html.H1("Cell Flash Effect Demo"),
-    html.P("Cells flash to show they were updated. This example only flashes on paste/undo/redo (not regular edits)."),
+    html.P("Cells flash to show they were updated. This example flashes on copy/paste/undo/redo (not regular edits)."),
     html.Ul([
         html.Li("Double-click a cell to edit it - NO flash (edit not in list)"),
         html.Li("Use Cmd+Z / Cmd+Shift+Z to undo/redo - cells WILL flash"),
-        html.Li("Copy cells (Cmd+C) and paste (Cmd+V) - cells WILL flash"),
+        html.Li("Copy cells (Cmd+C) - cells WILL flash"),
+        html.Li("Paste cells (Cmd+V) - cells WILL flash"),
     ]),
     html.P([
         "Config: ",
-        html.Code("showCellFlash=['paste', 'undo', 'redo']"),
+        html.Code("showCellFlash=['paste', 'undo', 'redo', 'copy']"),
         " | Color: ",
         html.Code("theme={'bgSearchResult': '#00ff0055'}")
     ], style={"fontSize": "14px", "color": "#666"}),
@@ -64,7 +65,7 @@ app.layout = html.Div([
         height=350,
         enableUndoRedo=True,
         enableCopyPaste=True,
-        showCellFlash=["paste", "undo", "redo"],  # Only flash on these operations
+        showCellFlash=["paste", "undo", "redo", "copy"],  # Only flash on these operations
         theme={
             "bgSearchResult": "#00ff0055"  # Green flash color (with alpha)
         }
