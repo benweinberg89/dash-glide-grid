@@ -8,10 +8,18 @@ Demonstrates using hiddenRows with tree-view-cell for collapse/expand that:
 
 Compare to example 53 which rebuilds the data array on each toggle.
 This approach is more efficient and preserves row identity.
+
+Also includes testing for hidden row edge cases:
+- Tab/Arrow navigation should skip hidden rows
+- Fill handle should not fill hidden cells
+- Delete should not clear hidden cells
+- Copy should not include hidden rows
+- Context menu should not appear on hidden rows
 """
 
 import dash
 from dash import html, dcc, callback, Input, Output, State
+import json
 from dash_glide_grid import GlideGrid
 
 app = dash.Dash(__name__)
@@ -153,8 +161,9 @@ app.layout = html.Div([
                 {"label": " Folders unselectable", "value": "folders-unselectable"},
                 {"label": " Row select on cell click", "value": "row-select-on-click"},
                 {"label": " Draw focus ring", "value": "draw-focus-ring"},
+                {"label": " Fill handle", "value": "fill-handle"},
             ],
-            value=["draw-focus-ring"],
+            value=["draw-focus-ring", "fill-handle"],
             inline=True,
             style={"marginBottom": "10px"},
             inputStyle={"marginRight": "4px"},
@@ -164,21 +173,70 @@ app.layout = html.Div([
 
     html.Div(id="status", style={"marginBottom": "10px", "fontFamily": "monospace", "fontSize": "12px"}),
 
-    GlideGrid(
-        id="grid",
-        columns=COLUMNS,
-        data=build_grid_data(INITIAL_COLLAPSED),
-        height=450,
-        width=500,
-        theme=THEME,
-        rowMarkers="both",
-        rowSelect="multi",
-        hiddenRows=compute_hidden_rows(INITIAL_COLLAPSED),
-        unselectableRows=[],
-        rowSelectOnCellClick=False,
-    ),
+    html.Div([
+        html.Div([
+            GlideGrid(
+                id="grid",
+                columns=COLUMNS,
+                data=build_grid_data(INITIAL_COLLAPSED),
+                height=450,
+                width=500,
+                theme=THEME,
+                rowMarkers="both",
+                rowSelect="multi",
+                hiddenRows=compute_hidden_rows(INITIAL_COLLAPSED),
+                unselectableRows=[],
+                rowSelectOnCellClick=False,
+                fillHandle=True,
+                enableCopyPaste=True,
+            ),
+        ], style={"display": "inline-block", "verticalAlign": "top"}),
+
+        html.Div([
+            html.H4("Edge Case Testing", style={"marginTop": "0"}),
+            html.P("Collapse a folder, then test:", style={"fontSize": "13px", "marginBottom": "8px"}),
+            html.Ul([
+                html.Li("Tab/Arrow: Navigate - should skip hidden rows"),
+                html.Li("Fill handle: Drag across hidden rows"),
+                html.Li("Delete: Select range spanning hidden, press Delete"),
+                html.Li("Copy: Select range spanning hidden, Cmd+C"),
+                html.Li("Right-click: Should not work on hidden cells"),
+            ], style={"fontSize": "12px", "marginBottom": "12px", "paddingLeft": "20px"}),
+
+            html.Div([
+                html.Strong("Selected Cell: ", style={"fontSize": "12px"}),
+                html.Span(id="selected-cell", style={"fontFamily": "monospace", "fontSize": "12px"}),
+            ], style={"marginBottom": "4px"}),
+
+            html.Div([
+                html.Strong("Selected Range: ", style={"fontSize": "12px"}),
+                html.Span(id="selected-range", style={"fontFamily": "monospace", "fontSize": "12px"}),
+            ], style={"marginBottom": "4px"}),
+
+            html.Div([
+                html.Strong("Hidden Rows: ", style={"fontSize": "12px"}),
+                html.Span(id="hidden-rows-display", style={"fontFamily": "monospace", "fontSize": "12px"}),
+            ], style={"marginBottom": "8px"}),
+
+            html.Div([
+                html.Strong("Last Event:", style={"fontSize": "12px"}),
+                html.Pre(id="last-event", style={
+                    "fontFamily": "monospace",
+                    "fontSize": "11px",
+                    "backgroundColor": "#f5f5f5",
+                    "padding": "8px",
+                    "borderRadius": "4px",
+                    "maxHeight": "150px",
+                    "overflow": "auto",
+                    "margin": "4px 0",
+                    "whiteSpace": "pre-wrap",
+                }),
+            ]),
+        ], style={"display": "inline-block", "verticalAlign": "top", "marginLeft": "20px", "width": "300px"}),
+    ]),
 
     dcc.Store(id="collapsed-store", data=INITIAL_COLLAPSED),
+    dcc.Store(id="hidden-rows-store", data=compute_hidden_rows(INITIAL_COLLAPSED)),
 ], style={"padding": "20px", "fontFamily": "system-ui, sans-serif"})
 
 
@@ -186,6 +244,7 @@ app.layout = html.Div([
     Output("grid", "unselectableRows"),
     Output("grid", "rowSelectOnCellClick"),
     Output("grid", "drawFocusRing"),
+    Output("grid", "fillHandle"),
     Input("options", "value"),
 )
 def update_options(options):
@@ -193,13 +252,15 @@ def update_options(options):
     unselectable = FOLDER_ROWS if "folders-unselectable" in options else []
     row_select_on_click = "row-select-on-click" in options
     draw_focus_ring = "draw-focus-ring" in options
-    return unselectable, row_select_on_click, draw_focus_ring
+    fill_handle = "fill-handle" in options
+    return unselectable, row_select_on_click, draw_focus_ring, fill_handle
 
 
 @callback(
     Output("grid", "data"),
     Output("grid", "hiddenRows"),
     Output("collapsed-store", "data"),
+    Output("hidden-rows-store", "data"),
     Output("status", "children"),
     Input("grid", "treeNodeToggled"),
     Input("expand-all", "n_clicks"),
@@ -248,8 +309,68 @@ def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed):
         build_grid_data(collapsed_list),
         hidden_rows,
         collapsed_list,
+        hidden_rows,
         f"{status} | Hidden: {hidden_rows if hidden_rows else 'none'} | Folders: {FOLDER_ROWS}",
     )
+
+
+@callback(
+    Output("selected-cell", "children"),
+    Output("selected-range", "children"),
+    Input("grid", "selectedCell"),
+    Input("grid", "selectedRange"),
+)
+def update_selection_display(cell, range_):
+    cell_str = f"col={cell['col']}, row={cell['row']}" if cell else "None"
+    if range_:
+        range_str = f"rows {range_['startRow']}-{range_['endRow']}, cols {range_['startCol']}-{range_['endCol']}"
+    else:
+        range_str = "None"
+    return cell_str, range_str
+
+
+@callback(
+    Output("hidden-rows-display", "children"),
+    Input("hidden-rows-store", "data"),
+)
+def update_hidden_display(hidden):
+    if not hidden:
+        return "None"
+    return str(hidden)
+
+
+@callback(
+    Output("last-event", "children"),
+    Input("grid", "cellEdited"),
+    Input("grid", "cellsEdited"),
+    Input("grid", "deletePressed"),
+    Input("grid", "contextMenu"),
+    prevent_initial_call=True,
+)
+def update_last_event(cell_edited, cells_edited, delete_pressed, context_menu):
+    from dash import ctx
+
+    trigger = ctx.triggered_id
+    if not trigger:
+        return "None"
+
+    prop = ctx.triggered[0]["prop_id"].split(".")[-1]
+    value = ctx.triggered[0]["value"]
+
+    if prop == "cellEdited" and value:
+        return f"cellEdited:\n  row={value.get('row')}, col={value.get('col')}\n  value={value.get('value')}"
+    elif prop == "cellsEdited" and value:
+        edits = value.get("edits", [])
+        rows = sorted(set(e.get("row") for e in edits))
+        return f"cellsEdited:\n  count={value.get('count')}\n  rows affected: {rows}"
+    elif prop == "deletePressed" and value:
+        cells = value.get("cells", [])
+        rows = sorted(set(c.get("row") for c in cells))
+        return f"deletePressed:\n  cells={len(cells)}\n  rows affected: {rows}"
+    elif prop == "contextMenu" and value:
+        return f"contextMenu:\n  row={value.get('row')}, col={value.get('col')}"
+
+    return f"{prop}: {json.dumps(value, indent=2)[:200]}"
 
 
 if __name__ == "__main__":

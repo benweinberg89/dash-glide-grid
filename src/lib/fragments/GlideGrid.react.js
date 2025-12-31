@@ -2934,6 +2934,9 @@ const GlideGrid = (props) => {
 
         // Fill the destination with pattern from source
         for (let destRow = fillDestination.y; destRow < fillDestination.y + fillDestination.height; destRow++) {
+            // Skip hidden rows
+            if (hiddenRowsSet.has(destRow)) continue;
+
             // Translate display row to actual data row if sorting is active
             const actualDestRow = sortedIndices ? sortedIndices[destRow] : destRow;
             if (actualDestRow >= newData.length) break;
@@ -2996,7 +2999,7 @@ const GlideGrid = (props) => {
                 timestamp: Date.now()
             }
         });
-    }, [setProps, readonly, sortedIndices, addEditToBatch]);
+    }, [setProps, readonly, sortedIndices, addEditToBatch, hiddenRowsSet]);
 
     // ========== PHASE 2: EVENT HANDLERS ==========
 
@@ -3628,6 +3631,12 @@ const GlideGrid = (props) => {
 
     // Handle cell context menu (right-click on cell)
     const handleContextMenu = useCallback((cell, event) => {
+        // Ignore context menu on hidden rows
+        if (hiddenRowsSet.has(cell[1])) {
+            event.preventDefault();
+            return;
+        }
+
         const hasConfig = contextMenuConfig?.items?.length > 0;
 
         // Prevent browser's default context menu
@@ -3659,7 +3668,7 @@ const GlideGrid = (props) => {
                 }
             });
         }
-    }, [setProps, contextMenuConfig]);
+    }, [setProps, contextMenuConfig, hiddenRowsSet]);
 
     // Handle cell activation (Enter, Space, or double-click)
     const handleCellActivated = useCallback((cell) => {
@@ -3826,6 +3835,9 @@ const GlideGrid = (props) => {
         if (selection.current?.range) {
             const range = selection.current.range;
             for (let displayRow = range.y; displayRow < range.y + range.height; displayRow++) {
+                // Skip hidden rows
+                if (hiddenRowsSet.has(displayRow)) continue;
+
                 // Translate display row to data row if sorting is active
                 const dataRow = sortedIndices ? sortedIndices[displayRow] : displayRow;
                 if (dataRow >= newData.length) continue;
@@ -3859,7 +3871,7 @@ const GlideGrid = (props) => {
         // Return false to prevent Glide from doing its own clearing
         // We've already handled all the cell clearing ourselves
         return false;
-    }, [setProps, allowDelete, readonly, getClearedValue, sortedIndices]);
+    }, [setProps, allowDelete, readonly, getClearedValue, sortedIndices, hiddenRowsSet]);
 
     // Handle visible region changes
     const handleVisibleRegionChanged = useCallback((range, tx, ty, extras) => {
@@ -4400,64 +4412,137 @@ const GlideGrid = (props) => {
             }
         }
 
-        return { col: nextCol, row: nextRow, wrapped: true };
-    }, [glideColumns.length, unselectableColumns, unselectableRows]);
-
-    // Tab navigation handler for wrapping behavior (backup for when capture phase doesn't apply)
-    const handleTabNavigation = useCallback((e) => {
-        if (!tabWrapping) return;
-        if (e.key !== 'Tab') return;
-
-        const direction = e.shiftKey ? -1 : 1;
-        const numCols = glideColumns.length;
-
-        if (!gridSelection.current?.cell) return;
-        const [currentCol, currentRow] = gridSelection.current.cell;
-
-        const needsWrap = (direction === 1 && currentCol === numCols - 1) ||
-                          (direction === -1 && currentCol === 0);
-
-        if (!needsWrap) return;
-
-        // Prevent default and handle wrap (only fires when not editing)
-        e.preventDefault();
-        e.stopPropagation();
-
-        const { col: newCol, row: newRow, wrapped } = getNextCellWithWrapping(
-            currentCol, currentRow, direction
-        );
-
-        if (!wrapped) return;
-
-        const newSelection = {
-            columns: CompactSelection.empty(),
-            rows: CompactSelection.empty(),
-            current: {
-                cell: [newCol, newRow],
-                range: { x: newCol, y: newRow, width: 1, height: 1 },
-                rangeStack: []
-            }
-        };
-        setGridSelection(newSelection);
-
-        if (setProps) {
-            setProps({
-                selectedCell: { col: newCol, row: newRow },
-                selectedRange: {
-                    startCol: newCol,
-                    startRow: newRow,
-                    endCol: newCol,
-                    endRow: newRow
+        // Skip hidden rows
+        if (hiddenRowsSet.size > 0) {
+            let attempts = 0;
+            const maxAttempts = numRows;
+            while (hiddenRowsSet.has(nextRow) && attempts < maxAttempts) {
+                attempts++;
+                nextRow += direction;
+                if (nextRow >= numRows || nextRow < 0) {
+                    return { col: currentCol, row: currentRow, wrapped: false };
                 }
-            });
+            }
         }
 
-        if (gridRef.current) {
-            gridRef.current.scrollTo(newCol, newRow);
-            gridRef.current.focus();
+        return { col: nextCol, row: nextRow, wrapped: true };
+    }, [glideColumns.length, unselectableColumns, unselectableRows, hiddenRowsSet]);
+
+    // Keyboard navigation handler for tab wrapping and arrow key skipping over hidden rows
+    const handleKeyboardNavigation = useCallback((e) => {
+        // Handle Tab wrapping
+        if (tabWrapping && e.key === 'Tab') {
+            const direction = e.shiftKey ? -1 : 1;
+            const numCols = glideColumns.length;
+
+            if (!gridSelection.current?.cell) return;
+            const [currentCol, currentRow] = gridSelection.current.cell;
+
+            const needsWrap = (direction === 1 && currentCol === numCols - 1) ||
+                              (direction === -1 && currentCol === 0);
+
+            if (!needsWrap) return;
+
+            // Prevent default and handle wrap (only fires when not editing)
+            e.preventDefault();
+            e.stopPropagation();
+
+            const { col: newCol, row: newRow, wrapped } = getNextCellWithWrapping(
+                currentCol, currentRow, direction
+            );
+
+            if (!wrapped) return;
+
+            const newSelection = {
+                columns: CompactSelection.empty(),
+                rows: CompactSelection.empty(),
+                current: {
+                    cell: [newCol, newRow],
+                    range: { x: newCol, y: newRow, width: 1, height: 1 },
+                    rangeStack: []
+                }
+            };
+            setGridSelection(newSelection);
+
+            if (setProps) {
+                setProps({
+                    selectedCell: { col: newCol, row: newRow },
+                    selectedRange: {
+                        startCol: newCol,
+                        startRow: newRow,
+                        endCol: newCol,
+                        endRow: newRow
+                    }
+                });
+            }
+
+            if (gridRef.current) {
+                gridRef.current.scrollTo(newCol, newRow);
+                gridRef.current.focus();
+            }
+            return;
+        }
+
+        // Handle Arrow keys to skip hidden rows
+        if (hiddenRowsSet.size > 0 && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+            if (!gridSelection.current?.cell) return;
+            const [currentCol, currentRow] = gridSelection.current.cell;
+
+            const numRows = localDataRef.current?.length || 0;
+            const direction = e.key === 'ArrowDown' ? 1 : -1;
+            let nextRow = currentRow + direction;
+
+            // Check if the immediate next row is hidden
+            if (!hiddenRowsSet.has(nextRow)) {
+                // Not hidden, let Glide handle it normally
+                return;
+            }
+
+            // Skip over hidden rows
+            while (hiddenRowsSet.has(nextRow) && nextRow >= 0 && nextRow < numRows) {
+                nextRow += direction;
+            }
+
+            // If we went out of bounds, stay put
+            if (nextRow < 0 || nextRow >= numRows) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // We found a visible row, navigate to it
+            e.preventDefault();
+            e.stopPropagation();
+
+            const newSelection = {
+                columns: CompactSelection.empty(),
+                rows: CompactSelection.empty(),
+                current: {
+                    cell: [currentCol, nextRow],
+                    range: { x: currentCol, y: nextRow, width: 1, height: 1 },
+                    rangeStack: []
+                }
+            };
+            setGridSelection(newSelection);
+
+            if (setProps) {
+                setProps({
+                    selectedCell: { col: currentCol, row: nextRow },
+                    selectedRange: {
+                        startCol: currentCol,
+                        startRow: nextRow,
+                        endCol: currentCol,
+                        endRow: nextRow
+                    }
+                });
+            }
+
+            if (gridRef.current) {
+                gridRef.current.scrollTo(currentCol, nextRow);
+            }
         }
     }, [tabWrapping, gridSelection, glideColumns.length,
-        getNextCellWithWrapping, setProps]);
+        getNextCellWithWrapping, setProps, hiddenRowsSet]);
 
     // Use capture phase on DOCUMENT to intercept Tab before the editor sees it
     // (Editor is in a portal outside our container, so container-level capture doesn't work)
@@ -4564,10 +4649,37 @@ const GlideGrid = (props) => {
         // won't show selection due to height 0 and transparent theme
         let filteredCurrent = gridSelection.current;
         if (filteredCurrent && filteredCurrent.cell) {
-            const [, cellRow] = filteredCurrent.cell;
+            const [cellCol, cellRow] = filteredCurrent.cell;
             if (hiddenRowsSet.has(cellRow)) {
-                // Focused cell is on hidden row - clear current selection
-                filteredCurrent = undefined;
+                // Focused cell is on hidden row - find nearest visible row
+                const numRows = localDataRef.current?.length || 0;
+                let newRow = cellRow;
+
+                // Search downward first
+                while (hiddenRowsSet.has(newRow) && newRow < numRows) {
+                    newRow++;
+                }
+
+                // If no visible row found below, search upward
+                if (newRow >= numRows || hiddenRowsSet.has(newRow)) {
+                    newRow = cellRow;
+                    while (hiddenRowsSet.has(newRow) && newRow >= 0) {
+                        newRow--;
+                    }
+                }
+
+                // If we found a visible row, move focus there
+                if (newRow >= 0 && newRow < numRows && !hiddenRowsSet.has(newRow)) {
+                    filteredCurrent = {
+                        ...filteredCurrent,
+                        cell: [cellCol, newRow],
+                        range: { x: cellCol, y: newRow, width: 1, height: 1 },
+                        rangeStack: []
+                    };
+                } else {
+                    // No visible rows at all - clear selection
+                    filteredCurrent = undefined;
+                }
             }
         }
 
@@ -4577,6 +4689,23 @@ const GlideGrid = (props) => {
             current: filteredCurrent
         };
     }, [gridSelection, hiddenRowsSet]);
+
+    // Custom getCellsForSelection that filters out hidden rows from copy operations
+    const getCellsForSelectionFiltered = useCallback((selection) => {
+        // selection is a Rectangle: { x, y, width, height }
+        const result = [];
+        for (let row = selection.y; row < selection.y + selection.height; row++) {
+            // Skip hidden rows
+            if (hiddenRowsSet.has(row)) continue;
+
+            const rowCells = [];
+            for (let col = selection.x; col < selection.x + selection.width; col++) {
+                rowCells.push(getCellContent([col, row]));
+            }
+            result.push(rowCells);
+        }
+        return result;
+    }, [getCellContent, hiddenRowsSet]);
 
     // Container style with explicit height
     const containerStyle = {
@@ -4633,7 +4762,7 @@ const GlideGrid = (props) => {
                 copyHeaders={copyHeaders}
                 theme={glideTheme}
                 headerIcons={headerIcons}
-                getCellsForSelection={enableCopyPaste}
+                getCellsForSelection={enableCopyPaste ? (hiddenRowsSet.size > 0 ? getCellsForSelectionFiltered : true) : undefined}
                 showSearch={showSearch}
                 searchValue={localSearchValue}
                 onSearchClose={handleSearchClose}
@@ -4649,7 +4778,7 @@ const GlideGrid = (props) => {
                 editOnType={editOnType}
                 rangeSelectionColumnSpanning={rangeSelectionColumnSpanning}
                 trapFocus={trapFocus}
-                onKeyDown={tabWrapping ? handleTabNavigation : undefined}
+                onKeyDown={(tabWrapping || hiddenRowsSet.size > 0) ? handleKeyboardNavigation : undefined}
                 scrollToActiveCell={scrollToActiveCell}
                 columnSelectionMode={columnSelectionMode}
                 onItemHovered={handleItemHovered}
