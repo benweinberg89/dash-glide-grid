@@ -2937,12 +2937,9 @@ const GlideGrid = (props) => {
         const sourceHeight = patternSource.height;
 
         // Fill the destination with pattern from source
-        console.log(`[Fill] destination: y=${fillDestination.y}, height=${fillDestination.height}, hiddenRows=${Array.from(hiddenRowsSet)}`);
         for (let destRow = fillDestination.y; destRow < fillDestination.y + fillDestination.height; destRow++) {
             // Skip hidden rows
-            const isHidden = hiddenRowsSet.has(destRow);
-            console.log(`[Fill] row ${destRow}: hidden=${isHidden}`);
-            if (isHidden) continue;
+            if (hiddenRowsSet.has(destRow)) continue;
 
             // Translate display row to actual data row if sorting is active
             const actualDestRow = sortedIndices ? sortedIndices[destRow] : destRow;

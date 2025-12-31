@@ -121,11 +121,42 @@ def build_grid_data(collapsed_nodes):
     return data
 
 
+def update_tree_cells_only(current_data, collapsed_nodes):
+    """Update only the tree-view-cell properties, preserving other column edits"""
+    if not current_data:
+        return build_grid_data(collapsed_nodes)
+
+    collapsed_set = set(collapsed_nodes)
+    updated_data = []
+
+    for i, row in enumerate(current_data):
+        if i >= len(TREE_DATA):
+            break
+
+        node = TREE_DATA[i]
+        node_id = node["id"]
+        can_open = has_children(node_id)
+        is_open = can_open and (node_id not in collapsed_set)
+
+        # Copy existing row but update only the name column's tree properties
+        new_row = dict(row)  # Preserve all existing values (including edits)
+        new_row["name"] = {
+            "kind": "tree-view-cell",
+            "text": node["name"],
+            "depth": get_depth(node_id),
+            "isOpen": is_open,
+            "canOpen": can_open,
+        }
+        updated_data.append(new_row)
+
+    return updated_data
+
+
 # Initial state: all nodes expanded (nothing collapsed)
 INITIAL_COLLAPSED = []
 
 COLUMNS = [
-    {"title": "Name", "id": "name", "width": 250},
+    {"title": "Name", "id": "name", "width": 250, "readonly": True},  # readonly to prevent fill corrupting tree-view-cells
     {"title": "Type", "id": "type", "width": 80},
     {"title": "Size", "id": "size", "width": 80},
 ]
@@ -270,9 +301,10 @@ def update_options(options):
     Input("expand-all", "n_clicks"),
     Input("collapse-all", "n_clicks"),
     State("collapsed-store", "data"),
+    State("grid", "data"),
     prevent_initial_call=True,
 )
-def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed):
+def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed, current_data):
     from dash import ctx
 
     collapsed = collapsed or []
@@ -282,12 +314,12 @@ def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed):
 
     if trigger == "expand-all":
         collapsed_set = set()
-        status = "All nodes expanded"
+        status = "All nodes expanded (edits preserved)"
 
     elif trigger == "collapse-all":
         # Collapse all nodes that have children
         collapsed_set = {node["id"] for node in TREE_DATA if has_children(node["id"])}
-        status = "All nodes collapsed"
+        status = "All nodes collapsed (edits preserved)"
 
     elif trigger == "grid" and toggle_info:
         row_idx = toggle_info["row"]
@@ -309,8 +341,11 @@ def handle_toggle(toggle_info, expand_clicks, collapse_clicks, collapsed):
     collapsed_list = list(collapsed_set)
     hidden_rows = compute_hidden_rows(collapsed_list)
 
+    # Use update_tree_cells_only to preserve edits in other columns
+    updated_data = update_tree_cells_only(current_data, collapsed_list)
+
     return (
-        build_grid_data(collapsed_list),
+        updated_data,
         hidden_rows,
         collapsed_list,
         hidden_rows,
