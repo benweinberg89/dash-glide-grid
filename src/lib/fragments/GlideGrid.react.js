@@ -4697,10 +4697,10 @@ const GlideGrid = (props) => {
         }
 
         // Filter current cell selection only if focused cell is on a hidden row
-        // Range selections that span hidden rows are allowed - the hidden rows
-        // won't show selection due to height 0 and transparent theme
+        // AND skipOnNavigation is enabled. If navigation skipping is disabled,
+        // allow selection to stay on hidden rows.
         let filteredCurrent = gridSelection.current;
-        if (filteredCurrent && filteredCurrent.cell) {
+        if (skipOnNavigation && filteredCurrent && filteredCurrent.cell) {
             const [cellCol, cellRow] = filteredCurrent.cell;
             if (hiddenRowsSet.has(cellRow)) {
                 // Focused cell is on hidden row - find nearest visible row
@@ -4740,7 +4740,7 @@ const GlideGrid = (props) => {
             rows: filteredRows,
             current: filteredCurrent
         };
-    }, [gridSelection, hiddenRowsSet]);
+    }, [gridSelection, hiddenRowsSet, skipOnNavigation]);
 
     // Custom getCellsForSelection that filters out hidden rows from copy operations
     const getCellsForSelectionFiltered = useCallback((selection) => {
