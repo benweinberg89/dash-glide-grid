@@ -124,6 +124,10 @@ export function createStarCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { rating = 0, maxStars = 5 } = cell.data;
 
             const padding = theme.cellHorizontalPadding;

@@ -162,6 +162,10 @@ export function createTagsCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { tags = [], possibleTags = [] } = cell.data;
 
             // Build a map of tag -> color from possibleTags

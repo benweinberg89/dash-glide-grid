@@ -72,6 +72,10 @@ export function createTreeViewCellRenderer(onToggle) {
 
         draw: (args, cell) => {
             const { ctx, theme, rect, hoverX } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { text = "", depth = 0, isOpen = false, canOpen = false } = cell.data;
 
             const padding = theme.cellHorizontalPadding ?? DEFAULT_PADDING;

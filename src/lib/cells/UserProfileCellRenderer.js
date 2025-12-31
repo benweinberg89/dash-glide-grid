@@ -54,6 +54,10 @@ export function createUserProfileCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect, requestAnimationFrame } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { name, image, initial, tint } = cell.data;
 
             const padding = theme.cellHorizontalPadding;

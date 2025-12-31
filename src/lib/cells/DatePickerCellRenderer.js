@@ -205,6 +205,10 @@ export function createDatePickerCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { date, displayDate, format = "date" } = cell.data;
 
             const padding = theme.cellHorizontalPadding;

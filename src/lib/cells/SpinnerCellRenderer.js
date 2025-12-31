@@ -21,6 +21,9 @@ export function createSpinnerCellRenderer() {
         draw: (args, cell) => {
             const { ctx, theme, rect, requestAnimationFrame } = args;
 
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             // Calculate animation progress (0 to 1, loops every 1 second)
             const progress = (performance.now() % 1000) / 1000;
 

@@ -263,8 +263,12 @@ const renderer = {
     isMatch: (c) => c.data.kind === "dropdown-cell",
     draw: (args, cell) => {
         const { ctx, theme, rect } = args;
-        const { value, allowCreation } = cell.data;
-        const foundOption = cell.data.allowedValues.find((opt) => {
+
+        // Skip drawing if row is hidden (height <= 0)
+        if (rect.height <= 0) return true;
+
+        const { value, allowCreation, allowedValues = [] } = cell.data;
+        const foundOption = allowedValues.find((opt) => {
             if (typeof opt === "string" || opt === null || opt === undefined) {
                 return opt === value;
             }

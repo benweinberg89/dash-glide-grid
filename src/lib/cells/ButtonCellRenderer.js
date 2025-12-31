@@ -56,6 +56,10 @@ export function createButtonCellRenderer(onButtonClick) {
 
         draw: (args, cell) => {
             const { ctx, theme, rect, hoverX, hoverY } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { title, backgroundColor, color, borderColor, borderRadius } = cell.data;
 
             const padding = theme.cellHorizontalPadding;

@@ -117,6 +117,10 @@ export function createRangeCellRenderer() {
 
         draw: (args, cell) => {
             const { ctx, theme, rect } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { value = 0, min = 0, max = 100, label, measureLabel, color } = cell.data;
 
             const padding = theme.cellHorizontalPadding;

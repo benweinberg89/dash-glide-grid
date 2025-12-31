@@ -17,6 +17,10 @@ export function createLinksCellRenderer(onLinkClick) {
 
         draw: (args, cell) => {
             const { ctx, theme, rect, hoverX, hoverY } = args;
+
+            // Skip drawing if row is hidden (height <= 0)
+            if (rect.height <= 0) return true;
+
             const { links = [], maxLinks, underlineOffset = 5 } = cell.data;
 
             const padding = theme.cellHorizontalPadding ?? 8;

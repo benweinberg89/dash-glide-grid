@@ -104,7 +104,7 @@ def build_grid_data(collapsed_nodes):
     """Build grid data with tree-view-cell for the name column"""
     collapsed_set = set(collapsed_nodes)
     data = []
-    for node in TREE_DATA:
+    for i, node in enumerate(TREE_DATA):
         node_id = node["id"]
         can_open = has_children(node_id)
         # isOpen = node is NOT in collapsed set (and can open)
@@ -120,6 +120,40 @@ def build_grid_data(collapsed_nodes):
             },
             "type": node["type"].capitalize(),
             "size": node["size"],
+            # Test cells for hidden rows rendering
+            "rating": {"kind": "star-cell", "rating": (i % 5) + 1, "maxStars": 5},
+            "trend": {"kind": "sparkline-cell", "values": [10, 20, 15, 25, 30, 20], "graphKind": "line"},
+            "progress": {"kind": "range-cell", "value": (i * 7) % 100, "min": 0, "max": 100},
+            "action": {"kind": "button-cell", "title": "Edit", "backgroundColor": "#3b82f6"},
+            "tags": {"kind": "tags-cell", "tags": ["alpha", "beta"][:((i % 3) + 1)], "possibleTags": [
+                {"tag": "alpha", "color": "#ef4444"},
+                {"tag": "beta", "color": "#22c55e"},
+            ]},
+            "owner": {"kind": "user-profile-cell", "name": f"User {i}", "initial": chr(65 + (i % 26))},
+            "links": {"kind": "links-cell", "links": [{"title": "View", "href": "#"}]},
+            "status": {
+                "kind": "dropdown-cell",
+                "data": {
+                    "value": ["active", "pending", "done"][i % 3],
+                    "allowedValues": [
+                        {"value": "active", "label": "Active"},
+                        {"value": "pending", "label": "Pending"},
+                        {"value": "done", "label": "Done"},
+                    ],
+                },
+            },
+            "labels": {
+                "kind": "multi-select-cell",
+                "data": {
+                    "values": ["bug", "feature"][:((i % 2) + 1)],
+                    "options": [
+                        {"value": "bug", "label": "Bug", "color": "#ef4444"},
+                        {"value": "feature", "label": "Feature", "color": "#3b82f6"},
+                    ],
+                },
+            },
+            "date": {"kind": "date-picker-cell", "date": "2024-01-15", "displayDate": "Jan 15, 2024"},
+            "loading": {"kind": "spinner-cell"} if i % 4 == 0 else node["type"].capitalize(),
         })
     return data
 
@@ -159,9 +193,20 @@ def update_tree_cells_only(current_data, collapsed_nodes):
 INITIAL_COLLAPSED = []
 
 COLUMNS = [
-    {"title": "Name", "id": "name", "width": 250, "readonly": True},  # readonly to prevent fill corrupting tree-view-cells
-    {"title": "Type", "id": "type", "width": 80},
-    {"title": "Size", "id": "size", "width": 80},
+    {"title": "Name", "id": "name", "width": 200, "readonly": True},
+    {"title": "Type", "id": "type", "width": 70},
+    {"title": "Size", "id": "size", "width": 70},
+    {"title": "Rating", "id": "rating", "width": 90},
+    {"title": "Trend", "id": "trend", "width": 100},
+    {"title": "Progress", "id": "progress", "width": 90},
+    {"title": "Action", "id": "action", "width": 80},
+    {"title": "Tags", "id": "tags", "width": 120},
+    {"title": "Owner", "id": "owner", "width": 120},
+    {"title": "Links", "id": "links", "width": 100},
+    {"title": "Status", "id": "status", "width": 100},
+    {"title": "Labels", "id": "labels", "width": 120},
+    {"title": "Date", "id": "date", "width": 100},
+    {"title": "Loading", "id": "loading", "width": 60},
 ]
 
 THEME = {
@@ -238,7 +283,7 @@ app.layout = html.Div([
                 columns=COLUMNS,
                 data=build_grid_data(INITIAL_COLLAPSED),
                 height=450,
-                width=500,
+                width=1500,
                 theme=THEME,
                 rowMarkers="both",
                 rowSelect="multi",

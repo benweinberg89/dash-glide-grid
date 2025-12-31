@@ -392,6 +392,10 @@ const renderer = {
     isMatch: (c) => c.data.kind === "multi-select-cell",
     draw: (args, cell) => {
         const { ctx, theme, rect, highlighted } = args;
+
+        // Skip drawing if row is hidden (height <= 0)
+        if (rect.height <= 0) return true;
+
         const { values, options: optionsIn, showOverflowCount } = cell.data;
         if (values === undefined || values === null || values.length === 0) {
             return true;
