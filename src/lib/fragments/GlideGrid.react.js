@@ -2440,6 +2440,15 @@ const GlideGrid = (props) => {
                 rowsToUse = selection.rows || CompactSelection.empty();
             }
 
+            // Preserve row selections on hidden rows
+            if (hiddenRowsSet.size > 0 && gridSelection.rows && gridSelection.rows.length > 0) {
+                for (const row of gridSelection.rows) {
+                    if (hiddenRowsSet.has(row)) {
+                        rowsToUse = rowsToUse.add(row);
+                    }
+                }
+            }
+
             const strippedSelection = {
                 columns: selection.columns || CompactSelection.empty(),
                 rows: rowsToUse,
@@ -2765,6 +2774,25 @@ const GlideGrid = (props) => {
             currentColumnSelectionRef.current = adjustedSelection.columns;
         }
 
+        // Preserve row selections on hidden rows
+        // When rows are hidden, Glide doesn't report them in selection changes,
+        // but we want to keep them selected so they reappear when unhidden
+        if (hiddenRowsSet.size > 0 && gridSelection.rows && gridSelection.rows.length > 0) {
+            let mergedRows = adjustedSelection.rows || CompactSelection.empty();
+            for (const row of gridSelection.rows) {
+                if (hiddenRowsSet.has(row)) {
+                    // This row is hidden - preserve its selection
+                    mergedRows = mergedRows.add(row);
+                }
+            }
+            if (mergedRows !== adjustedSelection.rows) {
+                adjustedSelection = {
+                    ...adjustedSelection,
+                    rows: mergedRows
+                };
+            }
+        }
+
         // Update internal state for visual feedback and editing
         setGridSelection(adjustedSelection);
 
@@ -2830,7 +2858,7 @@ const GlideGrid = (props) => {
         if (Object.keys(updates).length > 0) {
             setProps(updates);
         }
-    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rangeSelect, columnSelect]);
+    }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rangeSelect, columnSelect, hiddenRowsSet, gridSelection]);
 
     // Handle column resize
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
