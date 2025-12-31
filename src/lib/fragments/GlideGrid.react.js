@@ -605,7 +605,9 @@ const GlideGrid = (props) => {
     // Sync local data with props when props change from outside (but not from our own updates)
     useEffect(() => {
         // If the incoming data is the same as what we just sent, ignore it
+        // Clear lastSentData after matching to prevent stale comparisons blocking future updates
         if (lastSentData.current && JSON.stringify(data) === JSON.stringify(lastSentData.current)) {
+            lastSentData.current = null;
             return;
         }
 
