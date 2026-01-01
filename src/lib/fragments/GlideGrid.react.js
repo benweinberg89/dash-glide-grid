@@ -2499,6 +2499,17 @@ const GlideGrid = (props) => {
                 rowsToUse = selection.rows || CompactSelection.empty();
             }
 
+            // Filter out unselectable rows
+            if (unselectableRows && unselectableRows.length > 0) {
+                let filteredRows = CompactSelection.empty();
+                for (const row of rowsToUse) {
+                    if (!unselectableRows.includes(row)) {
+                        filteredRows = filteredRows.add(row);
+                    }
+                }
+                rowsToUse = filteredRows;
+            }
+
             const strippedSelection = {
                 columns: selection.columns || CompactSelection.empty(),
                 rows: rowsToUse,
