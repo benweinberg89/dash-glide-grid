@@ -137,21 +137,20 @@ const Editor = (p) => {
                     border: 0,
                     boxShadow: "none",
                 }),
-                option: (base, { isFocused, isSelected }) => ({
+                option: (base, { isSelected }) => ({
                     ...base,
                     fontSize: theme.editorFontSize,
                     fontFamily: theme.fontFamily,
                     color: theme.textDark,
-                    cursor: isFocused ? "pointer" : undefined,
+                    cursor: "pointer",
                     paddingLeft: theme.cellHorizontalPadding,
                     paddingRight: theme.cellHorizontalPadding,
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: isFocused
-                        ? theme.bgBubble
-                        : isSelected && showHighlight
-                          ? theme.accentLight
-                          : "transparent",
+                    backgroundColor: isSelected && showHighlight ? theme.accentLight : "transparent",
+                    ":hover": {
+                        backgroundColor: theme.bgBubble,
+                    },
                     ":active": {
                         ...base[":active"],
                         color: theme.accentFg,

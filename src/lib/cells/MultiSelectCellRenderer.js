@@ -154,11 +154,10 @@ const Editor = (p) => {
                 fontSize: theme.editorFontSize,
                 fontFamily: theme.fontFamily,
                 color: theme.textDark,
-                backgroundColor: state.isFocused
-                    ? theme.bgBubble
-                    : state.isSelected && showHighlight
-                      ? theme.accentLight
-                      : "transparent",
+                backgroundColor: state.isSelected && showHighlight ? theme.accentLight : "transparent",
+                ":hover": {
+                    backgroundColor: theme.bgBubble,
+                },
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
