@@ -153,7 +153,19 @@ def build_grid_data(collapsed_nodes):
                 },
             },
             "date": {"kind": "date-picker-cell", "date": "2024-01-15", "displayDate": "Jan 15, 2024"},
-            "loading": {"kind": "spinner-cell"} if i % 4 == 0 else node["type"].capitalize(),
+            "spinner": {"kind": "spinner-cell"} if i % 4 == 0 else "",
+            # Core cell types
+            "text_cell": {"kind": "text", "data": f"Text {i}"},
+            "number_cell": {"kind": "number", "data": i * 100 + 42},
+            "bool_cell": {"kind": "boolean", "data": i % 2 == 0},
+            "md_cell": {"kind": "markdown", "data": f"**Bold** _{i}_"},
+            "uri_cell": {"kind": "uri", "data": "https://example.com"},
+            "image_cell": {"kind": "image", "data": ["data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E%3Crect fill='%233b82f6' width='30' height='30'/%3E%3C/svg%3E"]},
+            "bubble_cell": {"kind": "bubble", "data": ["A", "B", "C"][:((i % 3) + 1)]},
+            "drill_cell": {"kind": "drilldown", "data": [{"text": f"D{j}"} for j in range((i % 3) + 1)]},
+            "rowid_cell": {"kind": "rowid", "data": f"row-{i}"},
+            "protected_cell": {"kind": "protected"},
+            "loading_cell": {"kind": "loading", "skeletonWidth": 50, "skeletonHeight": 10},
         })
     return data
 
@@ -196,6 +208,7 @@ COLUMNS = [
     {"title": "Name", "id": "name", "width": 200, "readonly": True},
     {"title": "Type", "id": "type", "width": 70},
     {"title": "Size", "id": "size", "width": 70},
+    # Custom cell types
     {"title": "Rating", "id": "rating", "width": 90},
     {"title": "Trend", "id": "trend", "width": 100},
     {"title": "Progress", "id": "progress", "width": 90},
@@ -206,7 +219,19 @@ COLUMNS = [
     {"title": "Status", "id": "status", "width": 100},
     {"title": "Labels", "id": "labels", "width": 120},
     {"title": "Date", "id": "date", "width": 100},
-    {"title": "Loading", "id": "loading", "width": 60},
+    {"title": "Spinner", "id": "spinner", "width": 60},
+    # Core cell types
+    {"title": "Text", "id": "text_cell", "width": 80},
+    {"title": "Number", "id": "number_cell", "width": 70},
+    {"title": "Boolean", "id": "bool_cell", "width": 70},
+    {"title": "Markdown", "id": "md_cell", "width": 100},
+    {"title": "URI", "id": "uri_cell", "width": 100},
+    {"title": "Image", "id": "image_cell", "width": 80},
+    {"title": "Bubble", "id": "bubble_cell", "width": 100},
+    {"title": "Drilldown", "id": "drill_cell", "width": 100},
+    {"title": "RowID", "id": "rowid_cell", "width": 70},
+    {"title": "Protected", "id": "protected_cell", "width": 70},
+    {"title": "Loading", "id": "loading_cell", "width": 70},
 ]
 
 THEME = {
@@ -283,7 +308,7 @@ app.layout = html.Div([
                 columns=COLUMNS,
                 data=build_grid_data(INITIAL_COLLAPSED),
                 height=450,
-                width=1500,
+                width=2400,
                 theme=THEME,
                 rowMarkers="both",
                 rowSelect="multi",

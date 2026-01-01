@@ -1873,6 +1873,26 @@ const GlideGrid = (props) => {
         if (hiddenRowsSet.has(actualRow)) {
             delete cellResult.themeOverride;  // Prevents custom colors overriding transparency
             delete cellResult.lastUpdated;    // Prevents flash effect on hidden cells
+
+            // Convert problematic core cell types for hidden rows
+            // These have glide-data-grid core issues with 0-height rows
+            if (cellResult.kind === GridCellKind.Loading) {
+                return {
+                    kind: GridCellKind.Text,
+                    data: '',
+                    displayData: '',
+                    allowOverlay: false
+                };
+            }
+            // Convert drilldown to bubble so copy/paste still works
+            if (cellResult.kind === GridCellKind.Drilldown) {
+                const texts = (cellResult.data || []).map(item => item?.text || '');
+                return {
+                    kind: GridCellKind.Bubble,
+                    data: texts,
+                    allowOverlay: false
+                };
+            }
         }
 
         return cellResult;
