@@ -153,7 +153,7 @@ const Editor = (p) => {
                     },
                     ":active": {
                         ...base[":active"],
-                        color: theme.accentFg,
+                        backgroundColor: theme.bgBubble,
                     },
                     ":empty::after": {
                         content: '"&nbsp;"',
