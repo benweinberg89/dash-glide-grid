@@ -48,11 +48,11 @@ LIGHT_THEME = {
 }
 
 STATUS_OPTIONS = [
-    {"value": "not_started", "label": "Not Started"},
-    {"value": "in_progress", "label": "In Progress"},
-    {"value": "review", "label": "Review"},
-    {"value": "blocked", "label": "Blocked"},
-    {"value": "complete", "label": "Complete"},
+    {"value": "not_started", "label": "Not Started", "color": "#6b7280"},
+    {"value": "in_progress", "label": "In Progress", "color": "#3b82f6"},
+    {"value": "review", "label": "Review", "color": "#8b5cf6"},
+    {"value": "blocked", "label": "Blocked", "color": "#ef4444"},
+    {"value": "complete", "label": "Complete", "color": "#22c55e"},
 ]
 
 PRIORITY_OPTIONS = ["Low", "Medium", "High", "Urgent", "Critical"]
@@ -185,6 +185,16 @@ app.layout = html.Div(
                                             value=[],
                                         ),
                                     ],
+                                    style={"marginBottom": "8px"},
+                                ),
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="opt-showBubble",
+                                            options=[{"label": " showBubble - Display selection as a colored bubble/pill", "value": "on"}],
+                                            value=[],
+                                        ),
+                                    ],
                                     style={"marginBottom": "16px"},
                                 ),
                             ],
@@ -289,6 +299,7 @@ app.layout = html.Div(
                         html.Li("Try hideSelectedOptions to remove the selected item from the list"),
                         html.Li("Try allowCreation to type custom values that aren't in the dropdown list"),
                         html.Li("Try prefillSearch to pre-fill the search box with the current value (useful for editing similar options)"),
+                        html.Li("Try showBubble to display the selected value as a colored pill (Status column has custom colors)"),
                     ]
                 ),
             ],
@@ -307,12 +318,13 @@ app.layout = html.Div(
     Input("opt-hideSelectedOptions", "value"),
     Input("opt-allowCreation", "value"),
     Input("opt-prefillSearch", "value"),
+    Input("opt-showBubble", "value"),
     Input("opt-placeholder", "value"),
     Input("opt-maxMenuHeight", "value"),
     Input("opt-menuPlacement", "value"),
     Input("opt-selectionIndicator", "value"),
 )
-def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, prefill_search, placeholder, max_height, menu_placement, selection_indicator):
+def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, prefill_search, show_bubble, placeholder, max_height, menu_placement, selection_indicator):
     """Update grid when any option changes."""
     options = {}
 
@@ -327,6 +339,8 @@ def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, pref
         options["allowCreation"] = True
     if prefill_search and "on" in prefill_search:
         options["prefillSearch"] = True
+    if show_bubble and "on" in show_bubble:
+        options["showBubble"] = True
 
     # Other options
     if placeholder:

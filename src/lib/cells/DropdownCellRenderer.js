@@ -10,7 +10,15 @@
 import * as React from "react";
 import Select, { components } from "react-select";
 import CreatableSelect from "react-select/creatable";
-import { getMiddleCenterBias, useTheme, GridCellKind, TextCellEntry } from "@glideapps/glide-data-grid";
+import {
+    getMiddleCenterBias,
+    useTheme,
+    GridCellKind,
+    TextCellEntry,
+    roundedRect,
+    getLuminance,
+    measureTextCached,
+} from "@glideapps/glide-data-grid";
 
 const CustomMenu = (p) => {
     const { Menu } = components;
@@ -262,23 +270,59 @@ const renderer = {
     kind: GridCellKind.Custom,
     isMatch: (c) => c.data.kind === "dropdown-cell",
     draw: (args, cell) => {
-        const { ctx, theme, rect } = args;
+        const { ctx, theme, rect, highlighted } = args;
 
         // Skip drawing if row is hidden (height <= 0)
         if (rect.height <= 0) return true;
 
-        const { value, allowCreation, allowedValues = [] } = cell.data;
+        const { value, allowCreation, allowedValues = [], showBubble } = cell.data;
+
+        // Find matching option
         const foundOption = allowedValues.find((opt) => {
             if (typeof opt === "string" || opt === null || opt === undefined) {
                 return opt === value;
             }
             return opt.value === value;
         });
+
         // If option found, use its label; otherwise if allowCreation, show the raw value
         const displayText = foundOption
-            ? (typeof foundOption === "string" ? foundOption : foundOption?.label ?? "")
-            : (allowCreation ? value ?? "" : "");
-        if (displayText) {
+            ? typeof foundOption === "string"
+                ? foundOption
+                : (foundOption?.label ?? "")
+            : allowCreation
+              ? (value ?? "")
+              : "";
+
+        if (!displayText) return true;
+
+        if (showBubble) {
+            // Get color from option or use theme default
+            const bubbleColor =
+                typeof foundOption === "object" && foundOption?.color
+                    ? foundOption.color
+                    : highlighted
+                      ? theme.bgBubbleSelected
+                      : theme.bgBubble;
+
+            // Calculate bubble dimensions
+            const metrics = measureTextCached(displayText, ctx);
+            const bubbleWidth = metrics.width + theme.bubblePadding * 2;
+            const bubbleHeight = theme.bubbleHeight;
+            const x = rect.x + theme.cellHorizontalPadding;
+            const y = rect.y + (rect.height - bubbleHeight) / 2;
+
+            // Draw bubble background
+            ctx.fillStyle = bubbleColor;
+            ctx.beginPath();
+            roundedRect(ctx, x, y, bubbleWidth, bubbleHeight, theme.roundingRadius ?? bubbleHeight / 2);
+            ctx.fill();
+
+            // Draw text with smart contrast based on actual background color
+            ctx.fillStyle = getLuminance(bubbleColor) > 0.5 ? "#000000" : "#ffffff";
+            ctx.fillText(displayText, x + theme.bubblePadding, y + bubbleHeight / 2 + getMiddleCenterBias(ctx, theme));
+        } else {
+            // Default text rendering
             ctx.fillStyle = theme.textDark;
             ctx.fillText(
                 displayText,
@@ -289,8 +333,12 @@ const renderer = {
         return true;
     },
     measure: (ctx, cell, theme) => {
-        const { value } = cell.data;
-        return (value ? ctx.measureText(value).width : 0) + theme.cellHorizontalPadding * 2;
+        const { value, showBubble } = cell.data;
+        const textWidth = value ? ctx.measureText(value).width : 0;
+        if (showBubble) {
+            return textWidth + theme.bubblePadding * 2 + theme.cellHorizontalPadding * 2;
+        }
+        return textWidth + theme.cellHorizontalPadding * 2;
     },
     provideEditor: () => ({
         editor: Editor,
