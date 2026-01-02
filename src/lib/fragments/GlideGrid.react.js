@@ -2111,6 +2111,9 @@ const GlideGrid = (props) => {
     const handleFillHandleDoubleClick = useCallback(() => {
         console.log('[GlideGrid] handleFillHandleDoubleClick called');
 
+        // Don't auto-fill if only horizontal filling is allowed
+        if (allowedFillDirections === 'horizontal') return;
+
         // Get current selection
         const selection = gridSelection?.current;
         console.log('[GlideGrid] gridSelection:', gridSelection, 'selection:', selection);
@@ -2209,7 +2212,7 @@ const GlideGrid = (props) => {
 
         // Call the internal fill pattern handler
         handleFillPatternInternal(patternSource, fillDestination);
-    }, [gridSelection, sortedIndices, handleFillPatternInternal, isCellEmpty]);
+    }, [gridSelection, sortedIndices, handleFillPatternInternal, isCellEmpty, allowedFillDirections]);
 
     // Handle double-click on container (to detect fill handle double-clicks)
     const handleContainerDoubleClick = useCallback(() => {
