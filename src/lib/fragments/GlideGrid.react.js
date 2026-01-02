@@ -493,6 +493,9 @@ const GlideGrid = (props) => {
     // Ref for the DataEditor to control scroll position
     const gridRef = useRef(null);
 
+    // Ref to track if mouse is hovering over fill handle (for double-click detection)
+    const isHoveringFillHandle = useRef(false);
+
     // Capture native contextmenu event to get accurate mouse position
     useEffect(() => {
         const container = containerRef.current;
@@ -1898,8 +1901,180 @@ const GlideGrid = (props) => {
         return cellResult;
     }, [localData, localColumns, sortedIndices, lastUpdatedCells, hiddenRowsSet]);
 
+    // Internal fill pattern logic (reusable for both drag-fill and double-click fill)
+    const handleFillPatternInternal = useCallback((patternSource, fillDestination) => {
+        if (!setProps || readonly) {
+            return;
+        }
+
+        // Use ref to get the most current data (avoids stale closures)
+        const currentData = localDataRef.current;
+        const currentColumns = localColumnsRef.current;
+        if (!currentData || !currentColumns) {
+            return;
+        }
+
+        // Create a deep copy of the data (array of objects)
+        const newData = currentData.map(r => ({...r}));
+
+        // Get source pattern dimensions
+        const sourceWidth = patternSource.width;
+        const sourceHeight = patternSource.height;
+
+        // Fill the destination with pattern from source
+        for (let destRow = fillDestination.y; destRow < fillDestination.y + fillDestination.height; destRow++) {
+            // Skip hidden rows (only if skipOnFill is enabled)
+            if (skipOnFill && hiddenRowsSet.has(destRow)) continue;
+
+            // Translate display row to actual data row if sorting is active
+            const actualDestRow = sortedIndices ? sortedIndices[destRow] : destRow;
+            if (actualDestRow >= newData.length) break;
+
+            for (let destCol = fillDestination.x; destCol < fillDestination.x + fillDestination.width; destCol++) {
+                if (destCol >= currentColumns.length) break;
+
+                // Get column id to access dict key
+                const destColumnDef = currentColumns[destCol];
+                const destColumnId = destColumnDef?.id || destColumnDef?.title;
+
+                // Calculate which cell in the pattern to copy from (display indices)
+                const displaySourceRow = patternSource.y + ((destRow - fillDestination.y) % sourceHeight);
+                const sourceCol = patternSource.x + ((destCol - fillDestination.x) % sourceWidth);
+
+                // Translate source row to actual data row
+                const actualSourceRow = sortedIndices ? sortedIndices[displaySourceRow] : displaySourceRow;
+
+                // Get source column id
+                const sourceColumnDef = currentColumns[sourceCol];
+                const sourceColumnId = sourceColumnDef?.id || sourceColumnDef?.title;
+
+                // Get old value before overwriting
+                const oldValue = newData[actualDestRow][destColumnId];
+
+                // Copy the value from source to destination
+                const sourceValue = newData[actualSourceRow][sourceColumnId];
+                newData[actualDestRow] = { ...newData[actualDestRow], [destColumnId]: sourceValue };
+
+                // Track edit for undo/redo
+                addEditToBatch({
+                    col: destCol,
+                    row: actualDestRow,
+                    columnId: destColumnId,
+                    oldValue: oldValue,
+                    newValue: sourceValue
+                });
+            }
+        }
+
+        // Update local state immediately (optimistic update)
+        setLocalData(newData);
+
+        // CRITICAL: Update the ref immediately so next edit sees the updated data
+        localDataRef.current = newData;
+
+        // Store this data so we can ignore it when it comes back from Dash
+        lastSentData.current = newData;
+
+        // Translate row for the event
+        const actualFillRow = sortedIndices ? sortedIndices[fillDestination.y] : fillDestination.y;
+
+        // Sync with Dash
+        setProps({
+            data: newData,
+            cellEdited: {
+                col: fillDestination.x,
+                row: actualFillRow,
+                value: `Filled ${fillDestination.height}x${fillDestination.width} range`,
+                timestamp: Date.now()
+            }
+        });
+    }, [setProps, readonly, sortedIndices, addEditToBatch, hiddenRowsSet, skipOnFill]);
+
+    // Handle fill pattern from drag (Excel-like fill handle drag)
+    const handleFillPattern = useCallback((event) => {
+        // Always prevent default to stop Glide's built-in fill behavior
+        // We handle all fill operations ourselves for proper hidden row filtering
+        event.preventDefault();
+
+        const { patternSource, fillDestination } = event;
+        handleFillPatternInternal(patternSource, fillDestination);
+    }, [handleFillPatternInternal]);
+
+    // Handle double-click on fill handle (Excel-like auto-fill down to last data in left column)
+    const handleFillHandleDoubleClick = useCallback(() => {
+        console.log('[GlideGrid] handleFillHandleDoubleClick called');
+
+        // Get current selection
+        const selection = gridSelection?.current;
+        console.log('[GlideGrid] gridSelection:', gridSelection, 'selection:', selection);
+        if (!selection?.range) {
+            console.log('[GlideGrid] No selection range, aborting');
+            return;
+        }
+
+        const { x: selX, y: selY, width: selWidth, height: selHeight } = selection.range;
+        console.log('[GlideGrid] Selection:', { selX, selY, selWidth, selHeight });
+
+        // Check if selection starts at column 0 - abort if so (no left column to reference)
+        const leftCol = selX - 1;
+        if (leftCol < 0) return;
+
+        // Get column ID for left column
+        const currentColumns = localColumnsRef.current;
+        const currentData = localDataRef.current;
+        if (!currentColumns || !currentData) return;
+
+        const leftColDef = currentColumns[leftCol];
+        const leftColId = leftColDef?.id || leftColDef?.title;
+
+        // Scan down left column starting from selection start row
+        // Find first empty cell to determine where to stop filling
+        let fillEndRow = selY + selHeight - 1; // Start at selection end
+        for (let row = selY; row < currentData.length; row++) {
+            const actualRow = sortedIndices ? sortedIndices[row] : row;
+            if (actualRow >= currentData.length) break;
+
+            const value = currentData[actualRow]?.[leftColId];
+
+            // Check if cell is empty (null, undefined, or empty string)
+            if (value === null || value === undefined || value === '') {
+                // First empty cell found - fill ends at row before this
+                fillEndRow = row - 1;
+                break;
+            }
+            // If we reached end of data without empty, fillEndRow is last data row
+            fillEndRow = row;
+        }
+
+        // If fillEndRow is not beyond selection, nothing to fill
+        if (fillEndRow <= selY + selHeight - 1) return;
+
+        // Create fill pattern source and destination
+        const patternSource = { x: selX, y: selY, width: selWidth, height: selHeight };
+        const fillDestination = {
+            x: selX,
+            y: selY + selHeight, // Start filling from row after selection
+            width: selWidth,
+            height: fillEndRow - (selY + selHeight) + 1
+        };
+
+        // Call the internal fill pattern handler
+        handleFillPatternInternal(patternSource, fillDestination);
+    }, [gridSelection, sortedIndices, handleFillPatternInternal]);
+
+    // Handle double-click on container (to detect fill handle double-clicks)
+    const handleContainerDoubleClick = useCallback(() => {
+        console.log('[GlideGrid] Container double-click, isHoveringFillHandle:', isHoveringFillHandle.current);
+
+        if (isHoveringFillHandle.current && fillHandle && !readonly) {
+            console.log('[GlideGrid] Fill handle double-click detected via container!');
+            handleFillHandleDoubleClick();
+        }
+    }, [fillHandle, readonly, handleFillHandleDoubleClick]);
+
     // Handle cell clicks
     const handleCellClicked = useCallback((cell, event) => {
+
         const [col, row] = cell;
 
         // Fire the cellClicked Dash event
@@ -1988,7 +2163,7 @@ const GlideGrid = (props) => {
                 });
             }
         }
-    }, [setProps, nClicks, rowSelectOnCellClick, rowSelect, rowSelectionMode, rowSelectionBlending, unselectableRows]);
+    }, [setProps, nClicks, rowSelectOnCellClick, rowSelect, rowSelectionMode, rowSelectionBlending, unselectableRows, fillHandle, readonly, handleFillHandleDoubleClick]);
 
     // Handle cell edits
     const handleCellEdited = useCallback((cell, newValue) => {
@@ -2980,101 +3155,6 @@ const GlideGrid = (props) => {
         }
     }, [setProps]);
 
-    // Handle fill pattern (Excel-like fill handle drag)
-    const handleFillPattern = useCallback((event) => {
-        // Always prevent default to stop Glide's built-in fill behavior
-        // We handle all fill operations ourselves for proper hidden row filtering
-        event.preventDefault();
-
-        if (!setProps || readonly) {
-            return;
-        }
-
-        // Use ref to get the most current data (avoids stale closures)
-        const currentData = localDataRef.current;
-        const currentColumns = localColumnsRef.current;
-        if (!currentData || !currentColumns) {
-            return;
-        }
-
-        const { patternSource, fillDestination } = event;
-
-        // Create a deep copy of the data (array of objects)
-        const newData = currentData.map(r => ({...r}));
-
-        // Get source pattern dimensions
-        const sourceWidth = patternSource.width;
-        const sourceHeight = patternSource.height;
-
-        // Fill the destination with pattern from source
-        for (let destRow = fillDestination.y; destRow < fillDestination.y + fillDestination.height; destRow++) {
-            // Skip hidden rows (only if skipOnFill is enabled)
-            if (skipOnFill && hiddenRowsSet.has(destRow)) continue;
-
-            // Translate display row to actual data row if sorting is active
-            const actualDestRow = sortedIndices ? sortedIndices[destRow] : destRow;
-            if (actualDestRow >= newData.length) break;
-
-            for (let destCol = fillDestination.x; destCol < fillDestination.x + fillDestination.width; destCol++) {
-                if (destCol >= currentColumns.length) break;
-
-                // Get column id to access dict key
-                const destColumnDef = currentColumns[destCol];
-                const destColumnId = destColumnDef?.id || destColumnDef?.title;
-
-                // Calculate which cell in the pattern to copy from (display indices)
-                const displaySourceRow = patternSource.y + ((destRow - fillDestination.y) % sourceHeight);
-                const sourceCol = patternSource.x + ((destCol - fillDestination.x) % sourceWidth);
-
-                // Translate source row to actual data row
-                const actualSourceRow = sortedIndices ? sortedIndices[displaySourceRow] : displaySourceRow;
-
-                // Get source column id
-                const sourceColumnDef = currentColumns[sourceCol];
-                const sourceColumnId = sourceColumnDef?.id || sourceColumnDef?.title;
-
-                // Get old value before overwriting
-                const oldValue = newData[actualDestRow][destColumnId];
-
-                // Copy the value from source to destination
-                const sourceValue = newData[actualSourceRow][sourceColumnId];
-                newData[actualDestRow] = { ...newData[actualDestRow], [destColumnId]: sourceValue };
-
-                // Track edit for undo/redo
-                addEditToBatch({
-                    col: destCol,
-                    row: actualDestRow,
-                    columnId: destColumnId,
-                    oldValue: oldValue,
-                    newValue: sourceValue
-                });
-            }
-        }
-
-        // Update local state immediately (optimistic update)
-        setLocalData(newData);
-
-        // CRITICAL: Update the ref immediately so next edit sees the updated data
-        localDataRef.current = newData;
-
-        // Store this data so we can ignore it when it comes back from Dash
-        lastSentData.current = newData;
-
-        // Translate row for the event
-        const actualFillRow = sortedIndices ? sortedIndices[fillDestination.y] : fillDestination.y;
-
-        // Sync with Dash
-        setProps({
-            data: newData,
-            cellEdited: {
-                col: fillDestination.x,
-                row: actualFillRow,
-                value: `Filled ${fillDestination.height}x${fillDestination.width} range`,
-                timestamp: Date.now()
-            }
-        });
-    }, [setProps, readonly, sortedIndices, addEditToBatch, hiddenRowsSet, skipOnFill]);
-
     // ========== PHASE 2: EVENT HANDLERS ==========
 
     // Handle header clicks (for sorting)
@@ -3777,6 +3857,13 @@ const GlideGrid = (props) => {
 
     // Handle item hover changes
     const handleItemHovered = useCallback((args) => {
+        // Track fill handle hover state (for double-click detection)
+        const wasHoveringFillHandle = isHoveringFillHandle.current;
+        isHoveringFillHandle.current = args.kind === 'cell' && args.isFillHandle === true;
+        if (isHoveringFillHandle.current !== wasHoveringFillHandle) {
+            console.log('[GlideGrid] Fill handle hover:', isHoveringFillHandle.current);
+        }
+
         // Don't update hover state while editor is open - prevents re-renders
         // that would reset dropdown scroll position
         if (isEditorOpen) {
@@ -3796,6 +3883,7 @@ const GlideGrid = (props) => {
                     col: args.location ? args.location[0] : undefined,
                     row: args.location ? args.location[1] : undefined,
                     kind: args.kind,
+                    isFillHandle: args.kind === 'cell' && args.isFillHandle === true,
                     timestamp: Date.now()
                 }
             });
@@ -4795,7 +4883,7 @@ const GlideGrid = (props) => {
     };
 
     return (
-        <div id={id} ref={containerRef} style={containerStyle} className={className} onKeyDown={(enableUndoRedo || shouldFlash('copy')) ? handleKeyDown : undefined}>
+        <div id={id} ref={containerRef} style={containerStyle} className={className} onKeyDown={(enableUndoRedo || shouldFlash('copy')) ? handleKeyDown : undefined} onDoubleClick={fillHandle && !readonly ? handleContainerDoubleClick : undefined}>
             <DataEditor
                 ref={gridRef}
                 columns={glideColumns}
