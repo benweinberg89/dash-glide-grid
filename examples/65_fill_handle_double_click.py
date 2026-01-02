@@ -110,10 +110,11 @@ app.layout = html.Div(
 @callback(
     Output("fill-handle-indicator", "children"),
     Output("fill-handle-indicator", "style"),
-    Input("grid", "itemHovered"),
+    Input("grid", "mouseMove"),  # Use mouseMove for accurate fill handle tracking
 )
-def update_fill_handle_indicator(item_hovered):
-    is_fill_handle = item_hovered and item_hovered.get("isFillHandle", False)
+def update_fill_handle_indicator(mouse_move):
+    # mouseMove fires on every mouse move, so isFillHandle is accurate
+    is_fill_handle = mouse_move and mouse_move.get("isFillHandle", False)
 
     if is_fill_handle:
         return "HOVERING over fill handle - DOUBLE-CLICK NOW!", {

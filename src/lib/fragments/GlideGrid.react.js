@@ -3857,13 +3857,6 @@ const GlideGrid = (props) => {
 
     // Handle item hover changes
     const handleItemHovered = useCallback((args) => {
-        // Track fill handle hover state (for double-click detection)
-        const wasHoveringFillHandle = isHoveringFillHandle.current;
-        isHoveringFillHandle.current = args.kind === 'cell' && args.isFillHandle === true;
-        if (isHoveringFillHandle.current !== wasHoveringFillHandle) {
-            console.log('[GlideGrid] Fill handle hover:', isHoveringFillHandle.current);
-        }
-
         // Don't update hover state while editor is open - prevents re-renders
         // that would reset dropdown scroll position
         if (isEditorOpen) {
@@ -3883,6 +3876,7 @@ const GlideGrid = (props) => {
                     col: args.location ? args.location[0] : undefined,
                     row: args.location ? args.location[1] : undefined,
                     kind: args.kind,
+                    // Note: isFillHandle here may be stale - use mouseMove.isFillHandle for accurate tracking
                     isFillHandle: args.kind === 'cell' && args.isFillHandle === true,
                     timestamp: Date.now()
                 }
@@ -3893,12 +3887,21 @@ const GlideGrid = (props) => {
     // Handle mouse move events (raw mouse movement, fires on every move)
     // Skip when editor is open to prevent re-renders that interfere with text input
     const handleMouseMove = useCallback((args) => {
+        // Track fill handle hover state (must be done here, not onItemHovered,
+        // because onItemHovered doesn't fire when moving within the same cell)
+        const newHoveringFillHandle = args.kind === 'cell' && args.isFillHandle === true;
+        if (newHoveringFillHandle !== isHoveringFillHandle.current) {
+            isHoveringFillHandle.current = newHoveringFillHandle;
+            console.log('[GlideGrid] Fill handle hover (mouseMove):', isHoveringFillHandle.current);
+        }
+
         if (setProps && !isEditorOpen) {
             setProps({
                 mouseMove: {
                     col: args.location ? args.location[0] : undefined,
                     row: args.location ? args.location[1] : undefined,
                     kind: args.kind,
+                    isFillHandle: newHoveringFillHandle,
                     localEventX: args.localEventX,
                     localEventY: args.localEventY,
                     timestamp: Date.now()
