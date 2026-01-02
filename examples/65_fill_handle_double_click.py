@@ -6,6 +6,7 @@ Demonstrates the Excel-like double-click fill handle feature with various cell t
 Tests:
 1. Left column cell types - what counts as "empty" to stop the fill?
 2. Right column cell types - how do different types copy/fill?
+3. Right column blocking - fill stops before existing data in fill columns (Excel behavior)
 """
 
 from dash import Dash, html, callback, Output, Input
@@ -55,13 +56,13 @@ DATA = [
         "fill_bool": "",
         "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
     },
-    # Row 4: Bool is False (falsy but not empty!)
+    # Row 4: Has EXISTING DATA in fill columns - fill should stop BEFORE this row!
     {
         "left_text": "Text E",
         "left_number": 500,
         "left_bool": False,
-        "fill_text": "",
-        "fill_number": "",
+        "fill_text": "EXISTING",
+        "fill_number": 999,
         "fill_bool": "",
         "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
     },
@@ -134,24 +135,24 @@ app.layout = html.Div(
         html.Div([
             html.H4("1. Left Column Detection (what stops the fill?)"),
             html.Ul([
-                html.Li("Select Fill:Text rows 0-1, double-click → Should fill to row 5 (row 6 is empty)"),
+                html.Li("Row 6 is empty in left columns → Fill stops at row 5"),
                 html.Li("Row 3 has left_number=0 (falsy but not empty) → Should NOT stop fill"),
-                html.Li("Row 4 has left_bool=False (falsy but not empty) → Should NOT stop fill"),
             ]),
 
-            html.H4("2. Fill Column Types (how do they copy?)"),
+            html.H4("2. Right Column Blocking (NEW - Excel behavior)"),
+            html.Ul([
+                html.Li("Row 4 has EXISTING data in Fill:Text and Fill:Number"),
+                html.Li("Select Fill:Text rows 0-1, double-click → Should fill to row 3 only (stops BEFORE row 4)"),
+                html.Li("Select Fill:Bool rows 0-1, double-click → Should fill to row 5 (row 4's bool is empty)"),
+                html.Li("Select Fill:Dropdown rows 0-1, double-click → Should fill to row 5 (row 4's dropdown is empty)"),
+            ]),
+
+            html.H4("3. Fill Column Types (how do they copy?)"),
             html.Ul([
                 html.Li("Fill:Text - Simple text pattern"),
                 html.Li("Fill:Number - Number pattern"),
                 html.Li("Fill:Bool - Boolean pattern (True/False alternating)"),
                 html.Li("Fill:Dropdown - Dropdown cell pattern"),
-            ]),
-
-            html.H4("3. Try These:"),
-            html.Ul([
-                html.Li("Select cells in 'Fill: Text' column (rows 0-1), double-click fill handle"),
-                html.Li("Select cells in 'Fill: Dropdown' column (rows 0-1), double-click fill handle"),
-                html.Li("Select cells spanning multiple Fill columns, double-click fill handle"),
             ]),
         ], style={"backgroundColor": "#f5f5f5", "padding": "15px", "borderRadius": "8px", "marginBottom": "20px"}),
 

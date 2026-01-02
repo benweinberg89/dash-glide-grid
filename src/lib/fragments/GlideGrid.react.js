@@ -2000,6 +2000,113 @@ const GlideGrid = (props) => {
         handleFillPatternInternal(patternSource, fillDestination);
     }, [handleFillPatternInternal]);
 
+    // Helper to check if a cell value is considered "empty" for fill handle purposes
+    // Returns true if the cell should be treated as empty (no data)
+    const isCellEmpty = useCallback((value) => {
+        if (value === null || value === undefined) {
+            return true;
+        }
+        if (value === '') {
+            return true;
+        }
+        // Note: 0 and false are NOT empty
+        if (typeof value === 'object' && value !== null) {
+            // Cell object - check based on kind
+            const kind = value.kind;
+            let innerValue;
+
+            // Helper to check if array has content
+            const hasArrayContent = (arr) => Array.isArray(arr) && arr.length > 0;
+
+            switch (kind) {
+                // Cells that use 'title' property
+                case 'button-cell':
+                    innerValue = value.title;
+                    break;
+
+                // Cells that use 'name' property
+                case 'user-profile-cell':
+                    innerValue = value.name;
+                    break;
+
+                // Cells that use 'text' property
+                case 'tree-view-cell':
+                    innerValue = value.text;
+                    break;
+
+                // Cells that use 'rating' property
+                case 'star-cell':
+                    innerValue = value.rating;
+                    break;
+
+                // Sparkline uses 'values' array
+                case 'sparkline-cell':
+                    innerValue = hasArrayContent(value.values) ? value.values : null;
+                    break;
+
+                // Links uses 'links' array
+                case 'links-cell':
+                    innerValue = hasArrayContent(value.links) ? value.links : null;
+                    break;
+
+                // Tags uses 'tags' array
+                case 'tags-cell':
+                    innerValue = hasArrayContent(value.tags) ? value.tags : null;
+                    break;
+
+                // Date picker uses 'date' property
+                case 'date-picker-cell':
+                    innerValue = value.date;
+                    break;
+
+                // Range uses 'value' property
+                case 'range-cell':
+                    innerValue = value.value;
+                    break;
+
+                // Multi-select uses nested data.values or values
+                case 'multi-select-cell':
+                    const msValues = value.data?.values ?? value.values;
+                    innerValue = hasArrayContent(msValues) ? msValues : null;
+                    break;
+
+                // Dropdown uses nested data.value or value
+                case 'dropdown-cell':
+                    innerValue = value.data?.value ?? value.value;
+                    break;
+
+                // Image uses 'data' array
+                case 'image':
+                    innerValue = hasArrayContent(value.data) ? value.data : null;
+                    break;
+
+                // Bubble uses 'data' array
+                case 'bubble':
+                    innerValue = hasArrayContent(value.data) ? value.data : null;
+                    break;
+
+                // Drilldown uses 'data' array
+                case 'drilldown':
+                    innerValue = hasArrayContent(value.data) ? value.data : null;
+                    break;
+
+                // Loading, protected, spinner - always have content (visual indicator)
+                case 'loading':
+                case 'protected':
+                case 'spinner-cell':
+                    innerValue = kind; // Never empty - they show a visual indicator
+                    break;
+
+                // Default: check 'value' or 'data' property
+                default:
+                    innerValue = value.value ?? value.data;
+            }
+
+            return innerValue === null || innerValue === undefined || innerValue === '';
+        }
+        return false; // Primitives with value (including 0, false) are not empty
+    }, []);
+
     // Handle double-click on fill handle (Excel-like auto-fill down to last data in left column)
     const handleFillHandleDoubleClick = useCallback(() => {
         console.log('[GlideGrid] handleFillHandleDoubleClick called');
@@ -2013,7 +2120,8 @@ const GlideGrid = (props) => {
         }
 
         const { x: selX, y: selY, width: selWidth, height: selHeight } = selection.range;
-        console.log('[GlideGrid] Selection:', { selX, selY, selWidth, selHeight });
+        const selectionEndRow = selY + selHeight - 1;
+        console.log('[GlideGrid] Selection:', { selX, selY, selWidth, selHeight, selectionEndRow });
 
         // Check if selection starts at column 0 - abort if so (no left column to reference)
         const leftCol = selX - 1;
@@ -2027,123 +2135,16 @@ const GlideGrid = (props) => {
         const leftColDef = currentColumns[leftCol];
         const leftColId = leftColDef?.id || leftColDef?.title;
 
-        // Scan down left column starting from selection start row
+        // STEP 1: Scan down left column starting from selection start row
         // Find first empty cell to determine where to stop filling
-        let fillEndRow = selY + selHeight - 1; // Start at selection end
+        let fillEndRow = selectionEndRow; // Start at selection end
         for (let row = selY; row < currentData.length; row++) {
             const actualRow = sortedIndices ? sortedIndices[row] : row;
             if (actualRow >= currentData.length) break;
 
             const value = currentData[actualRow]?.[leftColId];
 
-            // Check if cell is empty
-            // - null or undefined: empty
-            // - empty string '': empty
-            // - 0 (number): NOT empty
-            // - false (boolean): NOT empty
-            // - cell object: check based on cell type
-            let isEmpty = false;
-            if (value === null || value === undefined) {
-                isEmpty = true;
-            } else if (value === '') {
-                isEmpty = true;
-            } else if (typeof value === 'object' && value !== null) {
-                // Cell object - check based on kind
-                const kind = value.kind;
-                let innerValue;
-
-                // Helper to check if array has content
-                const hasArrayContent = (arr) => Array.isArray(arr) && arr.length > 0;
-
-                switch (kind) {
-                    // Cells that use 'title' property
-                    case 'button-cell':
-                        innerValue = value.title;
-                        break;
-
-                    // Cells that use 'name' property
-                    case 'user-profile-cell':
-                        innerValue = value.name;
-                        break;
-
-                    // Cells that use 'text' property
-                    case 'tree-view-cell':
-                        innerValue = value.text;
-                        break;
-
-                    // Cells that use 'rating' property
-                    case 'star-cell':
-                        innerValue = value.rating;
-                        break;
-
-                    // Sparkline uses 'values' array
-                    case 'sparkline-cell':
-                        innerValue = hasArrayContent(value.values) ? value.values : null;
-                        break;
-
-                    // Links uses 'links' array
-                    case 'links-cell':
-                        innerValue = hasArrayContent(value.links) ? value.links : null;
-                        break;
-
-                    // Tags uses 'tags' array
-                    case 'tags-cell':
-                        innerValue = hasArrayContent(value.tags) ? value.tags : null;
-                        break;
-
-                    // Date picker uses 'date' property
-                    case 'date-picker-cell':
-                        innerValue = value.date;
-                        break;
-
-                    // Range uses 'value' property
-                    case 'range-cell':
-                        innerValue = value.value;
-                        break;
-
-                    // Multi-select uses nested data.values or values
-                    case 'multi-select-cell':
-                        const msValues = value.data?.values ?? value.values;
-                        innerValue = hasArrayContent(msValues) ? msValues : null;
-                        break;
-
-                    // Dropdown uses nested data.value or value
-                    case 'dropdown-cell':
-                        innerValue = value.data?.value ?? value.value;
-                        break;
-
-                    // Image uses 'data' array
-                    case 'image':
-                        innerValue = hasArrayContent(value.data) ? value.data : null;
-                        break;
-
-                    // Bubble uses 'data' array
-                    case 'bubble':
-                        innerValue = hasArrayContent(value.data) ? value.data : null;
-                        break;
-
-                    // Drilldown uses 'data' array
-                    case 'drilldown':
-                        innerValue = hasArrayContent(value.data) ? value.data : null;
-                        break;
-
-                    // Loading, protected, spinner - always have content (visual indicator)
-                    case 'loading':
-                    case 'protected':
-                    case 'spinner-cell':
-                        innerValue = kind; // Never empty - they show a visual indicator
-                        break;
-
-                    // Default: check 'value' or 'data' property
-                    default:
-                        innerValue = value.value ?? value.data;
-                }
-
-                isEmpty = innerValue === null || innerValue === undefined || innerValue === '';
-            }
-            // Note: 0 and false are NOT empty
-
-            if (isEmpty) {
+            if (isCellEmpty(value)) {
                 // First empty cell found - fill ends at row before this
                 fillEndRow = row - 1;
                 break;
@@ -2152,8 +2153,50 @@ const GlideGrid = (props) => {
             fillEndRow = row;
         }
 
+        console.log('[GlideGrid] After left column check, fillEndRow:', fillEndRow);
+
         // If fillEndRow is not beyond selection, nothing to fill
-        if (fillEndRow <= selY + selHeight - 1) return;
+        if (fillEndRow <= selectionEndRow) return;
+
+        // STEP 2: Check fill columns for existing data (Excel behavior)
+        // Stop before any row that already has data in the fill columns
+        // Get column IDs for all fill columns
+        const fillColIds = [];
+        for (let col = selX; col < selX + selWidth; col++) {
+            const colDef = currentColumns[col];
+            fillColIds.push(colDef?.id || colDef?.title);
+        }
+
+        // Scan rows below selection, looking for first row with data in any fill column
+        let rightColumnsDataRow = null;
+        for (let row = selectionEndRow + 1; row <= fillEndRow; row++) {
+            const actualRow = sortedIndices ? sortedIndices[row] : row;
+            if (actualRow >= currentData.length) break;
+
+            // Check each fill column in this row
+            for (const colId of fillColIds) {
+                const value = currentData[actualRow]?.[colId];
+
+                if (!isCellEmpty(value)) {
+                    // Found data in a fill column - stop before this row
+                    rightColumnsDataRow = row;
+                    break;
+                }
+            }
+
+            if (rightColumnsDataRow !== null) break; // Found data, stop scanning
+        }
+
+        // If we found data in fill columns, stop before that row
+        if (rightColumnsDataRow !== null) {
+            console.log('[GlideGrid] Found data in fill columns at row:', rightColumnsDataRow);
+            fillEndRow = Math.min(fillEndRow, rightColumnsDataRow - 1);
+        }
+
+        console.log('[GlideGrid] Final fillEndRow:', fillEndRow);
+
+        // If fillEndRow is not beyond selection after right column check, nothing to fill
+        if (fillEndRow <= selectionEndRow) return;
 
         // Create fill pattern source and destination
         const patternSource = { x: selX, y: selY, width: selWidth, height: selHeight };
@@ -2166,7 +2209,7 @@ const GlideGrid = (props) => {
 
         // Call the internal fill pattern handler
         handleFillPatternInternal(patternSource, fillDestination);
-    }, [gridSelection, sortedIndices, handleFillPatternInternal]);
+    }, [gridSelection, sortedIndices, handleFillPatternInternal, isCellEmpty]);
 
     // Handle double-click on container (to detect fill handle double-clicks)
     const handleContainerDoubleClick = useCallback(() => {
