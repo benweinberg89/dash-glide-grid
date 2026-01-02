@@ -9,10 +9,12 @@ Tests:
 3. Right column blocking - fill stops before existing data in fill columns (Excel behavior)
 """
 
-from dash import Dash, html, callback, Output, Input
+from dash import Dash, html, callback, Output, Input, dcc
 import dash_glide_grid as dgg
 
 app = Dash(__name__)
+
+DROPDOWN_OPTIONS = ["Option A", "Option B", "Option C"]
 
 # Test data with various cell types
 DATA = [
@@ -24,7 +26,7 @@ DATA = [
         "fill_text": "Pattern 1",
         "fill_number": 10,
         "fill_bool": True,
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "Option A", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "Option A", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 1: Pattern row 2
     {
@@ -34,7 +36,7 @@ DATA = [
         "fill_text": "Pattern 2",
         "fill_number": 20,
         "fill_bool": False,
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "Option B", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "Option B", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 2: Has data
     {
@@ -44,7 +46,7 @@ DATA = [
         "fill_text": "",
         "fill_number": "",
         "fill_bool": "",
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 3: Number is 0 (falsy but not empty!)
     {
@@ -54,7 +56,7 @@ DATA = [
         "fill_text": "",
         "fill_number": "",
         "fill_bool": "",
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 4: Has EXISTING DATA in fill columns - fill should stop BEFORE this row!
     {
@@ -64,7 +66,7 @@ DATA = [
         "fill_text": "EXISTING",
         "fill_number": 999,
         "fill_bool": "",
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 5: Last row with data
     {
@@ -74,7 +76,7 @@ DATA = [
         "fill_text": "",
         "fill_number": "",
         "fill_bool": "",
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 6: EMPTY - fill should stop here
     {
@@ -84,7 +86,7 @@ DATA = [
         "fill_text": "",
         "fill_number": "",
         "fill_bool": "",
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "", "allowedValues": DROPDOWN_OPTIONS}},
     },
     # Row 7: More data after gap (should not be filled to)
     {
@@ -94,7 +96,7 @@ DATA = [
         "fill_text": "",
         "fill_number": "",
         "fill_bool": "",
-        "fill_dropdown": {"kind": "dropdown-cell", "value": "", "allowedValues": ["Option A", "Option B", "Option C"]},
+        "fill_dropdown": {"kind": "dropdown-cell", "data": {"value": "", "allowedValues": DROPDOWN_OPTIONS}},
     },
 ]
 
@@ -112,24 +114,20 @@ app.layout = html.Div(
     [
         html.H1("Fill Handle Double-Click - Cell Type Testing"),
 
-        # Fill handle hover indicator
-        html.Div(
-            [
-                html.Strong("Fill Handle Status: "),
-                html.Span(
-                    id="fill-handle-indicator",
-                    children="NOT hovering",
-                    style={
-                        "padding": "5px 15px",
-                        "borderRadius": "4px",
-                        "backgroundColor": "#ffcccc",
-                        "color": "#333",
-                        "fontWeight": "bold",
-                    },
-                ),
-            ],
-            style={"marginBottom": "15px"},
-        ),
+        html.Div([
+            html.Label("Allowed Fill Directions: ", style={"marginRight": "10px", "fontWeight": "bold"}),
+            dcc.RadioItems(
+                id="fill-direction",
+                options=[
+                    {"label": "Horizontal only", "value": "horizontal"},
+                    {"label": "Vertical only", "value": "vertical"},
+                    {"label": "Orthogonal (H or V)", "value": "orthogonal"},
+                    {"label": "Any direction", "value": "any"},
+                ],
+                value="orthogonal",
+                inline=True,
+            ),
+        ], style={"marginBottom": "15px"}),
 
         html.H3("Test Cases:"),
         html.Div([
@@ -139,7 +137,7 @@ app.layout = html.Div(
                 html.Li("Row 3 has left_number=0 (falsy but not empty) → Should NOT stop fill"),
             ]),
 
-            html.H4("2. Right Column Blocking (NEW - Excel behavior)"),
+            html.H4("2. Right Column Blocking (Excel behavior)"),
             html.Ul([
                 html.Li("Row 4 has EXISTING data in Fill:Text and Fill:Number"),
                 html.Li("Select Fill:Text rows 0-1, double-click → Should fill to row 3 only (stops BEFORE row 4)"),
@@ -147,12 +145,10 @@ app.layout = html.Div(
                 html.Li("Select Fill:Dropdown rows 0-1, double-click → Should fill to row 5 (row 4's dropdown is empty)"),
             ]),
 
-            html.H4("3. Fill Column Types (how do they copy?)"),
+            html.H4("3. Fill Direction"),
             html.Ul([
-                html.Li("Fill:Text - Simple text pattern"),
-                html.Li("Fill:Number - Number pattern"),
-                html.Li("Fill:Bool - Boolean pattern (True/False alternating)"),
-                html.Li("Fill:Dropdown - Dropdown cell pattern"),
+                html.Li("Set to 'Horizontal only' → Double-click auto-fill should NOT work"),
+                html.Li("Set to any other option → Double-click auto-fill should work"),
             ]),
         ], style={"backgroundColor": "#f5f5f5", "padding": "15px", "borderRadius": "8px", "marginBottom": "20px"}),
 
@@ -162,6 +158,7 @@ app.layout = html.Div(
             data=DATA,
             height=350,
             fillHandle=True,
+            allowedFillDirections="orthogonal",
             rowMarkers="number",
         ),
 
@@ -172,29 +169,11 @@ app.layout = html.Div(
 
 
 @callback(
-    Output("fill-handle-indicator", "children"),
-    Output("fill-handle-indicator", "style"),
-    Input("grid", "mouseMove"),
+    Output("grid", "allowedFillDirections"),
+    Input("fill-direction", "value"),
 )
-def update_fill_handle_indicator(mouse_move):
-    is_fill_handle = mouse_move and mouse_move.get("isFillHandle", False)
-
-    if is_fill_handle:
-        return "HOVERING over fill handle - DOUBLE-CLICK NOW!", {
-            "padding": "5px 15px",
-            "borderRadius": "4px",
-            "backgroundColor": "#90EE90",
-            "color": "#006400",
-            "fontWeight": "bold",
-        }
-    else:
-        return "NOT hovering over fill handle", {
-            "padding": "5px 15px",
-            "borderRadius": "4px",
-            "backgroundColor": "#ffcccc",
-            "color": "#8B0000",
-            "fontWeight": "bold",
-        }
+def update_fill_direction(direction):
+    return direction
 
 
 @callback(
@@ -216,7 +195,7 @@ def show_changes(cell_edited, data):
         fill_bool = row.get("fill_bool", "")
         fill_dd = row.get("fill_dropdown", {})
         if isinstance(fill_dd, dict):
-            fill_dd = fill_dd.get("value", "")
+            fill_dd = fill_dd.get("data", {}).get("value", "") if "data" in fill_dd else fill_dd.get("value", "")
         parts.append(f"  Row {i}: text='{fill_text}', num={fill_num}, bool={fill_bool}, dropdown='{fill_dd}'")
 
     return "\n".join(parts)
