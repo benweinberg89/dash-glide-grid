@@ -2041,15 +2041,104 @@ const GlideGrid = (props) => {
             // - empty string '': empty
             // - 0 (number): NOT empty
             // - false (boolean): NOT empty
-            // - cell object with empty value: check the 'value' or 'data' property
+            // - cell object: check based on cell type
             let isEmpty = false;
             if (value === null || value === undefined) {
                 isEmpty = true;
             } else if (value === '') {
                 isEmpty = true;
             } else if (typeof value === 'object' && value !== null) {
-                // Cell object - check 'value' or 'data' property
-                const innerValue = value.value ?? value.data;
+                // Cell object - check based on kind
+                const kind = value.kind;
+                let innerValue;
+
+                // Helper to check if array has content
+                const hasArrayContent = (arr) => Array.isArray(arr) && arr.length > 0;
+
+                switch (kind) {
+                    // Cells that use 'title' property
+                    case 'button-cell':
+                        innerValue = value.title;
+                        break;
+
+                    // Cells that use 'name' property
+                    case 'user-profile-cell':
+                        innerValue = value.name;
+                        break;
+
+                    // Cells that use 'text' property
+                    case 'tree-view-cell':
+                        innerValue = value.text;
+                        break;
+
+                    // Cells that use 'rating' property
+                    case 'star-cell':
+                        innerValue = value.rating;
+                        break;
+
+                    // Sparkline uses 'values' array
+                    case 'sparkline-cell':
+                        innerValue = hasArrayContent(value.values) ? value.values : null;
+                        break;
+
+                    // Links uses 'links' array
+                    case 'links-cell':
+                        innerValue = hasArrayContent(value.links) ? value.links : null;
+                        break;
+
+                    // Tags uses 'tags' array
+                    case 'tags-cell':
+                        innerValue = hasArrayContent(value.tags) ? value.tags : null;
+                        break;
+
+                    // Date picker uses 'date' property
+                    case 'date-picker-cell':
+                        innerValue = value.date;
+                        break;
+
+                    // Range uses 'value' property
+                    case 'range-cell':
+                        innerValue = value.value;
+                        break;
+
+                    // Multi-select uses nested data.values or values
+                    case 'multi-select-cell':
+                        const msValues = value.data?.values ?? value.values;
+                        innerValue = hasArrayContent(msValues) ? msValues : null;
+                        break;
+
+                    // Dropdown uses nested data.value or value
+                    case 'dropdown-cell':
+                        innerValue = value.data?.value ?? value.value;
+                        break;
+
+                    // Image uses 'data' array
+                    case 'image':
+                        innerValue = hasArrayContent(value.data) ? value.data : null;
+                        break;
+
+                    // Bubble uses 'data' array
+                    case 'bubble':
+                        innerValue = hasArrayContent(value.data) ? value.data : null;
+                        break;
+
+                    // Drilldown uses 'data' array
+                    case 'drilldown':
+                        innerValue = hasArrayContent(value.data) ? value.data : null;
+                        break;
+
+                    // Loading, protected, spinner - always have content (visual indicator)
+                    case 'loading':
+                    case 'protected':
+                    case 'spinner-cell':
+                        innerValue = kind; // Never empty - they show a visual indicator
+                        break;
+
+                    // Default: check 'value' or 'data' property
+                    default:
+                        innerValue = value.value ?? value.data;
+                }
+
                 isEmpty = innerValue === null || innerValue === undefined || innerValue === '';
             }
             // Note: 0 and false are NOT empty

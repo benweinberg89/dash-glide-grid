@@ -508,6 +508,7 @@ app.layout = html.Div(
             sortable=True,
             columnResize=True,
             rowMarkers="number",
+            fillHandle=True
         ),
         html.Div(
             [

@@ -83,6 +83,11 @@ const Editor = (p) => {
     }, []);
 
     const values = React.useMemo(() => {
+        // Guard against undefined allowedValues
+        if (!allowedValues || !Array.isArray(allowedValues)) {
+            console.warn('[DropdownCellRenderer] allowedValues is not an array:', allowedValues);
+            return [];
+        }
         return allowedValues.map((option) => {
             if (typeof option === "string" || option === null || option === undefined) {
                 return {

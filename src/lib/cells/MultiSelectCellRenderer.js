@@ -39,6 +39,11 @@ const portalWrapStyle = {
  * Prepares the options for usage with the react-select component.
  */
 export const prepareOptions = (options) => {
+    // Guard against undefined options
+    if (!options || !Array.isArray(options)) {
+        console.warn('[MultiSelectCellRenderer] options is not an array:', options);
+        return [];
+    }
     return options.map((option) => {
         if (typeof option === "string" || option === null || option === undefined) {
             return {
