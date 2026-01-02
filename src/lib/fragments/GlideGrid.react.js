@@ -2036,8 +2036,25 @@ const GlideGrid = (props) => {
 
             const value = currentData[actualRow]?.[leftColId];
 
-            // Check if cell is empty (null, undefined, or empty string)
-            if (value === null || value === undefined || value === '') {
+            // Check if cell is empty
+            // - null or undefined: empty
+            // - empty string '': empty
+            // - 0 (number): NOT empty
+            // - false (boolean): NOT empty
+            // - cell object with empty value: check the 'value' or 'data' property
+            let isEmpty = false;
+            if (value === null || value === undefined) {
+                isEmpty = true;
+            } else if (value === '') {
+                isEmpty = true;
+            } else if (typeof value === 'object' && value !== null) {
+                // Cell object - check 'value' or 'data' property
+                const innerValue = value.value ?? value.data;
+                isEmpty = innerValue === null || innerValue === undefined || innerValue === '';
+            }
+            // Note: 0 and false are NOT empty
+
+            if (isEmpty) {
                 // First empty cell found - fill ends at row before this
                 fillEndRow = row - 1;
                 break;
