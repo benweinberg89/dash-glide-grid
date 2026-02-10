@@ -125,7 +125,10 @@ function transformCellObject(cellObj, extraCustomKinds) {
     ];
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
-        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell', ...(extraCustomKinds || [])];
+        // Note: plugin cell kinds (extraCustomKinds) are NOT included here —
+        // plugins with provideEditor need allowOverlay=true, and plugins without
+        // provideEditor already prevent activation via onSelect: preventDefault()
+        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell'];
         // Cells that require nested data structure: {"kind": "...", "data": {...}}
         const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
         // For dropdown/multi-select, data must be in nested format
@@ -1393,10 +1396,15 @@ const GlideGrid = (props) => {
                 }
                 return undefined; // Don't open editor
             },
-            onSelect: (selectArgs) => { selectArgs.preventDefault(); },
+            onSelect: plugin.provideEditor
+                ? undefined
+                : (selectArgs) => { selectArgs.preventDefault(); },
             onPointerEnter: plugin.cursor ? () => ({ cursor: plugin.cursor }) : undefined,
             onPointerLeave: () => undefined,
-            provideEditor: undefined,
+            provideEditor: plugin.provideEditor ? (cell) => {
+                const result = executeFunction(plugin.provideEditor.function, { cell });
+                return result || undefined;
+            } : undefined,
         }));
     }, [cellPlugins, setProps, sortedIndices]);
 
@@ -1617,11 +1625,14 @@ const GlideGrid = (props) => {
         };
 
         const handleWheel = (e) => {
-            // Allow scrolling within dropdown menus (react-select)
-            // The menu is rendered in the portal element
-            const portal = document.getElementById('portal');
-            if (portal && portal.contains(e.target)) {
-                return;
+            // Allow scrolling within react-select dropdown menus (role="listbox")
+            // but NOT within other portal content (e.g., editor card overlays)
+            const listbox = e.target.closest('[role="listbox"], [role="option"]');
+            if (listbox) {
+                const portal = document.getElementById('portal');
+                if (portal && portal.contains(listbox)) {
+                    return;
+                }
             }
 
             // Event is outside dropdown - close the overlay
@@ -1631,10 +1642,13 @@ const GlideGrid = (props) => {
         };
 
         const handleScroll = (e) => {
-            // Ignore scroll events from within the portal (dropdown menu scrolling)
-            const portal = document.getElementById('portal');
-            if (portal && portal.contains(e.target)) {
-                return;
+            // Allow scroll events from react-select dropdown menus
+            const listbox = e.target.closest('[role="listbox"], [role="option"]');
+            if (listbox) {
+                const portal = document.getElementById('portal');
+                if (portal && portal.contains(listbox)) {
+                    return;
+                }
             }
             closeOverlay();
         };
@@ -2892,7 +2906,18 @@ const GlideGrid = (props) => {
             const strippedSelection = {
                 columns: selection.columns || CompactSelection.empty(),
                 rows: rowsToUse,
-                current: undefined  // No cell or range selection
+                // Preserve cell focus (needed for cell activation/editor overlays)
+                // but strip range to single cell so no range selection is visible
+                current: selection.current?.cell ? {
+                    cell: selection.current.cell,
+                    range: {
+                        x: selection.current.cell[0],
+                        y: selection.current.cell[1],
+                        width: 1,
+                        height: 1,
+                    },
+                    rangeStack: [],
+                } : undefined,
             };
             setGridSelection(strippedSelection);
 

@@ -121,7 +121,11 @@ Keyword arguments:
     {kind, ...customFields}} - onClick (object, optional): Function
     ref for click handling: {function: \"clickFn(args, cell)\"}   -
     Return truthy to fire customCellClicked callback, falsy to
-    suppress - cursor (string, optional): CSS cursor when hovering
+    suppress - provideEditor (object, optional): Function ref for
+    editor overlay: {function: \"editorFn(cell)\"}   - Return {editor:
+    ReactComponent, disablePadding: bool} to show editor, or undefined
+    to skip   - Enables cell selection/activation (onSelect no longer
+    prevented) - cursor (string, optional): CSS cursor when hovering
     plugin cells (e.g., \"pointer\")  Cell data should use flat
     structure: {kind: \"entity-cell\", id: \"foo\", ...}.
 
@@ -138,6 +142,12 @@ Keyword arguments:
     - onClick (dict; optional)
 
         `onClick` is a dict with keys:
+
+        - function (string; required)
+
+    - provideEditor (dict; optional)
+
+        `provideEditor` is a dict with keys:
 
         - function (string; required)
 
@@ -2011,12 +2021,20 @@ Keyword arguments:
         }
     )
 
+    CellPluginsProvideEditor = TypedDict(
+        "CellPluginsProvideEditor",
+            {
+            "function": str
+        }
+    )
+
     CellPlugins = TypedDict(
         "CellPlugins",
             {
             "kind": str,
             "draw": "CellPluginsDraw",
             "onClick": NotRequired["CellPluginsOnClick"],
+            "provideEditor": NotRequired["CellPluginsProvideEditor"],
             "cursor": NotRequired[str]
         }
     )

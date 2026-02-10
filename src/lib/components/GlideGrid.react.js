@@ -1548,6 +1548,9 @@ GlideGrid.propTypes = {
      *   - cell: {data: {kind, ...customFields}}
      * - onClick (object, optional): Function ref for click handling: {function: "clickFn(args, cell)"}
      *   - Return truthy to fire customCellClicked callback, falsy to suppress
+     * - provideEditor (object, optional): Function ref for editor overlay: {function: "editorFn(cell)"}
+     *   - Return {editor: ReactComponent, disablePadding: bool} to show editor, or undefined to skip
+     *   - Enables cell selection/activation (onSelect no longer prevented)
      * - cursor (string, optional): CSS cursor when hovering plugin cells (e.g., "pointer")
      *
      * Cell data should use flat structure: {kind: "entity-cell", id: "foo", ...}
@@ -1558,6 +1561,9 @@ GlideGrid.propTypes = {
             function: PropTypes.string.isRequired
         }).isRequired,
         onClick: PropTypes.shape({
+            function: PropTypes.string.isRequired
+        }),
+        provideEditor: PropTypes.shape({
             function: PropTypes.string.isRequired
         }),
         cursor: PropTypes.string
