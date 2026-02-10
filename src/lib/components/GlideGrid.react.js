@@ -1535,6 +1535,54 @@ GlideGrid.propTypes = {
         timestamp: PropTypes.number
     }),
 
+    // ========== CELL PLUGINS ==========
+
+    /**
+     * Array of cell plugin definitions for custom cell types rendered on canvas.
+     * Each plugin registers a custom cell kind with draw/click handlers.
+     *
+     * Plugin properties:
+     * - kind (string): Unique cell kind identifier (e.g., "entity-cell")
+     * - draw (object): Function ref for canvas drawing: {function: "drawFn(args, cell)"}
+     *   - args: {ctx, theme, rect, col, row, hoverX, hoverY}
+     *   - cell: {data: {kind, ...customFields}}
+     * - onClick (object, optional): Function ref for click handling: {function: "clickFn(args, cell)"}
+     *   - Return truthy to fire customCellClicked callback, falsy to suppress
+     * - cursor (string, optional): CSS cursor when hovering plugin cells (e.g., "pointer")
+     *
+     * Cell data should use flat structure: {kind: "entity-cell", id: "foo", ...}
+     */
+    cellPlugins: PropTypes.arrayOf(PropTypes.shape({
+        kind: PropTypes.string.isRequired,
+        draw: PropTypes.shape({
+            function: PropTypes.string.isRequired
+        }).isRequired,
+        onClick: PropTypes.shape({
+            function: PropTypes.string.isRequired
+        }),
+        cursor: PropTypes.string
+    })),
+
+    /**
+     * Fires when a cell plugin's onClick returns truthy (or has no onClick defined).
+     * Contains the cell data, position, and bounds for building hover cards or other UI.
+     *
+     * Format: {kind, col, row, cellData, bounds: {x, y, width, height}, timestamp}
+     */
+    customCellClicked: PropTypes.shape({
+        kind: PropTypes.string,
+        col: PropTypes.number,
+        row: PropTypes.number,
+        cellData: PropTypes.object,
+        bounds: PropTypes.shape({
+            x: PropTypes.number,
+            y: PropTypes.number,
+            width: PropTypes.number,
+            height: PropTypes.number
+        }),
+        timestamp: PropTypes.number
+    }),
+
     /**
      * Dash-assigned callback that should be called to report property changes
      * to Dash, to make them available for callbacks.

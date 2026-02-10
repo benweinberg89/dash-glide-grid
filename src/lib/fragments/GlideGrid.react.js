@@ -92,7 +92,7 @@ function autoDetectCellType(value) {
 /**
  * Helper function to transform cell objects from Python format to Glide format
  */
-function transformCellObject(cellObj) {
+function transformCellObject(cellObj, extraCustomKinds) {
     const kindMap = {
         'text': GridCellKind.Text,
         'number': GridCellKind.Number,
@@ -121,10 +121,11 @@ function transformCellObject(cellObj) {
         'links-cell',
         'sparkline-cell',
         'tree-view-cell',
+        ...(extraCustomKinds || []),
     ];
     if (customCellKinds.includes(cellObj.kind)) {
         // Read-only cell types that don't need overlay editors
-        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell'];
+        const readOnlyCellKinds = ['button-cell', 'user-profile-cell', 'spinner-cell', 'links-cell', 'sparkline-cell', 'tree-view-cell', ...(extraCustomKinds || [])];
         // Cells that require nested data structure: {"kind": "...", "data": {...}}
         const nestedDataCells = ['dropdown-cell', 'multi-select-cell'];
         // For dropdown/multi-select, data must be in nested format
@@ -374,6 +375,7 @@ const GlideGrid = (props) => {
         coercePasteValue,
         getRowThemeOverride,
         drawCell,
+        cellPlugins,
         drawHeader,
         sortable,
         sortColumns,
@@ -1349,13 +1351,63 @@ const GlideGrid = (props) => {
         }
     }, [setProps, sortedIndices]);
 
-    // Custom renderers including button cell, links cell, and tree view cell with click handlers
+    // Extract plugin kind strings for transformCellObject
+    const pluginKinds = useMemo(() => {
+        if (!cellPlugins?.length) return [];
+        return cellPlugins.map(p => p.kind);
+    }, [cellPlugins]);
+
+    // Build renderers for cell plugins
+    const pluginRenderers = useMemo(() => {
+        if (!cellPlugins?.length) return [];
+        return cellPlugins.map(plugin => ({
+            kind: GridCellKind.Custom,
+            isMatch: (c) => c.data?.kind === plugin.kind,
+            draw: (args, cell) => {
+                if (args.rect.height <= 0) return true;
+                if (plugin.draw && isFunctionRef(plugin.draw)) {
+                    return executeFunction(plugin.draw.function, { args, cell });
+                }
+                return false;
+            },
+            onClick: (clickArgs) => {
+                // Run user's JS onClick first — return value controls Dash callback
+                let jsResult = undefined;
+                if (plugin.onClick && isFunctionRef(plugin.onClick)) {
+                    jsResult = executeFunction(plugin.onClick.function,
+                        { args: clickArgs, cell: clickArgs.cell });
+                }
+                // Only fire Dash callback if JS onClick returned truthy (or no onClick defined)
+                const shouldFireCallback = !plugin.onClick || jsResult;
+                if (shouldFireCallback && setProps) {
+                    const actualRow = sortedIndices ? sortedIndices[clickArgs.location[1]] : clickArgs.location[1];
+                    setProps({ customCellClicked: {
+                        kind: plugin.kind,
+                        col: clickArgs.location[0],
+                        row: actualRow,
+                        cellData: clickArgs.cell.data,
+                        bounds: { x: clickArgs.bounds.x, y: clickArgs.bounds.y,
+                                  width: clickArgs.bounds.width, height: clickArgs.bounds.height },
+                        timestamp: Date.now(),
+                    }});
+                }
+                return undefined; // Don't open editor
+            },
+            onSelect: (selectArgs) => { selectArgs.preventDefault(); },
+            onPointerEnter: plugin.cursor ? () => ({ cursor: plugin.cursor }) : undefined,
+            onPointerLeave: () => undefined,
+            provideEditor: undefined,
+        }));
+    }, [cellPlugins, setProps, sortedIndices]);
+
+    // Custom renderers including button cell, links cell, tree view cell, and plugin cells
     const customRenderers = useMemo(() => [
         ...staticRenderers,
         createButtonCellRenderer(buttonClickHandler),
         createLinksCellRenderer(linkClickHandler),
-        createTreeViewCellRenderer(treeNodeToggleHandler)
-    ], [buttonClickHandler, linkClickHandler, treeNodeToggleHandler]);
+        createTreeViewCellRenderer(treeNodeToggleHandler),
+        ...pluginRenderers
+    ], [buttonClickHandler, linkClickHandler, treeNodeToggleHandler, pluginRenderers]);
 
     // Keep customRenderers ref in sync for use in handlePaste
     useEffect(() => {
@@ -1840,7 +1892,7 @@ const GlideGrid = (props) => {
         // Get the cell object
         let cellResult;
         if (cellValue && typeof cellValue === 'object' && cellValue.kind) {
-            cellResult = transformCellObject(cellValue);
+            cellResult = transformCellObject(cellValue, pluginKinds);
         } else {
             cellResult = autoDetectCellType(cellValue);
         }
@@ -1899,7 +1951,7 @@ const GlideGrid = (props) => {
         }
 
         return cellResult;
-    }, [localData, localColumns, sortedIndices, lastUpdatedCells, hiddenRowsSet]);
+    }, [localData, localColumns, sortedIndices, lastUpdatedCells, hiddenRowsSet, pluginKinds]);
 
     // Internal fill pattern logic (reusable for both drag-fill and double-click fill)
     const handleFillPatternInternal = useCallback((patternSource, fillDestination) => {
@@ -5786,6 +5838,26 @@ GlideGrid.propTypes = {
     }),
 
     /**
+     * Information about the last clicked cell plugin cell.
+     * Fires when a cell with a plugin kind is clicked (and the plugin's JS onClick
+     * returns truthy or is not defined).
+     * Format: {"kind": "entity-cell", "col": 0, "row": 1, "cellData": {...}, "bounds": {...}, "timestamp": 1234567890}
+     */
+    customCellClicked: PropTypes.shape({
+        kind: PropTypes.string,
+        col: PropTypes.number,
+        row: PropTypes.number,
+        cellData: PropTypes.object,
+        bounds: PropTypes.shape({
+            x: PropTypes.number,
+            y: PropTypes.number,
+            width: PropTypes.number,
+            height: PropTypes.number
+        }),
+        timestamp: PropTypes.number
+    }),
+
+    /**
      * Information about the last clicked link in a links cell.
      * Format: {"col": 0, "row": 1, "href": "https://example.com", "title": "Link", "linkIndex": 0, "timestamp": 1234567890}
      */
@@ -6380,6 +6452,42 @@ GlideGrid.propTypes = {
     drawCell: PropTypes.shape({
         function: PropTypes.string.isRequired
     }),
+
+    /**
+     * Array of cell plugin definitions for custom cell types.
+     * Each plugin registers a custom cell kind with canvas draw and click handlers.
+     *
+     * **Example**:
+     * ```python
+     * cellPlugins=[{
+     *     "kind": "entity-cell",
+     *     "draw": {"function": "drawEntityCell(args, cell)"},
+     *     "onClick": {"function": "onEntityCellClick(args, cell)"},
+     *     "cursor": "pointer",
+     * }]
+     * ```
+     *
+     * **Plugin properties**:
+     * - `kind`: Unique string identifying this cell type (used in data cells)
+     * - `draw`: Function ref for canvas rendering. Receives `{args, cell}` where
+     *   args has `{ctx, theme, rect, col, row, hoverX, hoverY}` and cell has `{data}`
+     * - `onClick`: Optional function ref for click handling. Receives `{args, cell}`.
+     *   Return truthy to fire `customCellClicked` Dash callback, falsy to suppress it
+     * - `cursor`: Optional CSS cursor to show on hover (e.g., "pointer")
+     *
+     * Cells using plugin kinds are always read-only (no overlay editor).
+     * Click events fire `customCellClicked` output prop.
+     */
+    cellPlugins: PropTypes.arrayOf(PropTypes.shape({
+        kind: PropTypes.string.isRequired,
+        draw: PropTypes.shape({
+            function: PropTypes.string.isRequired
+        }),
+        onClick: PropTypes.shape({
+            function: PropTypes.string.isRequired
+        }),
+        cursor: PropTypes.string
+    })),
 
     /**
      * Custom header rendering using JavaScript Canvas API.
