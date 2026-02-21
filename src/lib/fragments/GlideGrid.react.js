@@ -327,6 +327,7 @@ const GlideGrid = (props) => {
         preventDiagonalScrolling,
         scaleToRem,
         className,
+        style,
         rowSelect,
         columnSelect,
         rangeSelect,
@@ -5033,6 +5034,7 @@ const GlideGrid = (props) => {
 
     // Container style with explicit height
     const containerStyle = {
+        ...style,
         height: typeof height === 'number' ? `${height}px` : height,
         width: typeof width === 'number' ? `${width}px` : width,
     };

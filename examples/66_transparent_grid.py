@@ -4,6 +4,10 @@ Demonstrates using rgba theme colors to make the grid translucent,
 allowing an animated background to show through. Sliders let you
 adjust the opacity of each theme element independently.
 
+Includes a "Glass Panel" toggle that applies a glassmorphism effect
+(backdrop-filter blur, subtle border, box-shadow) via the style prop,
+matching the lc-glass-panel aesthetic.
+
 Includes multiple editor types to verify bgCellEditor works across all of them.
 """
 
@@ -316,7 +320,7 @@ def make_blob(cfg, i):
             "borderRadius": "50%",
             "background": cfg["color"],
             "opacity": cfg["opacity"],
-            "filter": "blur(40px)",
+            "filter": "blur(2px)",
             "animation": f'{name} {cfg["dur"]} ease-in-out infinite',
         }
     )
@@ -411,6 +415,16 @@ label_style = {
     "textShadow": "1px 1px 2px black",
 }
 
+GLASS_STYLE = {
+    "backdropFilter": "blur(8px)",
+    "WebkitBackdropFilter": "blur(8px)",
+    "background": "rgba(0, 0, 0, 0.12)",
+    "border": "1px solid rgba(255, 255, 255, 0.06)",
+    "borderRadius": "16px",
+    "overflow": "hidden",
+    "boxShadow": "0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06)",
+}
+
 slider_panel = html.Div(
     [
         html.H4(
@@ -420,6 +434,18 @@ slider_panel = html.Div(
                 "margin": "0 0 10px 0",
                 "textShadow": "1px 1px 2px black",
             },
+        ),
+        html.Div(
+            [
+                dcc.Checklist(
+                    id="glass-toggle",
+                    options=[{"label": " Glass Panel", "value": "glass"}],
+                    value=[],
+                    style={"color": "white", "fontSize": "14px"},
+                    inputStyle={"marginRight": "6px"},
+                ),
+            ],
+            style={"marginBottom": "10px"},
         ),
         *[make_slider(tc[0], tc[1], tc[3]) for tc in THEME_CONTROLS],
         html.Hr(
@@ -575,14 +601,19 @@ app.layout = html.Div(
 
 @callback(
     Output("transparent-grid", "theme"),
+    Output("transparent-grid", "style"),
     *[Input(f"alpha-{tc[0]}", "value") for tc in THEME_CONTROLS],
     Input("editor-bg-color", "value"),
     Input("editor-bg-alpha", "value"),
+    Input("glass-toggle", "value"),
 )
 def update_theme(*args):
     pcts = args[: len(THEME_CONTROLS)]
-    editor_hex = args[-2]
-    editor_alpha = args[-1]
+    editor_hex = args[-3]
+    editor_alpha = args[-2]
+    glass_values = args[-1] or []
+    glass_on = "glass" in glass_values
+
     theme = {
         "textDark": "#1a1a2e",
         "textHeader": "#1a1a2e",
@@ -590,7 +621,21 @@ def update_theme(*args):
     }
     for (key, _label, rgb, _default), pct in zip(THEME_CONTROLS, pcts):
         theme[key] = f"rgba({rgb}, {pct / 100})"
-    return theme
+
+    if glass_on:
+        # Override bgCell to transparent so the glass backdrop shows through
+        theme["bgCell"] = "transparent"
+        theme["bgCellMedium"] = "transparent"
+        theme["bgHeader"] = "rgba(255, 255, 255, 0.08)"
+        theme["bgHeaderHasFocus"] = "rgba(255, 255, 255, 0.12)"
+        theme["bgHeaderHovered"] = "rgba(255, 255, 255, 0.10)"
+        theme["borderColor"] = "rgba(255, 255, 255, 0.08)"
+        theme["horizontalBorderColor"] = "rgba(255, 255, 255, 0.06)"
+        theme["textDark"] = "rgba(255, 255, 255, 0.9)"
+        theme["textHeader"] = "rgba(255, 255, 255, 0.9)"
+        return theme, GLASS_STYLE
+
+    return theme, {}
 
 
 if __name__ == "__main__":

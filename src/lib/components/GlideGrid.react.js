@@ -321,6 +321,14 @@ GlideGrid.propTypes = {
      */
     className: PropTypes.string,
 
+    /**
+     * Inline styles to apply to the grid container div. Merged with
+     * the container's internal height/width (which always take precedence).
+     * Useful for glassmorphism effects, e.g.
+     * { backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.12)" }
+     */
+    style: PropTypes.object,
+
     // ========== SELECTION PROPS ==========
 
     /**
