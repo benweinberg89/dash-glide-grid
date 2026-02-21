@@ -6480,7 +6480,7 @@ GlideGrid.propTypes = {
 
     /**
      * Array of cell plugin definitions for custom cell types.
-     * Each plugin registers a custom cell kind with canvas draw and click handlers.
+     * Each plugin registers a custom cell kind with canvas draw, click, and editor handlers.
      *
      * **Example**:
      * ```python
@@ -6498,17 +6498,22 @@ GlideGrid.propTypes = {
      *   args has `{ctx, theme, rect, col, row, hoverX, hoverY}` and cell has `{data}`
      * - `onClick`: Optional function ref for click handling. Receives `{args, cell}`.
      *   Return truthy to fire `customCellClicked` Dash callback, falsy to suppress it
+     * - `provideEditor`: Optional function ref for editor overlay. Receives `{cell}`.
+     *   Return `{editor: ReactComponent, disablePadding: bool}` to show editor overlay.
+     *   When defined, cell selection/activation is enabled (clicking opens the editor).
      * - `cursor`: Optional CSS cursor to show on hover (e.g., "pointer")
      *
-     * Cells using plugin kinds are always read-only (no overlay editor).
      * Click events fire `customCellClicked` output prop.
      */
     cellPlugins: PropTypes.arrayOf(PropTypes.shape({
         kind: PropTypes.string.isRequired,
         draw: PropTypes.shape({
             function: PropTypes.string.isRequired
-        }),
+        }).isRequired,
         onClick: PropTypes.shape({
+            function: PropTypes.string.isRequired
+        }),
+        provideEditor: PropTypes.shape({
             function: PropTypes.string.isRequired
         }),
         cursor: PropTypes.string
