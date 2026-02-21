@@ -1,8 +1,16 @@
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
-index 02406d9..710a6a8 100644
+index 02406d9..7972d35 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
-@@ -105,10 +105,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
+@@ -19,6 +19,7 @@ export function makeCSSStyle(theme) {
+         "--gdg-bg-group-header-hovered": theme.bgGroupHeaderHovered ?? theme.bgHeaderHovered,
+         "--gdg-text-header-selected": theme.textHeaderSelected,
+         "--gdg-bg-cell": theme.bgCell,
++        "--gdg-bg-cell-opaque": theme.bgCellEditor ?? theme.bgCell,
+         "--gdg-bg-cell-medium": theme.bgCellMedium,
+         "--gdg-bg-header": theme.bgHeader,
+         "--gdg-bg-header-has-focus": theme.bgHeaderHasFocus,
+@@ -105,10 +106,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
              for (const key in overlay) {
                  // eslint-disable-next-line no-prototype-builtins
                  if (overlay.hasOwnProperty(key)) {
@@ -40,6 +48,34 @@ index 4aaf312..b6095b6 100644
      }, []);
      React.useLayoutEffect(() => {
          if (canvas)
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+index e5bbe58..137deb0 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell);box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
++.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+index 0f53ba1..42f9195 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+@@ -1 +1 @@
+-.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
++.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+index 56879cf..9378197 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);}
++.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css
+index 70fd377..f084040 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css
+@@ -1 +1 @@
+-.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
++.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
 index 4ca9236..b4b7bae 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
@@ -68,6 +104,22 @@ index 4ca9236..b4b7bae 100644
              overlay.width = 0;
              overlay.height = 0;
          }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
+index c778992..ad5b834 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
+@@ -245,7 +245,10 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                 if (damage !== undefined) {
+                     // this accounts for the fill handle outline being drawn inset on these cells. We do this
+                     // because technically the bottom right corner of the outline are on other cells.
+-                    ctx.fillRect(cellX + 1, drawY + 1, cellWidth - (isLastColumn ? 2 : 1), rh - (isLastRow ? 2 : 1));
++                    const dx = cellX + 1, dy = drawY + 1;
++                    const dw = cellWidth - (isLastColumn ? 2 : 1), dh = rh - (isLastRow ? 2 : 1);
++                    ctx.clearRect(dx, dy, dw, dh);
++                    ctx.fillRect(dx, dy, dw, dh);
+                 }
+                 else {
+                     ctx.fillRect(cellX, drawY, cellWidth, rh);
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
 index ce77f79..16dc859 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
@@ -81,7 +133,7 @@ index ce77f79..16dc859 100644
      ctx.fillRect(0, 0, width, totalHeaderHeight);
      const hCol = hovered?.[0]?.[0];
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
-index 7b88fe4..ba9f44d 100644
+index 7b88fe4..04ac7c7 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
 @@ -1,5 +1,5 @@
@@ -91,17 +143,23 @@ index 7b88fe4..ba9f44d 100644
  import { assert } from "../../../common/support.js";
  import { walkColumns, walkGroups, walkRowsInCol } from "./data-grid-render.walk.js";
  import { drawCells } from "./data-grid-render.cells.js";
-@@ -61,7 +61,8 @@ export function drawGrid(arg, lastArg) {
-     const doubleBuffer = renderStrategy === "double-buffer";
+@@ -58,10 +58,13 @@ export function drawGrid(arg, lastArg) {
+     const { canvasCtx, headerCanvasCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, enableGroups, freezeColumns, dragAndDropState, theme, drawFocus, headerHeight, groupHeaderHeight, disabledRows, rowHeight, verticalBorder, overrideCursor, isResizing, selection, fillHandle, freezeTrailingRows, rows, getCellContent, getGroupDetails, getRowThemeOverride, isFocused, drawHeaderCallback, prelightCells, drawCellCallback, highlightRegions, resizeCol, imageLoader, lastBlitData, hoverValues, hyperWrapping, hoverInfo, spriteManager, maxScaleFactor, hasAppendRow, touchMode, enqueue, renderStateProvider, getCellRenderer, renderStrategy, bufferACtx, bufferBCtx, damage, minimumCellWidth, resizeIndicator, } = arg;
+     if (width === 0 || height === 0)
+         return;
+-    const doubleBuffer = renderStrategy === "double-buffer";
      const dpr = Math.min(maxScaleFactor, Math.ceil(window.devicePixelRatio ?? 1));
      // if we are double buffering we need to make sure we can blit. If we can't we need to redraw the whole thing
 -    const canBlit = renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
 +    const bgCellAlpha = parseToRgba(theme.bgCell)[3];
++    // Disable double-buffering when bgCell is translucent to avoid alpha doubling
++    // from buffer-to-canvas compositing
++    const doubleBuffer = bgCellAlpha >= 1 && renderStrategy === "double-buffer";
 +    const canBlit = bgCellAlpha >= 1 && renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
      const canvas = canvasCtx.canvas;
      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
          canvas.width = width * dpr;
-@@ -249,10 +250,14 @@ export function drawGrid(arg, lastArg) {
+@@ -249,10 +252,14 @@ export function drawGrid(arg, lastArg) {
              targetCtx.rect(r.x, r.y, r.width, r.height);
          }
          targetCtx.clip();
@@ -116,19 +174,33 @@ index 7b88fe4..ba9f44d 100644
          targetCtx.fillRect(0, 0, width, height);
      }
      const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
-@@ -274,6 +279,7 @@ export function drawGrid(arg, lastArg) {
+@@ -274,8 +281,11 @@ export function drawGrid(arg, lastArg) {
          });
      }
      if (mainCtx !== null) {
+-        mainCtx.fillStyle = theme.bgCell;
+-        mainCtx.fillRect(0, 0, width, height);
 +        mainCtx.clearRect(0, 0, width, height);
-         mainCtx.fillStyle = theme.bgCell;
-         mainCtx.fillRect(0, 0, width, height);
++        if (bgCellAlpha >= 1) {
++            mainCtx.fillStyle = theme.bgCell;
++            mainCtx.fillRect(0, 0, width, height);
++        }
          mainCtx.drawImage(targetCtx.canvas, 0, 0);
+     }
+     const lastRowDrawn = getLastRow(effectiveCols, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, freezeTrailingRows, hasAppendRow);
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
-index 02406d9..710a6a8 100644
+index 02406d9..7972d35 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
-@@ -105,10 +105,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
+@@ -19,6 +19,7 @@ export function makeCSSStyle(theme) {
+         "--gdg-bg-group-header-hovered": theme.bgGroupHeaderHovered ?? theme.bgHeaderHovered,
+         "--gdg-text-header-selected": theme.textHeaderSelected,
+         "--gdg-bg-cell": theme.bgCell,
++        "--gdg-bg-cell-opaque": theme.bgCellEditor ?? theme.bgCell,
+         "--gdg-bg-cell-medium": theme.bgCellMedium,
+         "--gdg-bg-header": theme.bgHeader,
+         "--gdg-bg-header-has-focus": theme.bgHeaderHasFocus,
+@@ -105,10 +106,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
              for (const key in overlay) {
                  // eslint-disable-next-line no-prototype-builtins
                  if (overlay.hasOwnProperty(key)) {
@@ -166,6 +238,34 @@ index 4aaf312..b6095b6 100644
      }, []);
      React.useLayoutEffect(() => {
          if (canvas)
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+index e5bbe58..137deb0 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell);box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
++.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+index 0f53ba1..42f9195 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+@@ -1 +1 @@
+-.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
++.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+index 56879cf..9378197 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);}
++.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css
+index 70fd377..f084040 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css
+@@ -1 +1 @@
+-.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
++.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
 index 26c8100..41f12d1 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
@@ -194,6 +294,22 @@ index 26c8100..41f12d1 100644
              overlay.width = 0;
              overlay.height = 0;
          }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
+index 0f08841..a4f06e1 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
+@@ -246,7 +246,10 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                 if (damage !== undefined) {
+                     // this accounts for the fill handle outline being drawn inset on these cells. We do this
+                     // because technically the bottom right corner of the outline are on other cells.
+-                    ctx.fillRect(cellX + 1, drawY + 1, cellWidth - (isLastColumn ? 2 : 1), rh - (isLastRow ? 2 : 1));
++                    const dx = cellX + 1, dy = drawY + 1;
++                    const dw = cellWidth - (isLastColumn ? 2 : 1), dh = rh - (isLastRow ? 2 : 1);
++                    ctx.clearRect(dx, dy, dw, dh);
++                    ctx.fillRect(dx, dy, dw, dh);
+                 }
+                 else {
+                     ctx.fillRect(cellX, drawY, cellWidth, rh);
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
 index ce77f79..16dc859 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
@@ -207,7 +323,7 @@ index ce77f79..16dc859 100644
      ctx.fillRect(0, 0, width, totalHeaderHeight);
      const hCol = hovered?.[0]?.[0];
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
-index abef757..0b45033 100644
+index abef757..142ac53 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
 @@ -3,7 +3,7 @@
@@ -219,17 +335,23 @@ index abef757..0b45033 100644
  import { assert } from "../../../common/support.js";
  import { walkColumns, walkGroups, walkRowsInCol } from "./data-grid-render.walk.js";
  import { drawCells } from "./data-grid-render.cells.js";
-@@ -65,7 +65,8 @@ export function drawGrid(arg, lastArg) {
-     const doubleBuffer = renderStrategy === "double-buffer";
+@@ -62,10 +62,13 @@ export function drawGrid(arg, lastArg) {
+     const { canvasCtx, headerCanvasCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, enableGroups, freezeColumns, dragAndDropState, theme, drawFocus, headerHeight, groupHeaderHeight, disabledRows, rowHeight, verticalBorder, overrideCursor, isResizing, selection, fillHandle, freezeTrailingRows, rows, getCellContent, getGroupDetails, getRowThemeOverride, isFocused, drawHeaderCallback, prelightCells, drawCellCallback, highlightRegions, resizeCol, imageLoader, lastBlitData, hoverValues, hyperWrapping, hoverInfo, spriteManager, maxScaleFactor, hasAppendRow, touchMode, enqueue, renderStateProvider, getCellRenderer, renderStrategy, bufferACtx, bufferBCtx, damage, minimumCellWidth, resizeIndicator, } = arg;
+     if (width === 0 || height === 0)
+         return;
+-    const doubleBuffer = renderStrategy === "double-buffer";
      const dpr = Math.min(maxScaleFactor, Math.ceil(window.devicePixelRatio ?? 1));
      // if we are double buffering we need to make sure we can blit. If we can't we need to redraw the whole thing
 -    const canBlit = renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
 +    const bgCellAlpha = parseToRgba(theme.bgCell)[3];
++    // Disable double-buffering when bgCell is translucent to avoid alpha doubling
++    // from buffer-to-canvas compositing
++    const doubleBuffer = bgCellAlpha >= 1 && renderStrategy === "double-buffer";
 +    const canBlit = bgCellAlpha >= 1 && renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
      const canvas = canvasCtx.canvas;
      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
          canvas.width = width * dpr;
-@@ -253,10 +254,14 @@ export function drawGrid(arg, lastArg) {
+@@ -253,10 +256,14 @@ export function drawGrid(arg, lastArg) {
              targetCtx.rect(r.x, r.y, r.width, r.height);
          }
          targetCtx.clip();
@@ -244,11 +366,17 @@ index abef757..0b45033 100644
          targetCtx.fillRect(0, 0, width, height);
      }
      const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
-@@ -278,6 +283,7 @@ export function drawGrid(arg, lastArg) {
+@@ -278,8 +285,11 @@ export function drawGrid(arg, lastArg) {
          });
      }
      if (mainCtx !== null) {
+-        mainCtx.fillStyle = theme.bgCell;
+-        mainCtx.fillRect(0, 0, width, height);
 +        mainCtx.clearRect(0, 0, width, height);
-         mainCtx.fillStyle = theme.bgCell;
-         mainCtx.fillRect(0, 0, width, height);
++        if (bgCellAlpha >= 1) {
++            mainCtx.fillStyle = theme.bgCell;
++            mainCtx.fillRect(0, 0, width, height);
++        }
          mainCtx.drawImage(targetCtx.canvas, 0, 0);
+     }
+     const lastRowDrawn = getLastRow(effectiveCols, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, freezeTrailingRows, hasAppendRow);

@@ -568,6 +568,7 @@ GlideGrid.propTypes = {
         textHeaderSelected: PropTypes.string,
         textGroupHeader: PropTypes.string,
         bgCell: PropTypes.string,
+        bgCellEditor: PropTypes.string,
         bgCellMedium: PropTypes.string,
         bgHeader: PropTypes.string,
         bgHeaderHasFocus: PropTypes.string,

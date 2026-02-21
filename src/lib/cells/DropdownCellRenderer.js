@@ -193,9 +193,9 @@ const Editor = (p) => {
                     ...t,
                     colors: {
                         ...t.colors,
-                        neutral0: theme.bgCell,
-                        neutral5: theme.bgCell,
-                        neutral10: theme.bgCell,
+                        neutral0: theme.bgCellEditor || theme.bgCell,
+                        neutral5: theme.bgCellEditor || theme.bgCell,
+                        neutral10: theme.bgCellEditor || theme.bgCell,
                         neutral20: theme.bgCellMedium,
                         neutral30: theme.bgCellMedium,
                         neutral40: theme.bgCellMedium,

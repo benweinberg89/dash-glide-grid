@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 
+
 /**
  * Format a date for display based on format type
  */
@@ -166,7 +167,7 @@ function DatePickerEditor({ value, onChange, theme }) {
             alignItems: "center",
             padding: "8px 12px",
             minWidth: format === "datetime-local" ? 240 : 180,
-            backgroundColor: theme?.bgCell || "#ffffff",
+            backgroundColor: theme?.bgCellEditor || theme?.bgCell || "#ffffff",
             colorScheme: isDark ? "dark" : "light",
         }}>
             <input
@@ -186,7 +187,7 @@ function DatePickerEditor({ value, onChange, theme }) {
                     borderRadius: 4,
                     outline: "none",
                     cursor: readonly ? "default" : "pointer",
-                    backgroundColor: theme?.bgCell || "#ffffff",
+                    backgroundColor: theme?.bgCellEditor || theme?.bgCell || "#ffffff",
                     color: theme?.textDark || "#111827",
                     colorScheme: isDark ? "dark" : "light",
                 }}

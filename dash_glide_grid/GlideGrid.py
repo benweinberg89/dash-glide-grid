@@ -1222,6 +1222,8 @@ Keyword arguments:
 
     - bgCell (string; optional)
 
+    - bgCellEditor (string; optional)
+
     - bgCellMedium (string; optional)
 
     - bgHeader (string; optional)
@@ -1449,6 +1451,7 @@ Keyword arguments:
             "textHeaderSelected": NotRequired[str],
             "textGroupHeader": NotRequired[str],
             "bgCell": NotRequired[str],
+            "bgCellEditor": NotRequired[str],
             "bgCellMedium": NotRequired[str],
             "bgHeader": NotRequired[str],
             "bgHeaderHasFocus": NotRequired[str],

@@ -136,7 +136,7 @@ export function createSparklineCellRenderer() {
                         ctx.arc(barCenterX, barY, 4, 0, Math.PI * 2);
                         ctx.fillStyle = chartColor;
                         ctx.fill();
-                        ctx.strokeStyle = theme.bgCell || "#ffffff";
+                        ctx.strokeStyle = theme.bgCellEditor || theme.bgCell || "#ffffff";
                         ctx.lineWidth = 2;
                         ctx.stroke();
 
@@ -151,7 +151,7 @@ export function createSparklineCellRenderer() {
                         tooltipX = Math.max(rect.x + 2, Math.min(tooltipX, rect.x + rect.width - tooltipWidth - 2));
                         const tooltipY = barY > y + height / 2 ? rect.y + 2 : rect.y + rect.height - tooltipHeight - 2;
 
-                        ctx.fillStyle = theme.bgCell || "#ffffff";
+                        ctx.fillStyle = theme.bgCellEditor || theme.bgCell || "#ffffff";
                         ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
                         ctx.strokeStyle = theme.borderColor || "#e5e7eb";
                         ctx.lineWidth = 1;
@@ -236,7 +236,7 @@ export function createSparklineCellRenderer() {
                         ctx.arc(pointX, pointY, 4, 0, Math.PI * 2);
                         ctx.fillStyle = chartColor;
                         ctx.fill();
-                        ctx.strokeStyle = theme.bgCell || "#ffffff";
+                        ctx.strokeStyle = theme.bgCellEditor || theme.bgCell || "#ffffff";
                         ctx.lineWidth = 2;
                         ctx.stroke();
 
@@ -251,7 +251,7 @@ export function createSparklineCellRenderer() {
                         tooltipX = Math.max(rect.x + 2, Math.min(tooltipX, rect.x + rect.width - tooltipWidth - 2));
                         const tooltipY = pointY > y + height / 2 ? rect.y + 2 : rect.y + rect.height - tooltipHeight - 2;
 
-                        ctx.fillStyle = theme.bgCell || "#ffffff";
+                        ctx.fillStyle = theme.bgCellEditor || theme.bgCell || "#ffffff";
                         ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
                         ctx.strokeStyle = theme.borderColor || "#e5e7eb";
                         ctx.lineWidth = 1;

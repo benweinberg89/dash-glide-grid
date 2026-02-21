@@ -112,7 +112,7 @@ const HeaderMenu = ({
     // Theme-based styles
     const styles = useMemo(() => {
         const t = theme || {};
-        const bgColor = t.bgCell || '#ffffff';
+        const bgColor = t.bgCellEditor || t.bgCell || '#ffffff';
         const headerBg = t.bgHeader || '#f8f9fa';
         const textColor = t.textDark || '#1a1a1a';
         const borderColor = t.borderColor || '#e0e0e0';

@@ -100,7 +100,7 @@ const ContextMenu = ({
     // Theme-based styles
     const styles = useMemo(() => {
         const t = theme || {};
-        const bgColor = t.bgCell || '#ffffff';
+        const bgColor = t.bgCellEditor || t.bgCell || '#ffffff';
         const textColor = t.textDark || '#1a1a1a';
         const borderColor = t.borderColor || '#e0e0e0';
         const fontFamily = t.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
