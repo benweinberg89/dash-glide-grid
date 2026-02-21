@@ -1566,7 +1566,8 @@ GlideGrid.propTypes = {
         provideEditor: PropTypes.shape({
             function: PropTypes.string.isRequired
         }),
-        cursor: PropTypes.string
+        cursor: PropTypes.string,
+        js: PropTypes.string
     })),
 
     /**

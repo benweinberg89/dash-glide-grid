@@ -153,6 +153,8 @@ Keyword arguments:
 
     - cursor (string; optional)
 
+    - js (string; optional)
+
 - cellsEdited (dict; optional):
     Information about batch cell edits (paste or fill operations).
     Fires when multiple cells are edited at once, such as when pasting
@@ -2035,7 +2037,8 @@ Keyword arguments:
             "draw": "CellPluginsDraw",
             "onClick": NotRequired["CellPluginsOnClick"],
             "provideEditor": NotRequired["CellPluginsProvideEditor"],
-            "cursor": NotRequired[str]
+            "cursor": NotRequired[str],
+            "js": NotRequired[str]
         }
     )
 

@@ -1354,6 +1354,22 @@ const GlideGrid = (props) => {
         }
     }, [setProps, sortedIndices]);
 
+    // Inject JS source from cellPlugins (runs synchronously before renderers need the functions)
+    useMemo(() => {
+        if (!cellPlugins?.length) return;
+        if (!window._dggPluginScripts) window._dggPluginScripts = new Set();
+        cellPlugins.forEach(plugin => {
+            if (plugin.js && typeof plugin.js === 'string' && !window._dggPluginScripts.has(plugin.js)) {
+                window._dggPluginScripts.add(plugin.js);
+                try {
+                    new Function(plugin.js)();
+                } catch (e) {
+                    console.error('[GlideGrid] Error executing plugin JS for kind "' + plugin.kind + '":', e);
+                }
+            }
+        });
+    }, [cellPlugins]);
+
     // Extract plugin kind strings for transformCellObject
     const pluginKinds = useMemo(() => {
         if (!cellPlugins?.length) return [];
@@ -6502,6 +6518,9 @@ GlideGrid.propTypes = {
      *   Return `{editor: ReactComponent, disablePadding: bool}` to show editor overlay.
      *   When defined, cell selection/activation is enabled (clicking opens the editor).
      * - `cursor`: Optional CSS cursor to show on hover (e.g., "pointer")
+     * - `js`: Optional JS source string to inject. Registers functions on
+     *   `window.dashGlideGridFunctions` so draw/onClick/provideEditor can reference them.
+     *   Injected once per unique string, before renderers are built.
      *
      * Click events fire `customCellClicked` output prop.
      */
@@ -6516,7 +6535,8 @@ GlideGrid.propTypes = {
         provideEditor: PropTypes.shape({
             function: PropTypes.string.isRequired
         }),
-        cursor: PropTypes.string
+        cursor: PropTypes.string,
+        js: PropTypes.string
     })),
 
     /**
