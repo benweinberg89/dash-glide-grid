@@ -1,0 +1,254 @@
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
+index 02406d9..710a6a8 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
+@@ -105,10 +105,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
+             for (const key in overlay) {
+                 // eslint-disable-next-line no-prototype-builtins
+                 if (overlay.hasOwnProperty(key)) {
+-                    if (key === "bgCell") {
+-                        merged[key] = blend(overlay[key], merged[key]);
+-                    }
+-                    else {
++                    {
+                         merged[key] = overlay[key];
+                     }
+                 }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
+index 203e242..68d8150 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
+@@ -1108,7 +1108,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+             }
+             const inputCol = columns[col - rowMarkerOffset];
+             const offscreen = document.createElement("canvas");
+-            const ctx = offscreen.getContext("2d", { alpha: false });
++            const ctx = offscreen.getContext("2d", { alpha: true });
+             if (ctx !== null) {
+                 ctx.font = mergedTheme.baseFontFull;
+                 const newCol = measureColumn(ctx, mergedTheme, inputCol, 0, cells, minColumnWidth, maxColumnWidth, false, getCellRenderer);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js
+index 4aaf312..b6095b6 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js
+@@ -57,7 +57,7 @@ export function useColumnSizer(columns, rows, getCellsForSelection, clientWidth,
+         offscreen.style["display"] = "none";
+         offscreen.style["opacity"] = "0";
+         offscreen.style["position"] = "fixed";
+-        return [offscreen, offscreen.getContext("2d", { alpha: false })];
++        return [offscreen, offscreen.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (canvas)
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
+index 4ca9236..b4b7bae 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
+@@ -283,7 +283,7 @@ const DataGrid = (p, forwardedRef) => {
+         b.style["display"] = "none";
+         b.style["opacity"] = "0";
+         b.style["position"] = "fixed";
+-        return [a.getContext("2d", { alpha: false }), b.getContext("2d", { alpha: false })];
++        return [a.getContext("2d", { alpha: true }), b.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (bufferACtx === null || bufferBCtx === null)
+@@ -307,12 +307,12 @@ const DataGrid = (p, forwardedRef) => {
+         if (canvas === null || overlay === null)
+             return;
+         if (canvasCtx.current === null) {
+-            canvasCtx.current = canvas.getContext("2d", { alpha: false });
++            canvasCtx.current = canvas.getContext("2d", { alpha: true });
+             canvas.width = 0;
+             canvas.height = 0;
+         }
+         if (overlayCtx.current === null) {
+-            overlayCtx.current = overlay.getContext("2d", { alpha: false });
++            overlayCtx.current = overlay.getContext("2d", { alpha: true });
+             overlay.width = 0;
+             overlay.height = 0;
+         }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
+index ce77f79..16dc859 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
+@@ -10,6 +10,7 @@ export function drawGridHeaders(ctx, effectiveCols, enableGroups, hovered, width
+     const totalHeaderHeight = headerHeight + groupHeaderHeight;
+     if (totalHeaderHeight <= 0)
+         return;
++    ctx.clearRect(0, 0, width, totalHeaderHeight);
+     ctx.fillStyle = outerTheme.bgHeader;
+     ctx.fillRect(0, 0, width, totalHeaderHeight);
+     const hCol = hovered?.[0]?.[0];
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
+index 7b88fe4..ba9f44d 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
+@@ -1,5 +1,5 @@
+ import { getEffectiveColumns, rectBottomRight } from "./data-grid-lib.js";
+-import { blend } from "../color-parser.js";
++import { blend, parseToRgba } from "../color-parser.js";
+ import { assert } from "../../../common/support.js";
+ import { walkColumns, walkGroups, walkRowsInCol } from "./data-grid-render.walk.js";
+ import { drawCells } from "./data-grid-render.cells.js";
+@@ -61,7 +61,8 @@ export function drawGrid(arg, lastArg) {
+     const doubleBuffer = renderStrategy === "double-buffer";
+     const dpr = Math.min(maxScaleFactor, Math.ceil(window.devicePixelRatio ?? 1));
+     // if we are double buffering we need to make sure we can blit. If we can't we need to redraw the whole thing
+-    const canBlit = renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
++    const bgCellAlpha = parseToRgba(theme.bgCell)[3];
++    const canBlit = bgCellAlpha >= 1 && renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
+     const canvas = canvasCtx.canvas;
+     if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+         canvas.width = width * dpr;
+@@ -249,10 +250,14 @@ export function drawGrid(arg, lastArg) {
+             targetCtx.rect(r.x, r.y, r.width, r.height);
+         }
+         targetCtx.clip();
++        for (const r of drawRegions) {
++            targetCtx.clearRect(r.x, r.y, r.width, r.height);
++        }
+         targetCtx.fill();
+         targetCtx.beginPath();
+     }
+     else {
++        targetCtx.clearRect(0, 0, width, height);
+         targetCtx.fillRect(0, 0, width, height);
+     }
+     const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
+@@ -274,6 +279,7 @@ export function drawGrid(arg, lastArg) {
+         });
+     }
+     if (mainCtx !== null) {
++        mainCtx.clearRect(0, 0, width, height);
+         mainCtx.fillStyle = theme.bgCell;
+         mainCtx.fillRect(0, 0, width, height);
+         mainCtx.drawImage(targetCtx.canvas, 0, 0);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
+index 02406d9..710a6a8 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
+@@ -105,10 +105,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
+             for (const key in overlay) {
+                 // eslint-disable-next-line no-prototype-builtins
+                 if (overlay.hasOwnProperty(key)) {
+-                    if (key === "bgCell") {
+-                        merged[key] = blend(overlay[key], merged[key]);
+-                    }
+-                    else {
++                    {
+                         merged[key] = overlay[key];
+                     }
+                 }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
+index 8b9a584..32e6b67 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
+@@ -1108,7 +1108,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+             }
+             const inputCol = columns[col - rowMarkerOffset];
+             const offscreen = document.createElement("canvas");
+-            const ctx = offscreen.getContext("2d", { alpha: false });
++            const ctx = offscreen.getContext("2d", { alpha: true });
+             if (ctx !== null) {
+                 ctx.font = mergedTheme.baseFontFull;
+                 const newCol = measureColumn(ctx, mergedTheme, inputCol, 0, cells, minColumnWidth, maxColumnWidth, false, getCellRenderer);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js
+index 4aaf312..b6095b6 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js
+@@ -57,7 +57,7 @@ export function useColumnSizer(columns, rows, getCellsForSelection, clientWidth,
+         offscreen.style["display"] = "none";
+         offscreen.style["opacity"] = "0";
+         offscreen.style["position"] = "fixed";
+-        return [offscreen, offscreen.getContext("2d", { alpha: false })];
++        return [offscreen, offscreen.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (canvas)
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
+index 26c8100..41f12d1 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
+@@ -284,7 +284,7 @@ const DataGrid = (p, forwardedRef) => {
+         b.style["display"] = "none";
+         b.style["opacity"] = "0";
+         b.style["position"] = "fixed";
+-        return [a.getContext("2d", { alpha: false }), b.getContext("2d", { alpha: false })];
++        return [a.getContext("2d", { alpha: true }), b.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (bufferACtx === null || bufferBCtx === null)
+@@ -308,12 +308,12 @@ const DataGrid = (p, forwardedRef) => {
+         if (canvas === null || overlay === null)
+             return;
+         if (canvasCtx.current === null) {
+-            canvasCtx.current = canvas.getContext("2d", { alpha: false });
++            canvasCtx.current = canvas.getContext("2d", { alpha: true });
+             canvas.width = 0;
+             canvas.height = 0;
+         }
+         if (overlayCtx.current === null) {
+-            overlayCtx.current = overlay.getContext("2d", { alpha: false });
++            overlayCtx.current = overlay.getContext("2d", { alpha: true });
+             overlay.width = 0;
+             overlay.height = 0;
+         }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
+index ce77f79..16dc859 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
+@@ -10,6 +10,7 @@ export function drawGridHeaders(ctx, effectiveCols, enableGroups, hovered, width
+     const totalHeaderHeight = headerHeight + groupHeaderHeight;
+     if (totalHeaderHeight <= 0)
+         return;
++    ctx.clearRect(0, 0, width, totalHeaderHeight);
+     ctx.fillStyle = outerTheme.bgHeader;
+     ctx.fillRect(0, 0, width, totalHeaderHeight);
+     const hCol = hovered?.[0]?.[0];
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
+index abef757..0b45033 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
+@@ -3,7 +3,7 @@
+ import {} from "../data-grid-types.js";
+ import { CellSet } from "../cell-set.js";
+ import { getEffectiveColumns, rectBottomRight } from "./data-grid-lib.js";
+-import { blend } from "../color-parser.js";
++import { blend, parseToRgba } from "../color-parser.js";
+ import { assert } from "../../../common/support.js";
+ import { walkColumns, walkGroups, walkRowsInCol } from "./data-grid-render.walk.js";
+ import { drawCells } from "./data-grid-render.cells.js";
+@@ -65,7 +65,8 @@ export function drawGrid(arg, lastArg) {
+     const doubleBuffer = renderStrategy === "double-buffer";
+     const dpr = Math.min(maxScaleFactor, Math.ceil(window.devicePixelRatio ?? 1));
+     // if we are double buffering we need to make sure we can blit. If we can't we need to redraw the whole thing
+-    const canBlit = renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
++    const bgCellAlpha = parseToRgba(theme.bgCell)[3];
++    const canBlit = bgCellAlpha >= 1 && renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
+     const canvas = canvasCtx.canvas;
+     if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+         canvas.width = width * dpr;
+@@ -253,10 +254,14 @@ export function drawGrid(arg, lastArg) {
+             targetCtx.rect(r.x, r.y, r.width, r.height);
+         }
+         targetCtx.clip();
++        for (const r of drawRegions) {
++            targetCtx.clearRect(r.x, r.y, r.width, r.height);
++        }
+         targetCtx.fill();
+         targetCtx.beginPath();
+     }
+     else {
++        targetCtx.clearRect(0, 0, width, height);
+         targetCtx.fillRect(0, 0, width, height);
+     }
+     const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
+@@ -278,6 +283,7 @@ export function drawGrid(arg, lastArg) {
+         });
+     }
+     if (mainCtx !== null) {
++        mainCtx.clearRect(0, 0, width, height);
+         mainCtx.fillStyle = theme.bgCell;
+         mainCtx.fillRect(0, 0, width, height);
+         mainCtx.drawImage(targetCtx.canvas, 0, 0);

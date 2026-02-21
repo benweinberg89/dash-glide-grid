@@ -9,6 +9,7 @@
     "prepublishOnly": "npm run validate-init",
     "build:js": "webpack --mode production",
     "build:backends": "uv run dash-generate-components ./src/lib/components dash_glide_grid -p package-info.json --ignore \\.test\\.",
+    "postinstall": "patch-package",
     "build": "npm run build:js && npm run build:backends"
   },
   "author": "Ben Weinberg",
@@ -36,6 +37,7 @@
     "eslint-config-prettier": "^6.0.0",
     "eslint-plugin-import": "^2.18.0",
     "eslint-plugin-react": "^7.14.2",
+    "patch-package": "^8.0.1",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-docgen": "^5.4.3",
