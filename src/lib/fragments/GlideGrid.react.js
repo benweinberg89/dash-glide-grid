@@ -1417,9 +1417,15 @@ const GlideGrid = (props) => {
             window._glideGridRefs = window._glideGridRefs || {};
             window._glideGridRefs[id] = gridRef.current;
         }
+        if (containerRef.current) {
+            containerRef.current._gridRef = gridRef.current;
+        }
         return () => {
             if (id && window._glideGridRefs) {
                 delete window._glideGridRefs[id];
+            }
+            if (containerRef.current) {
+                delete containerRef.current._gridRef;
             }
         };
     }, [id, gridRef.current]);
