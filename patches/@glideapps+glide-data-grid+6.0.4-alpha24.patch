@@ -76,6 +76,19 @@ index 70fd377..f084040 100644
 @@ -1 +1 @@
 -.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
 +.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js
+index a14050b..425d1ea 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js
+@@ -69,6 +69,8 @@ export function blend(color, background) {
+         return color;
+     const [br, bg, bb, ba] = parseToRgba(background);
+     const ao = a + ba * (1 - a);
++    if (ao === 0)
++        return "rgba(0, 0, 0, 0)";
+     // (xaA + xaB·(1−aA))/aR
+     const ro = (a * r + ba * br * (1 - a)) / ao;
+     const go = (a * g + ba * bg * (1 - a)) / ao;
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
 index 4ca9236..b4b7bae 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
@@ -105,18 +118,49 @@ index 4ca9236..b4b7bae 100644
              overlay.height = 0;
          }
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
-index c778992..ad5b834 100644
+index c778992..c5ebd4b 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
-@@ -245,7 +245,10 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+@@ -217,20 +217,18 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                 // we want to clip each cell individually rather than form a super clip region. The reason for
+                 // this is passing too many clip regions to the GPU at once can cause a performance hit. This
+                 // allows us to damage a large number of cells at once without issue.
+-                const top = drawY + 1;
++                const top = drawY;
+                 const bottom = isSticky
+-                    ? top + rh - 1
+-                    : Math.min(top + rh - 1, height - freezeTrailingRowsHeight);
++                    ? top + rh
++                    : Math.min(top + rh, height - freezeTrailingRowsHeight);
+                 const h = bottom - top;
+-                // however, not clipping at all is even better. We want to clip if we are the left most col
+-                // or overlapping the bottom clip area.
+-                if (h !== rh - 1 || cellX + 1 <= clipX) {
+-                    didDamageClip = true;
+-                    ctx.save();
+-                    ctx.beginPath();
+-                    ctx.rect(cellX + 1, top, cellWidth - 1, h);
+-                    ctx.clip();
+-                }
++                // Always clip during damage repaints to prevent drawCell content from
++                // bleeding outside cell bounds (e.g. strokes centered on cell edges).
++                didDamageClip = true;
++                ctx.save();
++                ctx.beginPath();
++                ctx.rect(cellX, top, cellWidth, h);
++                ctx.clip();
+                 // we also need to make sure to wipe the contents. Since the fill can do that lets repurpose
+                 // that call to avoid an extra draw call.
+                 fill = fill === undefined ? theme.bgCell : blend(fill, theme.bgCell);
+@@ -243,9 +241,8 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                     prepResult.fillStyle = fill;
+                 }
                  if (damage !== undefined) {
-                     // this accounts for the fill handle outline being drawn inset on these cells. We do this
-                     // because technically the bottom right corner of the outline are on other cells.
+-                    // this accounts for the fill handle outline being drawn inset on these cells. We do this
+-                    // because technically the bottom right corner of the outline are on other cells.
 -                    ctx.fillRect(cellX + 1, drawY + 1, cellWidth - (isLastColumn ? 2 : 1), rh - (isLastRow ? 2 : 1));
-+                    const dx = cellX + 1, dy = drawY + 1;
-+                    const dw = cellWidth - (isLastColumn ? 2 : 1), dh = rh - (isLastRow ? 2 : 1);
-+                    ctx.clearRect(dx, dy, dw, dh);
-+                    ctx.fillRect(dx, dy, dw, dh);
++                    ctx.clearRect(cellX, drawY, cellWidth, rh);
++                    ctx.fillRect(cellX, drawY, cellWidth, rh);
                  }
                  else {
                      ctx.fillRect(cellX, drawY, cellWidth, rh);
@@ -133,7 +177,7 @@ index ce77f79..16dc859 100644
      ctx.fillRect(0, 0, width, totalHeaderHeight);
      const hCol = hovered?.[0]?.[0];
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
-index 7b88fe4..04ac7c7 100644
+index 7b88fe4..ebef64e 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
 @@ -1,5 +1,5 @@
@@ -159,7 +203,22 @@ index 7b88fe4..04ac7c7 100644
      const canvas = canvasCtx.canvas;
      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
          canvas.width = width * dpr;
-@@ -249,10 +252,14 @@ export function drawGrid(arg, lastArg) {
+@@ -140,12 +143,13 @@ export function drawGrid(arg, lastArg) {
+         }
+     }
+     const drawHeaderTexture = () => {
++        overlayCtx.clearRect(0, 0, width, overlayHeight);
+         drawGridHeaders(overlayCtx, effectiveCols, enableGroups, hoverInfo, width, translateX, headerHeight, groupHeaderHeight, dragAndDropState, isResizing, selection, theme, spriteManager, hoverValues, verticalBorder, getGroupDetails, damage, drawHeaderCallback, touchMode);
+         drawGridLines(overlayCtx, effectiveCols, cellYOffset, translateX, translateY, width, height, undefined, undefined, groupHeaderHeight, totalHeaderHeight, getRowHeight, getRowThemeOverride, verticalBorder, freezeTrailingRows, rows, theme, true);
+         overlayCtx.beginPath();
+         overlayCtx.moveTo(0, overlayHeight - 0.5);
+         overlayCtx.lineTo(width, overlayHeight - 0.5);
+-        overlayCtx.strokeStyle = blend(theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor, theme.bgHeader);
++        overlayCtx.strokeStyle = theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor;
+         overlayCtx.stroke();
+         if (mustDrawHighlightRingsOnHeader) {
+             drawHighlightRings(overlayCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, freezeColumns, headerHeight, groupHeaderHeight, rowHeight, freezeTrailingRows, rows, highlightRegions, theme);
+@@ -249,10 +253,14 @@ export function drawGrid(arg, lastArg) {
              targetCtx.rect(r.x, r.y, r.width, r.height);
          }
          targetCtx.clip();
@@ -174,7 +233,7 @@ index 7b88fe4..04ac7c7 100644
          targetCtx.fillRect(0, 0, width, height);
      }
      const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
-@@ -274,8 +281,11 @@ export function drawGrid(arg, lastArg) {
+@@ -274,8 +282,11 @@ export function drawGrid(arg, lastArg) {
          });
      }
      if (mainCtx !== null) {
@@ -188,6 +247,27 @@ index 7b88fe4..04ac7c7 100644
          mainCtx.drawImage(targetCtx.canvas, 0, 0);
      }
      const lastRowDrawn = getLastRow(effectiveCols, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, freezeTrailingRows, hasAppendRow);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js
+index 4b05453..a7fbe76 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js
+@@ -219,10 +219,15 @@ export function drawGridLines(ctx, effectiveCols, cellYOffset, translateX, trans
+         toDraw.push({ x1: minX, y1: freezeY, x2: maxX, y2: freezeY, color: hColor });
+     }
+     if (verticalOnly !== true) {
+-        // horizontal lines
++        // horizontal lines — skip the first line at the header/body boundary
++        // because the overlay canvas draws it via headerBottomBorderColor
+         let y = totalHeaderHeight + 0.5;
+         let row = cellYOffset;
+         const target = freezeY;
++        if (totalHeaderHeight > 0) {
++            y += getRowHeight(row);
++            row++;
++        }
+         while (y + translateY < target) {
+             const ty = y + translateY;
+             if (ty >= minY && ty <= maxY - 1) {
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
 index 02406d9..7972d35 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
@@ -266,6 +346,19 @@ index 70fd377..f084040 100644
 @@ -1 +1 @@
 -.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
 +.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js
+index a14050b..425d1ea 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js
+@@ -69,6 +69,8 @@ export function blend(color, background) {
+         return color;
+     const [br, bg, bb, ba] = parseToRgba(background);
+     const ao = a + ba * (1 - a);
++    if (ao === 0)
++        return "rgba(0, 0, 0, 0)";
+     // (xaA + xaB·(1−aA))/aR
+     const ro = (a * r + ba * br * (1 - a)) / ao;
+     const go = (a * g + ba * bg * (1 - a)) / ao;
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
 index 26c8100..41f12d1 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
@@ -295,18 +388,49 @@ index 26c8100..41f12d1 100644
              overlay.height = 0;
          }
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
-index 0f08841..a4f06e1 100644
+index 0f08841..7faa194 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
-@@ -246,7 +246,10 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+@@ -218,20 +218,18 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                 // we want to clip each cell individually rather than form a super clip region. The reason for
+                 // this is passing too many clip regions to the GPU at once can cause a performance hit. This
+                 // allows us to damage a large number of cells at once without issue.
+-                const top = drawY + 1;
++                const top = drawY;
+                 const bottom = isSticky
+-                    ? top + rh - 1
+-                    : Math.min(top + rh - 1, height - freezeTrailingRowsHeight);
++                    ? top + rh
++                    : Math.min(top + rh, height - freezeTrailingRowsHeight);
+                 const h = bottom - top;
+-                // however, not clipping at all is even better. We want to clip if we are the left most col
+-                // or overlapping the bottom clip area.
+-                if (h !== rh - 1 || cellX + 1 <= clipX) {
+-                    didDamageClip = true;
+-                    ctx.save();
+-                    ctx.beginPath();
+-                    ctx.rect(cellX + 1, top, cellWidth - 1, h);
+-                    ctx.clip();
+-                }
++                // Always clip during damage repaints to prevent drawCell content from
++                // bleeding outside cell bounds (e.g. strokes centered on cell edges).
++                didDamageClip = true;
++                ctx.save();
++                ctx.beginPath();
++                ctx.rect(cellX, top, cellWidth, h);
++                ctx.clip();
+                 // we also need to make sure to wipe the contents. Since the fill can do that lets repurpose
+                 // that call to avoid an extra draw call.
+                 fill = fill === undefined ? theme.bgCell : blend(fill, theme.bgCell);
+@@ -244,9 +242,8 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                     prepResult.fillStyle = fill;
+                 }
                  if (damage !== undefined) {
-                     // this accounts for the fill handle outline being drawn inset on these cells. We do this
-                     // because technically the bottom right corner of the outline are on other cells.
+-                    // this accounts for the fill handle outline being drawn inset on these cells. We do this
+-                    // because technically the bottom right corner of the outline are on other cells.
 -                    ctx.fillRect(cellX + 1, drawY + 1, cellWidth - (isLastColumn ? 2 : 1), rh - (isLastRow ? 2 : 1));
-+                    const dx = cellX + 1, dy = drawY + 1;
-+                    const dw = cellWidth - (isLastColumn ? 2 : 1), dh = rh - (isLastRow ? 2 : 1);
-+                    ctx.clearRect(dx, dy, dw, dh);
-+                    ctx.fillRect(dx, dy, dw, dh);
++                    ctx.clearRect(cellX, drawY, cellWidth, rh);
++                    ctx.fillRect(cellX, drawY, cellWidth, rh);
                  }
                  else {
                      ctx.fillRect(cellX, drawY, cellWidth, rh);
@@ -323,7 +447,7 @@ index ce77f79..16dc859 100644
      ctx.fillRect(0, 0, width, totalHeaderHeight);
      const hCol = hovered?.[0]?.[0];
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
-index abef757..142ac53 100644
+index abef757..c055fc9 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
 @@ -3,7 +3,7 @@
@@ -351,7 +475,22 @@ index abef757..142ac53 100644
      const canvas = canvasCtx.canvas;
      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
          canvas.width = width * dpr;
-@@ -253,10 +256,14 @@ export function drawGrid(arg, lastArg) {
+@@ -144,12 +147,13 @@ export function drawGrid(arg, lastArg) {
+         }
+     }
+     const drawHeaderTexture = () => {
++        overlayCtx.clearRect(0, 0, width, overlayHeight);
+         drawGridHeaders(overlayCtx, effectiveCols, enableGroups, hoverInfo, width, translateX, headerHeight, groupHeaderHeight, dragAndDropState, isResizing, selection, theme, spriteManager, hoverValues, verticalBorder, getGroupDetails, damage, drawHeaderCallback, touchMode);
+         drawGridLines(overlayCtx, effectiveCols, cellYOffset, translateX, translateY, width, height, undefined, undefined, groupHeaderHeight, totalHeaderHeight, getRowHeight, getRowThemeOverride, verticalBorder, freezeTrailingRows, rows, theme, true);
+         overlayCtx.beginPath();
+         overlayCtx.moveTo(0, overlayHeight - 0.5);
+         overlayCtx.lineTo(width, overlayHeight - 0.5);
+-        overlayCtx.strokeStyle = blend(theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor, theme.bgHeader);
++        overlayCtx.strokeStyle = theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor;
+         overlayCtx.stroke();
+         if (mustDrawHighlightRingsOnHeader) {
+             drawHighlightRings(overlayCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, freezeColumns, headerHeight, groupHeaderHeight, rowHeight, freezeTrailingRows, rows, highlightRegions, theme);
+@@ -253,10 +257,14 @@ export function drawGrid(arg, lastArg) {
              targetCtx.rect(r.x, r.y, r.width, r.height);
          }
          targetCtx.clip();
@@ -366,7 +505,7 @@ index abef757..142ac53 100644
          targetCtx.fillRect(0, 0, width, height);
      }
      const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
-@@ -278,8 +285,11 @@ export function drawGrid(arg, lastArg) {
+@@ -278,8 +286,11 @@ export function drawGrid(arg, lastArg) {
          });
      }
      if (mainCtx !== null) {
@@ -380,3 +519,24 @@ index abef757..142ac53 100644
          mainCtx.drawImage(targetCtx.canvas, 0, 0);
      }
      const lastRowDrawn = getLastRow(effectiveCols, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, freezeTrailingRows, hasAppendRow);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js
+index 8837a70..512e4d5 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js
+@@ -224,10 +224,15 @@ export function drawGridLines(ctx, effectiveCols, cellYOffset, translateX, trans
+         toDraw.push({ x1: minX, y1: freezeY, x2: maxX, y2: freezeY, color: hColor });
+     }
+     if (verticalOnly !== true) {
+-        // horizontal lines
++        // horizontal lines — skip the first line at the header/body boundary
++        // because the overlay canvas draws it via headerBottomBorderColor
+         let y = totalHeaderHeight + 0.5;
+         let row = cellYOffset;
+         const target = freezeY;
++        if (totalHeaderHeight > 0) {
++            y += getRowHeight(row);
++            row++;
++        }
+         while (y + translateY < target) {
+             const ty = y + translateY;
+             if (ty >= minY && ty <= maxY - 1) {

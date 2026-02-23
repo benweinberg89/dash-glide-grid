@@ -457,6 +457,63 @@ slider_panel = html.Div(
         ),
         html.Div(
             [
+                html.Label("Header Bottom Border", style=label_style),
+                dcc.Input(
+                    id="header-border-color",
+                    type="text",
+                    value="#000000",
+                    placeholder="#rrggbb",
+                    debounce=True,
+                    style={
+                        "width": "80px",
+                        "height": "28px",
+                        "border": "1px solid rgba(255,255,255,0.3)",
+                        "borderRadius": "4px",
+                        "background": "rgba(0,0,0,0.2)",
+                        "color": "white",
+                        "fontSize": "12px",
+                        "padding": "0 6px",
+                    },
+                ),
+            ],
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "gap": "8px",
+                "marginBottom": "6px",
+            },
+        ),
+        html.Div(
+            [
+                html.Label("Header Border Opacity", style=label_style),
+                html.Div(
+                    dcc.Slider(
+                        id="header-border-alpha",
+                        min=0,
+                        max=100,
+                        step=5,
+                        value=50,
+                        marks={0: "0%", 50: "50%", 100: "100%"},
+                    ),
+                    style={"flex": "1", "minWidth": "150px"},
+                ),
+            ],
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "gap": "8px",
+                "marginBottom": "6px",
+            },
+        ),
+        html.Hr(
+            style={
+                "border": "none",
+                "borderTop": "1px solid rgba(255,255,255,0.2)",
+                "margin": "10px 0",
+            }
+        ),
+        html.Div(
+            [
                 html.Label("Editor Background", style=label_style),
                 dcc.Input(
                     id="editor-bg-color",
@@ -556,6 +613,7 @@ app.layout = html.Div(
                             "borderColor": f"rgba({THEME_CONTROLS[5][2]}, {THEME_CONTROLS[5][3] / 100})",
                             "horizontalBorderColor": f"rgba({THEME_CONTROLS[6][2]}, {THEME_CONTROLS[6][3] / 100})",
                             "accentLight": f"rgba({THEME_CONTROLS[7][2]}, {THEME_CONTROLS[7][3] / 100})",
+                            "headerBottomBorderColor": "rgba(0, 0, 0, 0.5)",
                             "textDark": "#1a1a2e",
                             "textHeader": "#1a1a2e",
                             "bgCellEditor": "#ffffff",
@@ -603,12 +661,16 @@ app.layout = html.Div(
     Output("transparent-grid", "theme"),
     Output("transparent-grid", "style"),
     *[Input(f"alpha-{tc[0]}", "value") for tc in THEME_CONTROLS],
+    Input("header-border-color", "value"),
+    Input("header-border-alpha", "value"),
     Input("editor-bg-color", "value"),
     Input("editor-bg-alpha", "value"),
     Input("glass-toggle", "value"),
 )
 def update_theme(*args):
     pcts = args[: len(THEME_CONTROLS)]
+    header_border_hex = args[len(THEME_CONTROLS)]
+    header_border_alpha = args[len(THEME_CONTROLS) + 1]
     editor_hex = args[-3]
     editor_alpha = args[-2]
     glass_values = args[-1] or []
@@ -618,6 +680,9 @@ def update_theme(*args):
         "textDark": "#1a1a2e",
         "textHeader": "#1a1a2e",
         "bgCellEditor": hex_to_rgba(editor_hex or "#ffffff", editor_alpha),
+        "headerBottomBorderColor": hex_to_rgba(
+            header_border_hex or "#000000", header_border_alpha
+        ),
     }
     for (key, _label, rgb, _default), pct in zip(THEME_CONTROLS, pcts):
         theme[key] = f"rgba({rgb}, {pct / 100})"
