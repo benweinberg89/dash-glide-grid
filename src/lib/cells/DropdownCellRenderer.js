@@ -58,6 +58,7 @@ const Editor = (p) => {
         selectionIndicator,
         allowCreation,
         prefillSearch,
+        placement,
     } = cell.data;
     const showCheckmark = selectionIndicator === "checkmark" || selectionIndicator === "both" || selectionIndicator === undefined;
     const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
@@ -66,6 +67,7 @@ const Editor = (p) => {
     const [value, setValue] = React.useState(valueIn);
     const [inputValue, setInputValue] = React.useState(initialValue ?? (shouldPrefill ? valueIn ?? "" : ""));
     const selectRef = React.useRef(null);
+    const wrapRef = React.useRef(null);
     const theme = useTheme();
 
     // Auto-select all text when opening editor with pre-populated value
@@ -79,6 +81,25 @@ const Editor = (p) => {
                 }
             }, 0);
             return () => clearTimeout(timer);
+        }
+    }, []);
+
+    // Reposition overlay container when placement is specified
+    React.useEffect(() => {
+        if (!placement || !wrapRef.current) return;
+        const overlay = wrapRef.current.closest('[class*="d19meir1"]');
+        if (!overlay) return;
+        const cellWidth = p.target?.width ?? 0;
+        const cellHeight = p.target?.height ?? 0;
+        overlay.style.minHeight = "auto";
+        // Constrain overlay width to cell width so it doesn't overflow right edge
+        if (cellWidth > 0) {
+            overlay.style.maxWidth = `${cellWidth}px`;
+        }
+        if (placement === "below") {
+            overlay.style.transform = `translateY(${cellHeight}px)`;
+        } else if (placement === "above") {
+            overlay.style.transform = "translateY(-100%)";
         }
     }, []);
 
@@ -115,9 +136,12 @@ const Editor = (p) => {
         );
     }
 
+    // Check if any option has a visual (image, emoji, or icon) — enables formatOptionLabel
+    const hasVisuals = values.some((v) => v.image || v.emoji || v.icon);
+
     return React.createElement(
         "div",
-        { style: wrapStyle },
+        { style: wrapStyle, ref: wrapRef },
         React.createElement(SelectComponent, {
             ref: selectRef,
             className: "glide-select",
@@ -187,6 +211,15 @@ const Editor = (p) => {
                     textAlign: "center",
                     padding: "8px 12px",
                 }),
+                menuPortal: (base) => {
+                    // Prevent menu from overflowing viewport right edge
+                    const menuWidth = base.width || 300;
+                    const maxLeft = window.innerWidth - menuWidth - 8;
+                    return {
+                        ...base,
+                        left: Math.min(base.left ?? 0, maxLeft),
+                    };
+                },
             },
             theme: (t) => {
                 return {
@@ -213,6 +246,42 @@ const Editor = (p) => {
                 };
             },
             menuPortalTarget: portalElementRef?.current ?? document.getElementById("portal"),
+            formatOptionLabel: hasVisuals
+                ? (option) => {
+                      const visual = option.image || option.emoji || option.icon;
+                      if (!visual) return option.label;
+                      const iconStyle = { width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, borderRadius: "4px" };
+                      let iconEl;
+                      if (option.image) {
+                          iconEl = React.createElement("img", {
+                              src: option.image,
+                              width: 24,
+                              height: 24,
+                              style: { objectFit: "contain", borderRadius: "4px", flexShrink: 0 },
+                          });
+                      } else if (option.icon) {
+                          // Iconify API: "mdi:dice-6" → "mdi/dice-6"
+                          const src = "https://api.iconify.design/" + option.icon.replace(":", "/") + ".svg";
+                          iconEl = React.createElement("img", {
+                              src: src,
+                              width: 24,
+                              height: 24,
+                              style: { objectFit: "contain", flexShrink: 0 },
+                          });
+                      } else {
+                          // Emoji rendered at matching size
+                          iconEl = React.createElement("span", {
+                              style: { ...iconStyle, fontSize: "20px", lineHeight: 1 },
+                          }, option.emoji);
+                      }
+                      return React.createElement(
+                          "div",
+                          { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                          iconEl,
+                          option.label
+                      );
+                  }
+                : undefined,
             autoFocus: true,
             openMenuOnFocus: true,
             components: {
@@ -240,7 +309,7 @@ const Editor = (p) => {
                                   React.createElement("polyline", { points: "20 6 9 17 4 12" })
                               )
                             : null,
-                        props.label
+                        props.children
                     );
                 },
                 Menu: (props) =>
