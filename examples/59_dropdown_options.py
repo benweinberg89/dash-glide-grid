@@ -48,14 +48,20 @@ LIGHT_THEME = {
 }
 
 STATUS_OPTIONS = [
-    {"value": "not_started", "label": "Not Started", "color": "#6b7280"},
-    {"value": "in_progress", "label": "In Progress", "color": "#3b82f6"},
-    {"value": "review", "label": "Review", "color": "#8b5cf6"},
-    {"value": "blocked", "label": "Blocked", "color": "#ef4444"},
-    {"value": "complete", "label": "Complete", "color": "#22c55e"},
+    {"value": "not_started", "label": "Not Started", "color": "#6b7280", "emoji": "\u26aa"},
+    {"value": "in_progress", "label": "In Progress", "color": "#3b82f6", "emoji": "\U0001f504"},
+    {"value": "review", "label": "Review", "color": "#8b5cf6", "emoji": "\U0001f440"},
+    {"value": "blocked", "label": "Blocked", "color": "#ef4444", "emoji": "\U0001f6d1"},
+    {"value": "complete", "label": "Complete", "color": "#22c55e", "emoji": "\u2705"},
 ]
 
-PRIORITY_OPTIONS = ["Low", "Medium", "High", "Urgent", "Critical"]
+PRIORITY_OPTIONS = [
+    {"value": "Low", "label": "Low", "icon": "mdi:chevron-down"},
+    {"value": "Medium", "label": "Medium", "icon": "mdi:minus"},
+    {"value": "High", "label": "High", "icon": "mdi:chevron-up"},
+    {"value": "Urgent", "label": "Urgent", "icon": "mdi:alert"},
+    {"value": "Critical", "label": "Critical", "icon": "mdi:fire"},
+]
 
 COLUMNS = [
     {"title": "Task", "id": "task", "width": 180},
@@ -293,6 +299,7 @@ app.layout = html.Div(
                 html.Ul(
                     [
                         html.Li("Click on a Status or Priority cell to open the dropdown editor"),
+                        html.Li("Status options show emoji visuals; Priority options show Iconify icons"),
                         html.Li("Toggle options above to see changes immediately"),
                         html.Li("Try selectionIndicator to change how selected options are shown (checkmark, highlight, or both)"),
                         html.Li("Try isClearable to enable clearing the selection with X"),
