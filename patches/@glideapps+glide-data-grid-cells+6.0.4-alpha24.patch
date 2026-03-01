@@ -1,0 +1,26 @@
+diff --git a/node_modules/@glideapps/glide-data-grid-cells/dist/cjs/cells/links-cell.js b/node_modules/@glideapps/glide-data-grid-cells/dist/cjs/cells/links-cell.js
+index 4de7b4f..275818e 100644
+--- a/node_modules/@glideapps/glide-data-grid-cells/dist/cjs/cells/links-cell.js
++++ b/node_modules/@glideapps/glide-data-grid-cells/dist/cjs/cells/links-cell.js
+@@ -6,7 +6,7 @@ function onClickSelect(e) {
+   if (useCtrl !== e.ctrlKey) return undefined;
+   const canvas = document.createElement("canvas");
+   const ctx = canvas.getContext("2d", {
+-    alpha: false
++    alpha: true
+   });
+   if (ctx === null) return;
+   const {
+diff --git a/node_modules/@glideapps/glide-data-grid-cells/dist/esm/cells/links-cell.js b/node_modules/@glideapps/glide-data-grid-cells/dist/esm/cells/links-cell.js
+index 4de7b4f..275818e 100644
+--- a/node_modules/@glideapps/glide-data-grid-cells/dist/esm/cells/links-cell.js
++++ b/node_modules/@glideapps/glide-data-grid-cells/dist/esm/cells/links-cell.js
+@@ -6,7 +6,7 @@ function onClickSelect(e) {
+   if (useCtrl !== e.ctrlKey) return undefined;
+   const canvas = document.createElement("canvas");
+   const ctx = canvas.getContext("2d", {
+-    alpha: false
++    alpha: true
+   });
+   if (ctx === null) return;
+   const {

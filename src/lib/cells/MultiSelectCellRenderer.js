@@ -139,7 +139,7 @@ const Editor = (p) => {
             ...base,
             border: 0,
             boxShadow: "none",
-            backgroundColor: theme.bgCell,
+            backgroundColor: theme.bgCellEditor || theme.bgCell,
             pointerEvents: state.isDisabled ? "auto" : base.pointerEvents,
             cursor: state.isDisabled ? "default" : base.cursor,
         }),
@@ -151,7 +151,7 @@ const Editor = (p) => {
         }),
         menu: (styles) => ({
             ...styles,
-            backgroundColor: theme.bgCell,
+            backgroundColor: theme.bgCellEditor || theme.bgCell,
         }),
         option: (styles, state) => {
             return {

@@ -1,0 +1,542 @@
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
+index 02406d9..7972d35 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/common/styles.js
+@@ -19,6 +19,7 @@ export function makeCSSStyle(theme) {
+         "--gdg-bg-group-header-hovered": theme.bgGroupHeaderHovered ?? theme.bgHeaderHovered,
+         "--gdg-text-header-selected": theme.textHeaderSelected,
+         "--gdg-bg-cell": theme.bgCell,
++        "--gdg-bg-cell-opaque": theme.bgCellEditor ?? theme.bgCell,
+         "--gdg-bg-cell-medium": theme.bgCellMedium,
+         "--gdg-bg-header": theme.bgHeader,
+         "--gdg-bg-header-has-focus": theme.bgHeaderHasFocus,
+@@ -105,10 +106,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
+             for (const key in overlay) {
+                 // eslint-disable-next-line no-prototype-builtins
+                 if (overlay.hasOwnProperty(key)) {
+-                    if (key === "bgCell") {
+-                        merged[key] = blend(overlay[key], merged[key]);
+-                    }
+-                    else {
++                    {
+                         merged[key] = overlay[key];
+                     }
+                 }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
+index 203e242..68d8150 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
+@@ -1108,7 +1108,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+             }
+             const inputCol = columns[col - rowMarkerOffset];
+             const offscreen = document.createElement("canvas");
+-            const ctx = offscreen.getContext("2d", { alpha: false });
++            const ctx = offscreen.getContext("2d", { alpha: true });
+             if (ctx !== null) {
+                 ctx.font = mergedTheme.baseFontFull;
+                 const newCol = measureColumn(ctx, mergedTheme, inputCol, 0, cells, minColumnWidth, maxColumnWidth, false, getCellRenderer);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js
+index 4aaf312..b6095b6 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/use-column-sizer.js
+@@ -57,7 +57,7 @@ export function useColumnSizer(columns, rows, getCellsForSelection, clientWidth,
+         offscreen.style["display"] = "none";
+         offscreen.style["opacity"] = "0";
+         offscreen.style["position"] = "fixed";
+-        return [offscreen, offscreen.getContext("2d", { alpha: false })];
++        return [offscreen, offscreen.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (canvas)
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+index e5bbe58..137deb0 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell);box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
++.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+index 0f53ba1..42f9195 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+@@ -1 +1 @@
+-.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
++.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+index 56879cf..9378197 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);}
++.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css
+index 70fd377..f084040 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid-search/data-grid-search-style.css
+@@ -1 +1 @@
+-.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
++.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js
+index a14050b..425d1ea 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/color-parser.js
+@@ -69,6 +69,8 @@ export function blend(color, background) {
+         return color;
+     const [br, bg, bb, ba] = parseToRgba(background);
+     const ao = a + ba * (1 - a);
++    if (ao === 0)
++        return "rgba(0, 0, 0, 0)";
+     // (xaA + xaB·(1−aA))/aR
+     const ro = (a * r + ba * br * (1 - a)) / ao;
+     const go = (a * g + ba * bg * (1 - a)) / ao;
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
+index 4ca9236..b4b7bae 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/data-grid.js
+@@ -283,7 +283,7 @@ const DataGrid = (p, forwardedRef) => {
+         b.style["display"] = "none";
+         b.style["opacity"] = "0";
+         b.style["position"] = "fixed";
+-        return [a.getContext("2d", { alpha: false }), b.getContext("2d", { alpha: false })];
++        return [a.getContext("2d", { alpha: true }), b.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (bufferACtx === null || bufferBCtx === null)
+@@ -307,12 +307,12 @@ const DataGrid = (p, forwardedRef) => {
+         if (canvas === null || overlay === null)
+             return;
+         if (canvasCtx.current === null) {
+-            canvasCtx.current = canvas.getContext("2d", { alpha: false });
++            canvasCtx.current = canvas.getContext("2d", { alpha: true });
+             canvas.width = 0;
+             canvas.height = 0;
+         }
+         if (overlayCtx.current === null) {
+-            overlayCtx.current = overlay.getContext("2d", { alpha: false });
++            overlayCtx.current = overlay.getContext("2d", { alpha: true });
+             overlay.width = 0;
+             overlay.height = 0;
+         }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
+index c778992..c5ebd4b 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.cells.js
+@@ -217,20 +217,18 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                 // we want to clip each cell individually rather than form a super clip region. The reason for
+                 // this is passing too many clip regions to the GPU at once can cause a performance hit. This
+                 // allows us to damage a large number of cells at once without issue.
+-                const top = drawY + 1;
++                const top = drawY;
+                 const bottom = isSticky
+-                    ? top + rh - 1
+-                    : Math.min(top + rh - 1, height - freezeTrailingRowsHeight);
++                    ? top + rh
++                    : Math.min(top + rh, height - freezeTrailingRowsHeight);
+                 const h = bottom - top;
+-                // however, not clipping at all is even better. We want to clip if we are the left most col
+-                // or overlapping the bottom clip area.
+-                if (h !== rh - 1 || cellX + 1 <= clipX) {
+-                    didDamageClip = true;
+-                    ctx.save();
+-                    ctx.beginPath();
+-                    ctx.rect(cellX + 1, top, cellWidth - 1, h);
+-                    ctx.clip();
+-                }
++                // Always clip during damage repaints to prevent drawCell content from
++                // bleeding outside cell bounds (e.g. strokes centered on cell edges).
++                didDamageClip = true;
++                ctx.save();
++                ctx.beginPath();
++                ctx.rect(cellX, top, cellWidth, h);
++                ctx.clip();
+                 // we also need to make sure to wipe the contents. Since the fill can do that lets repurpose
+                 // that call to avoid an extra draw call.
+                 fill = fill === undefined ? theme.bgCell : blend(fill, theme.bgCell);
+@@ -243,9 +241,8 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                     prepResult.fillStyle = fill;
+                 }
+                 if (damage !== undefined) {
+-                    // this accounts for the fill handle outline being drawn inset on these cells. We do this
+-                    // because technically the bottom right corner of the outline are on other cells.
+-                    ctx.fillRect(cellX + 1, drawY + 1, cellWidth - (isLastColumn ? 2 : 1), rh - (isLastRow ? 2 : 1));
++                    ctx.clearRect(cellX, drawY, cellWidth, rh);
++                    ctx.fillRect(cellX, drawY, cellWidth, rh);
+                 }
+                 else {
+                     ctx.fillRect(cellX, drawY, cellWidth, rh);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
+index ce77f79..16dc859 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.header.js
+@@ -10,6 +10,7 @@ export function drawGridHeaders(ctx, effectiveCols, enableGroups, hovered, width
+     const totalHeaderHeight = headerHeight + groupHeaderHeight;
+     if (totalHeaderHeight <= 0)
+         return;
++    ctx.clearRect(0, 0, width, totalHeaderHeight);
+     ctx.fillStyle = outerTheme.bgHeader;
+     ctx.fillRect(0, 0, width, totalHeaderHeight);
+     const hCol = hovered?.[0]?.[0];
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
+index 7b88fe4..ebef64e 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
+@@ -1,5 +1,5 @@
+ import { getEffectiveColumns, rectBottomRight } from "./data-grid-lib.js";
+-import { blend } from "../color-parser.js";
++import { blend, parseToRgba } from "../color-parser.js";
+ import { assert } from "../../../common/support.js";
+ import { walkColumns, walkGroups, walkRowsInCol } from "./data-grid-render.walk.js";
+ import { drawCells } from "./data-grid-render.cells.js";
+@@ -58,10 +58,13 @@ export function drawGrid(arg, lastArg) {
+     const { canvasCtx, headerCanvasCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, enableGroups, freezeColumns, dragAndDropState, theme, drawFocus, headerHeight, groupHeaderHeight, disabledRows, rowHeight, verticalBorder, overrideCursor, isResizing, selection, fillHandle, freezeTrailingRows, rows, getCellContent, getGroupDetails, getRowThemeOverride, isFocused, drawHeaderCallback, prelightCells, drawCellCallback, highlightRegions, resizeCol, imageLoader, lastBlitData, hoverValues, hyperWrapping, hoverInfo, spriteManager, maxScaleFactor, hasAppendRow, touchMode, enqueue, renderStateProvider, getCellRenderer, renderStrategy, bufferACtx, bufferBCtx, damage, minimumCellWidth, resizeIndicator, } = arg;
+     if (width === 0 || height === 0)
+         return;
+-    const doubleBuffer = renderStrategy === "double-buffer";
+     const dpr = Math.min(maxScaleFactor, Math.ceil(window.devicePixelRatio ?? 1));
+     // if we are double buffering we need to make sure we can blit. If we can't we need to redraw the whole thing
+-    const canBlit = renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
++    const bgCellAlpha = parseToRgba(theme.bgCell)[3];
++    // Disable double-buffering when bgCell is translucent to avoid alpha doubling
++    // from buffer-to-canvas compositing
++    const doubleBuffer = bgCellAlpha >= 1 && renderStrategy === "double-buffer";
++    const canBlit = bgCellAlpha >= 1 && renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
+     const canvas = canvasCtx.canvas;
+     if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+         canvas.width = width * dpr;
+@@ -140,12 +143,13 @@ export function drawGrid(arg, lastArg) {
+         }
+     }
+     const drawHeaderTexture = () => {
++        overlayCtx.clearRect(0, 0, width, overlayHeight);
+         drawGridHeaders(overlayCtx, effectiveCols, enableGroups, hoverInfo, width, translateX, headerHeight, groupHeaderHeight, dragAndDropState, isResizing, selection, theme, spriteManager, hoverValues, verticalBorder, getGroupDetails, damage, drawHeaderCallback, touchMode);
+         drawGridLines(overlayCtx, effectiveCols, cellYOffset, translateX, translateY, width, height, undefined, undefined, groupHeaderHeight, totalHeaderHeight, getRowHeight, getRowThemeOverride, verticalBorder, freezeTrailingRows, rows, theme, true);
+         overlayCtx.beginPath();
+         overlayCtx.moveTo(0, overlayHeight - 0.5);
+         overlayCtx.lineTo(width, overlayHeight - 0.5);
+-        overlayCtx.strokeStyle = blend(theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor, theme.bgHeader);
++        overlayCtx.strokeStyle = theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor;
+         overlayCtx.stroke();
+         if (mustDrawHighlightRingsOnHeader) {
+             drawHighlightRings(overlayCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, freezeColumns, headerHeight, groupHeaderHeight, rowHeight, freezeTrailingRows, rows, highlightRegions, theme);
+@@ -249,10 +253,14 @@ export function drawGrid(arg, lastArg) {
+             targetCtx.rect(r.x, r.y, r.width, r.height);
+         }
+         targetCtx.clip();
++        for (const r of drawRegions) {
++            targetCtx.clearRect(r.x, r.y, r.width, r.height);
++        }
+         targetCtx.fill();
+         targetCtx.beginPath();
+     }
+     else {
++        targetCtx.clearRect(0, 0, width, height);
+         targetCtx.fillRect(0, 0, width, height);
+     }
+     const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
+@@ -274,8 +282,11 @@ export function drawGrid(arg, lastArg) {
+         });
+     }
+     if (mainCtx !== null) {
+-        mainCtx.fillStyle = theme.bgCell;
+-        mainCtx.fillRect(0, 0, width, height);
++        mainCtx.clearRect(0, 0, width, height);
++        if (bgCellAlpha >= 1) {
++            mainCtx.fillStyle = theme.bgCell;
++            mainCtx.fillRect(0, 0, width, height);
++        }
+         mainCtx.drawImage(targetCtx.canvas, 0, 0);
+     }
+     const lastRowDrawn = getLastRow(effectiveCols, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, freezeTrailingRows, hasAppendRow);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js
+index 4b05453..a7fbe76 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.lines.js
+@@ -219,10 +219,15 @@ export function drawGridLines(ctx, effectiveCols, cellYOffset, translateX, trans
+         toDraw.push({ x1: minX, y1: freezeY, x2: maxX, y2: freezeY, color: hColor });
+     }
+     if (verticalOnly !== true) {
+-        // horizontal lines
++        // horizontal lines — skip the first line at the header/body boundary
++        // because the overlay canvas draws it via headerBottomBorderColor
+         let y = totalHeaderHeight + 0.5;
+         let row = cellYOffset;
+         const target = freezeY;
++        if (totalHeaderHeight > 0) {
++            y += getRowHeight(row);
++            row++;
++        }
+         while (y + translateY < target) {
+             const ty = y + translateY;
+             if (ty >= minY && ty <= maxY - 1) {
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
+index 02406d9..7972d35 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
+@@ -19,6 +19,7 @@ export function makeCSSStyle(theme) {
+         "--gdg-bg-group-header-hovered": theme.bgGroupHeaderHovered ?? theme.bgHeaderHovered,
+         "--gdg-text-header-selected": theme.textHeaderSelected,
+         "--gdg-bg-cell": theme.bgCell,
++        "--gdg-bg-cell-opaque": theme.bgCellEditor ?? theme.bgCell,
+         "--gdg-bg-cell-medium": theme.bgCellMedium,
+         "--gdg-bg-header": theme.bgHeader,
+         "--gdg-bg-header-has-focus": theme.bgHeaderHasFocus,
+@@ -105,10 +106,7 @@ export function mergeAndRealizeTheme(theme, ...overlays) {
+             for (const key in overlay) {
+                 // eslint-disable-next-line no-prototype-builtins
+                 if (overlay.hasOwnProperty(key)) {
+-                    if (key === "bgCell") {
+-                        merged[key] = blend(overlay[key], merged[key]);
+-                    }
+-                    else {
++                    {
+                         merged[key] = overlay[key];
+                     }
+                 }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
+index 8b9a584..32e6b67 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
+@@ -1108,7 +1108,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+             }
+             const inputCol = columns[col - rowMarkerOffset];
+             const offscreen = document.createElement("canvas");
+-            const ctx = offscreen.getContext("2d", { alpha: false });
++            const ctx = offscreen.getContext("2d", { alpha: true });
+             if (ctx !== null) {
+                 ctx.font = mergedTheme.baseFontFull;
+                 const newCol = measureColumn(ctx, mergedTheme, inputCol, 0, cells, minColumnWidth, maxColumnWidth, false, getCellRenderer);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js
+index 4aaf312..b6095b6 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/use-column-sizer.js
+@@ -57,7 +57,7 @@ export function useColumnSizer(columns, rows, getCellsForSelection, clientWidth,
+         offscreen.style["display"] = "none";
+         offscreen.style["opacity"] = "0";
+         offscreen.style["position"] = "fixed";
+-        return [offscreen, offscreen.getContext("2d", { alpha: false })];
++        return [offscreen, offscreen.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (canvas)
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+index e5bbe58..137deb0 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell);box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
++.gdg-d19meir1{position:absolute;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;--overlay-top:var(--d19meir1-0);left:var(--d19meir1-1);top:var(--d19meir1-0);min-width:var(--d19meir1-2);min-height:var(--d19meir1-3);width:max-content;max-width:400px;max-height:calc(100vh - var(--d19meir1-4));font-family:var(--gdg-font-family);font-size:var(--gdg-editor-font-size);text-align:start;}@-webkit-keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}@keyframes glide_fade_in-gdg-d19meir1{from{opacity:0%;}to{opacity:100%;}}.gdg-d19meir1.gdg-style{border-radius:2px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));box-shadow:0 0 0 1px var(--gdg-accent-color),0px 0px 1px rgba(62, 65, 86, 0.4),0px 6px 12px rgba(62, 65, 86, 0.15);animation:glide_fade_in-gdg-d19meir1 60ms 1;}.gdg-d19meir1.gdg-pad{padding:var(--d19meir1-5) 8.5px 3px;}.gdg-d19meir1 .gdg-clip-region{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;border-radius:2px;flex-grow:1;}.gdg-d19meir1 .gdg-clip-region .gdg-growing-entry{height:100%;}.gdg-d19meir1 .gdg-clip-region input.gdg-input{width:100%;border:none;border-width:0;outline:none;}.gdg-d19meir1 .gdg-clip-region textarea.gdg-input{border:none;border-width:0;outline:none;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+index 0f53ba1..42f9195 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/drilldown-overlay-editor.css
+@@ -1 +1 @@
+-.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
++.gdg-d4zsq0x{display:flex;flex-wrap:wrap;}.gdg-d4zsq0x .doe-bubble{display:flex;justify-content:center;align-items:center;padding:0 8px;height:24px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);margin:2px;border-radius:var(--gdg-rounding-radius, 6px);box-shadow:0 0 1px rgba(62, 65, 86, 0.4),0 1px 3px rgba(62, 65, 86, 0.4);}.gdg-d4zsq0x .doe-bubble img{height:16px;object-fit:contain;margin-right:4px;}.gdg-d4zsq0x textarea{position:absolute;top:0px;left:0px;width:0px;height:0px;opacity:0;}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+index 56879cf..9378197 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-overlay-editor/private/number-overlay-editor-style.css
+@@ -1 +1 @@
+-.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);}
++.gdg-n15fjm3e{display:flex;margin:6px 0 3px;color:var(--gdg-text-dark);}.gdg-n15fjm3e >input{font-size:var(--gdg-editor-font-size);padding:0;font-family:var(--gdg-font-family);color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css
+index 70fd377..f084040 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid-search/data-grid-search-style.css
+@@ -1 +1 @@
+-.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell);color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell);border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
++.gdg-seveqep{position:absolute;top:4px;right:20px;background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));color:var(--gdg-text-dark);padding:8px;border:1px solid var(--gdg-border-color);border-radius:6px;font-size:var(--gdg-editor-font-size);animation:gdg-search-fadein-gdg-seveqep 0.15s forwards;}.gdg-seveqep.out{animation:gdg-search-fadeout-gdg-seveqep 0.15s forwards;}.gdg-seveqep .gdg-search-bar-inner{display:flex;}.gdg-seveqep .gdg-search-status{padding-top:4px;font-size:11px;}.gdg-seveqep .gdg-search-progress{position:absolute;height:4px;left:0;bottom:0;background-color:var(--gdg-text-light);}.gdg-seveqep input{width:220px;color:var(--gdg-text-dark);background-color:var(--gdg-bg-cell-opaque, var(--gdg-bg-cell));border:none;border-width:0;outline:none;}.gdg-seveqep button{width:24px;height:24px;padding:0;border:none;outline:none;background:none;display:flex;justify-content:center;align-items:center;cursor:pointer;color:var(--gdg-text-medium);}.gdg-seveqep button:hover{color:var(--gdg-text-dark);}.gdg-seveqep button .button-icon{width:16px;height:16px;}.gdg-seveqep button:disabled{opacity:0.4;pointer-events:none;}@-webkit-keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@keyframes gdg-search-fadeout-gdg-seveqep{from{transform:translateX(0);}to{transform:translateX(400px);}}@-webkit-keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}@keyframes gdg-search-fadein-gdg-seveqep{from{transform:translateX(400px);}to{transform:translateX(0);}}
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js
+index a14050b..425d1ea 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/color-parser.js
+@@ -69,6 +69,8 @@ export function blend(color, background) {
+         return color;
+     const [br, bg, bb, ba] = parseToRgba(background);
+     const ao = a + ba * (1 - a);
++    if (ao === 0)
++        return "rgba(0, 0, 0, 0)";
+     // (xaA + xaB·(1−aA))/aR
+     const ro = (a * r + ba * br * (1 - a)) / ao;
+     const go = (a * g + ba * bg * (1 - a)) / ao;
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
+index 26c8100..41f12d1 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
+@@ -284,7 +284,7 @@ const DataGrid = (p, forwardedRef) => {
+         b.style["display"] = "none";
+         b.style["opacity"] = "0";
+         b.style["position"] = "fixed";
+-        return [a.getContext("2d", { alpha: false }), b.getContext("2d", { alpha: false })];
++        return [a.getContext("2d", { alpha: true }), b.getContext("2d", { alpha: true })];
+     }, []);
+     React.useLayoutEffect(() => {
+         if (bufferACtx === null || bufferBCtx === null)
+@@ -308,12 +308,12 @@ const DataGrid = (p, forwardedRef) => {
+         if (canvas === null || overlay === null)
+             return;
+         if (canvasCtx.current === null) {
+-            canvasCtx.current = canvas.getContext("2d", { alpha: false });
++            canvasCtx.current = canvas.getContext("2d", { alpha: true });
+             canvas.width = 0;
+             canvas.height = 0;
+         }
+         if (overlayCtx.current === null) {
+-            overlayCtx.current = overlay.getContext("2d", { alpha: false });
++            overlayCtx.current = overlay.getContext("2d", { alpha: true });
+             overlay.width = 0;
+             overlay.height = 0;
+         }
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
+index 0f08841..7faa194 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
+@@ -218,20 +218,18 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                 // we want to clip each cell individually rather than form a super clip region. The reason for
+                 // this is passing too many clip regions to the GPU at once can cause a performance hit. This
+                 // allows us to damage a large number of cells at once without issue.
+-                const top = drawY + 1;
++                const top = drawY;
+                 const bottom = isSticky
+-                    ? top + rh - 1
+-                    : Math.min(top + rh - 1, height - freezeTrailingRowsHeight);
++                    ? top + rh
++                    : Math.min(top + rh, height - freezeTrailingRowsHeight);
+                 const h = bottom - top;
+-                // however, not clipping at all is even better. We want to clip if we are the left most col
+-                // or overlapping the bottom clip area.
+-                if (h !== rh - 1 || cellX + 1 <= clipX) {
+-                    didDamageClip = true;
+-                    ctx.save();
+-                    ctx.beginPath();
+-                    ctx.rect(cellX + 1, top, cellWidth - 1, h);
+-                    ctx.clip();
+-                }
++                // Always clip during damage repaints to prevent drawCell content from
++                // bleeding outside cell bounds (e.g. strokes centered on cell edges).
++                didDamageClip = true;
++                ctx.save();
++                ctx.beginPath();
++                ctx.rect(cellX, top, cellWidth, h);
++                ctx.clip();
+                 // we also need to make sure to wipe the contents. Since the fill can do that lets repurpose
+                 // that call to avoid an extra draw call.
+                 fill = fill === undefined ? theme.bgCell : blend(fill, theme.bgCell);
+@@ -244,9 +242,8 @@ export function drawCells(ctx, effectiveColumns, allColumns, height, totalHeader
+                     prepResult.fillStyle = fill;
+                 }
+                 if (damage !== undefined) {
+-                    // this accounts for the fill handle outline being drawn inset on these cells. We do this
+-                    // because technically the bottom right corner of the outline are on other cells.
+-                    ctx.fillRect(cellX + 1, drawY + 1, cellWidth - (isLastColumn ? 2 : 1), rh - (isLastRow ? 2 : 1));
++                    ctx.clearRect(cellX, drawY, cellWidth, rh);
++                    ctx.fillRect(cellX, drawY, cellWidth, rh);
+                 }
+                 else {
+                     ctx.fillRect(cellX, drawY, cellWidth, rh);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
+index ce77f79..16dc859 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.header.js
+@@ -10,6 +10,7 @@ export function drawGridHeaders(ctx, effectiveCols, enableGroups, hovered, width
+     const totalHeaderHeight = headerHeight + groupHeaderHeight;
+     if (totalHeaderHeight <= 0)
+         return;
++    ctx.clearRect(0, 0, width, totalHeaderHeight);
+     ctx.fillStyle = outerTheme.bgHeader;
+     ctx.fillRect(0, 0, width, totalHeaderHeight);
+     const hCol = hovered?.[0]?.[0];
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
+index abef757..c055fc9 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
+@@ -3,7 +3,7 @@
+ import {} from "../data-grid-types.js";
+ import { CellSet } from "../cell-set.js";
+ import { getEffectiveColumns, rectBottomRight } from "./data-grid-lib.js";
+-import { blend } from "../color-parser.js";
++import { blend, parseToRgba } from "../color-parser.js";
+ import { assert } from "../../../common/support.js";
+ import { walkColumns, walkGroups, walkRowsInCol } from "./data-grid-render.walk.js";
+ import { drawCells } from "./data-grid-render.cells.js";
+@@ -62,10 +62,13 @@ export function drawGrid(arg, lastArg) {
+     const { canvasCtx, headerCanvasCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, enableGroups, freezeColumns, dragAndDropState, theme, drawFocus, headerHeight, groupHeaderHeight, disabledRows, rowHeight, verticalBorder, overrideCursor, isResizing, selection, fillHandle, freezeTrailingRows, rows, getCellContent, getGroupDetails, getRowThemeOverride, isFocused, drawHeaderCallback, prelightCells, drawCellCallback, highlightRegions, resizeCol, imageLoader, lastBlitData, hoverValues, hyperWrapping, hoverInfo, spriteManager, maxScaleFactor, hasAppendRow, touchMode, enqueue, renderStateProvider, getCellRenderer, renderStrategy, bufferACtx, bufferBCtx, damage, minimumCellWidth, resizeIndicator, } = arg;
+     if (width === 0 || height === 0)
+         return;
+-    const doubleBuffer = renderStrategy === "double-buffer";
+     const dpr = Math.min(maxScaleFactor, Math.ceil(window.devicePixelRatio ?? 1));
+     // if we are double buffering we need to make sure we can blit. If we can't we need to redraw the whole thing
+-    const canBlit = renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
++    const bgCellAlpha = parseToRgba(theme.bgCell)[3];
++    // Disable double-buffering when bgCell is translucent to avoid alpha doubling
++    // from buffer-to-canvas compositing
++    const doubleBuffer = bgCellAlpha >= 1 && renderStrategy === "double-buffer";
++    const canBlit = bgCellAlpha >= 1 && renderStrategy !== "direct" && computeCanBlit(arg, lastArg);
+     const canvas = canvasCtx.canvas;
+     if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+         canvas.width = width * dpr;
+@@ -144,12 +147,13 @@ export function drawGrid(arg, lastArg) {
+         }
+     }
+     const drawHeaderTexture = () => {
++        overlayCtx.clearRect(0, 0, width, overlayHeight);
+         drawGridHeaders(overlayCtx, effectiveCols, enableGroups, hoverInfo, width, translateX, headerHeight, groupHeaderHeight, dragAndDropState, isResizing, selection, theme, spriteManager, hoverValues, verticalBorder, getGroupDetails, damage, drawHeaderCallback, touchMode);
+         drawGridLines(overlayCtx, effectiveCols, cellYOffset, translateX, translateY, width, height, undefined, undefined, groupHeaderHeight, totalHeaderHeight, getRowHeight, getRowThemeOverride, verticalBorder, freezeTrailingRows, rows, theme, true);
+         overlayCtx.beginPath();
+         overlayCtx.moveTo(0, overlayHeight - 0.5);
+         overlayCtx.lineTo(width, overlayHeight - 0.5);
+-        overlayCtx.strokeStyle = blend(theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor, theme.bgHeader);
++        overlayCtx.strokeStyle = theme.headerBottomBorderColor ?? theme.horizontalBorderColor ?? theme.borderColor;
+         overlayCtx.stroke();
+         if (mustDrawHighlightRingsOnHeader) {
+             drawHighlightRings(overlayCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, freezeColumns, headerHeight, groupHeaderHeight, rowHeight, freezeTrailingRows, rows, highlightRegions, theme);
+@@ -253,10 +257,14 @@ export function drawGrid(arg, lastArg) {
+             targetCtx.rect(r.x, r.y, r.width, r.height);
+         }
+         targetCtx.clip();
++        for (const r of drawRegions) {
++            targetCtx.clearRect(r.x, r.y, r.width, r.height);
++        }
+         targetCtx.fill();
+         targetCtx.beginPath();
+     }
+     else {
++        targetCtx.clearRect(0, 0, width, height);
+         targetCtx.fillRect(0, 0, width, height);
+     }
+     const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
+@@ -278,8 +286,11 @@ export function drawGrid(arg, lastArg) {
+         });
+     }
+     if (mainCtx !== null) {
+-        mainCtx.fillStyle = theme.bgCell;
+-        mainCtx.fillRect(0, 0, width, height);
++        mainCtx.clearRect(0, 0, width, height);
++        if (bgCellAlpha >= 1) {
++            mainCtx.fillStyle = theme.bgCell;
++            mainCtx.fillRect(0, 0, width, height);
++        }
+         mainCtx.drawImage(targetCtx.canvas, 0, 0);
+     }
+     const lastRowDrawn = getLastRow(effectiveCols, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, freezeTrailingRows, hasAppendRow);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js
+index 8837a70..512e4d5 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.lines.js
+@@ -224,10 +224,15 @@ export function drawGridLines(ctx, effectiveCols, cellYOffset, translateX, trans
+         toDraw.push({ x1: minX, y1: freezeY, x2: maxX, y2: freezeY, color: hColor });
+     }
+     if (verticalOnly !== true) {
+-        // horizontal lines
++        // horizontal lines — skip the first line at the header/body boundary
++        // because the overlay canvas draws it via headerBottomBorderColor
+         let y = totalHeaderHeight + 0.5;
+         let row = cellYOffset;
+         const target = freezeY;
++        if (totalHeaderHeight > 0) {
++            y += getRowHeight(row);
++            row++;
++        }
+         while (y + translateY < target) {
+             const ty = y + translateY;
+             if (ty >= minY && ty <= maxY - 1) {

@@ -20,6 +20,22 @@ import {
     measureTextCached,
 } from "@glideapps/glide-data-grid";
 
+// Module-level image cache for icons and images rendered on the canvas
+const imageCache = new Map();
+function loadCachedImage(src) {
+    if (imageCache.has(src)) return imageCache.get(src);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = src;
+    imageCache.set(src, null); // mark as loading
+    img.onload = () => imageCache.set(src, img);
+    img.onerror = () => imageCache.set(src, false);
+    return null;
+}
+
+const ICON_SIZE = 16;
+const ICON_GAP = 6;
+
 const CustomMenu = (p) => {
     const { Menu } = components;
     const { children, ...rest } = p;
@@ -58,6 +74,7 @@ const Editor = (p) => {
         selectionIndicator,
         allowCreation,
         prefillSearch,
+        placement,
     } = cell.data;
     const showCheckmark = selectionIndicator === "checkmark" || selectionIndicator === "both" || selectionIndicator === undefined;
     const showHighlight = selectionIndicator === "highlight" || selectionIndicator === "both";
@@ -66,6 +83,7 @@ const Editor = (p) => {
     const [value, setValue] = React.useState(valueIn);
     const [inputValue, setInputValue] = React.useState(initialValue ?? (shouldPrefill ? valueIn ?? "" : ""));
     const selectRef = React.useRef(null);
+    const wrapRef = React.useRef(null);
     const theme = useTheme();
 
     // Auto-select all text when opening editor with pre-populated value
@@ -79,6 +97,25 @@ const Editor = (p) => {
                 }
             }, 0);
             return () => clearTimeout(timer);
+        }
+    }, []);
+
+    // Reposition overlay container when placement is specified
+    React.useEffect(() => {
+        if (!placement || !wrapRef.current) return;
+        const overlay = wrapRef.current.closest('[class*="d19meir1"]');
+        if (!overlay) return;
+        const cellWidth = p.target?.width ?? 0;
+        const cellHeight = p.target?.height ?? 0;
+        overlay.style.minHeight = "auto";
+        // Constrain overlay width to cell width so it doesn't overflow right edge
+        if (cellWidth > 0) {
+            overlay.style.maxWidth = `${cellWidth}px`;
+        }
+        if (placement === "below") {
+            overlay.style.transform = `translateY(${cellHeight}px)`;
+        } else if (placement === "above") {
+            overlay.style.transform = "translateY(-100%)";
         }
     }, []);
 
@@ -115,9 +152,12 @@ const Editor = (p) => {
         );
     }
 
+    // Check if any option has a visual (image, emoji, or icon) — enables formatOptionLabel
+    const hasVisuals = values.some((v) => v.image || v.emoji || v.icon);
+
     return React.createElement(
         "div",
-        { style: wrapStyle },
+        { style: wrapStyle, ref: wrapRef },
         React.createElement(SelectComponent, {
             ref: selectRef,
             className: "glide-select",
@@ -187,15 +227,24 @@ const Editor = (p) => {
                     textAlign: "center",
                     padding: "8px 12px",
                 }),
+                menuPortal: (base) => {
+                    // Prevent menu from overflowing viewport right edge
+                    const menuWidth = base.width || 300;
+                    const maxLeft = window.innerWidth - menuWidth - 8;
+                    return {
+                        ...base,
+                        left: Math.min(base.left ?? 0, maxLeft),
+                    };
+                },
             },
             theme: (t) => {
                 return {
                     ...t,
                     colors: {
                         ...t.colors,
-                        neutral0: theme.bgCell,
-                        neutral5: theme.bgCell,
-                        neutral10: theme.bgCell,
+                        neutral0: theme.bgCellEditor || theme.bgCell,
+                        neutral5: theme.bgCellEditor || theme.bgCell,
+                        neutral10: theme.bgCellEditor || theme.bgCell,
                         neutral20: theme.bgCellMedium,
                         neutral30: theme.bgCellMedium,
                         neutral40: theme.bgCellMedium,
@@ -213,6 +262,42 @@ const Editor = (p) => {
                 };
             },
             menuPortalTarget: portalElementRef?.current ?? document.getElementById("portal"),
+            formatOptionLabel: hasVisuals
+                ? (option) => {
+                      const visual = option.image || option.emoji || option.icon;
+                      if (!visual) return option.label;
+                      const iconStyle = { width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, borderRadius: "4px" };
+                      let iconEl;
+                      if (option.image) {
+                          iconEl = React.createElement("img", {
+                              src: option.image,
+                              width: 24,
+                              height: 24,
+                              style: { objectFit: "contain", borderRadius: "4px", flexShrink: 0 },
+                          });
+                      } else if (option.icon) {
+                          // Iconify API: "mdi:dice-6" → "mdi/dice-6"
+                          const src = "https://api.iconify.design/" + option.icon.replace(":", "/") + ".svg";
+                          iconEl = React.createElement("img", {
+                              src: src,
+                              width: 24,
+                              height: 24,
+                              style: { objectFit: "contain", flexShrink: 0 },
+                          });
+                      } else {
+                          // Emoji rendered at matching size
+                          iconEl = React.createElement("span", {
+                              style: { ...iconStyle, fontSize: "20px", lineHeight: 1 },
+                          }, option.emoji);
+                      }
+                      return React.createElement(
+                          "div",
+                          { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                          iconEl,
+                          option.label
+                      );
+                  }
+                : undefined,
             autoFocus: true,
             openMenuOnFocus: true,
             components: {
@@ -240,7 +325,7 @@ const Editor = (p) => {
                                   React.createElement("polyline", { points: "20 6 9 17 4 12" })
                               )
                             : null,
-                        props.label
+                        props.children
                     );
                 },
                 Menu: (props) =>
@@ -269,6 +354,22 @@ const Editor = (p) => {
         })
     );
 };
+
+function drawVisual(ctx, emoji, iconId, imageUrl, color, x, y, textY) {
+    if (emoji) {
+        // Draw emoji at the same baseline as the label text
+        ctx.fillStyle = color;
+        ctx.fillText(emoji, x, textY);
+    } else if (iconId) {
+        const hexColor = encodeURIComponent(color);
+        const src = `https://api.iconify.design/${iconId.replace(":", "/")}.svg?color=${hexColor}`;
+        const img = loadCachedImage(src);
+        if (img) ctx.drawImage(img, x, y, ICON_SIZE, ICON_SIZE);
+    } else if (imageUrl) {
+        const img = loadCachedImage(imageUrl);
+        if (img) ctx.drawImage(img, x, y, ICON_SIZE, ICON_SIZE);
+    }
+}
 
 const renderer = {
     kind: GridCellKind.Custom,
@@ -300,6 +401,13 @@ const renderer = {
 
         if (!displayText) return true;
 
+        // Check for visual (emoji, icon, or image) on the matched option
+        const emoji = typeof foundOption === "object" ? foundOption.emoji : undefined;
+        const iconId = typeof foundOption === "object" ? foundOption.icon : undefined;
+        const imageUrl = typeof foundOption === "object" ? foundOption.image : undefined;
+        const hasVisual = !!(emoji || iconId || imageUrl);
+        const visualOffset = hasVisual ? ICON_SIZE + ICON_GAP : 0;
+
         if (showBubble) {
             // Get color from option or use theme default
             const bubbleColor =
@@ -311,7 +419,7 @@ const renderer = {
 
             // Calculate bubble dimensions
             const metrics = measureTextCached(displayText, ctx);
-            const bubbleWidth = metrics.width + theme.bubblePadding * 2;
+            const bubbleWidth = visualOffset + metrics.width + theme.bubblePadding * 2;
             const bubbleHeight = theme.bubbleHeight;
             const x = rect.x + theme.cellHorizontalPadding;
             const y = rect.y + (rect.height - bubbleHeight) / 2;
@@ -322,27 +430,47 @@ const renderer = {
             roundedRect(ctx, x, y, bubbleWidth, bubbleHeight, theme.roundingRadius ?? bubbleHeight / 2);
             ctx.fill();
 
+            const textColor = getLuminance(bubbleColor) > 0.5 ? "#000000" : "#ffffff";
+            const textY = y + bubbleHeight / 2 + getMiddleCenterBias(ctx, theme);
+
+            // Draw visual inside bubble
+            if (hasVisual) {
+                const vx = x + theme.bubblePadding;
+                const vy = y + (bubbleHeight - ICON_SIZE) / 2;
+                drawVisual(ctx, emoji, iconId, imageUrl, textColor, vx, vy, textY);
+            }
+
             // Draw text with smart contrast based on actual background color
-            ctx.fillStyle = getLuminance(bubbleColor) > 0.5 ? "#000000" : "#ffffff";
-            ctx.fillText(displayText, x + theme.bubblePadding, y + bubbleHeight / 2 + getMiddleCenterBias(ctx, theme));
+            ctx.fillStyle = textColor;
+            ctx.fillText(displayText, x + theme.bubblePadding + visualOffset, textY);
         } else {
+            const x = rect.x + theme.cellHorizontalPadding;
+            const textY = rect.y + rect.height / 2 + getMiddleCenterBias(ctx, theme);
+
+            // Draw visual before text
+            if (hasVisual) {
+                const vy = rect.y + (rect.height - ICON_SIZE) / 2;
+                drawVisual(ctx, emoji, iconId, imageUrl, theme.textDark, x, vy, textY);
+            }
+
             // Default text rendering
             ctx.fillStyle = theme.textDark;
-            ctx.fillText(
-                displayText,
-                rect.x + theme.cellHorizontalPadding,
-                rect.y + rect.height / 2 + getMiddleCenterBias(ctx, theme)
-            );
+            ctx.fillText(displayText, x + visualOffset, textY);
         }
         return true;
     },
     measure: (ctx, cell, theme) => {
-        const { value, showBubble } = cell.data;
+        const { value, allowedValues = [], showBubble } = cell.data;
         const textWidth = value ? ctx.measureText(value).width : 0;
+        const foundOption = allowedValues.find((opt) =>
+            typeof opt === "object" && opt !== null ? opt.value === value : opt === value
+        );
+        const hasVisual = typeof foundOption === "object" && (foundOption.emoji || foundOption.icon || foundOption.image);
+        const visualOffset = hasVisual ? ICON_SIZE + ICON_GAP : 0;
         if (showBubble) {
-            return textWidth + theme.bubblePadding * 2 + theme.cellHorizontalPadding * 2;
+            return visualOffset + textWidth + theme.bubblePadding * 2 + theme.cellHorizontalPadding * 2;
         }
-        return textWidth + theme.cellHorizontalPadding * 2;
+        return visualOffset + textWidth + theme.cellHorizontalPadding * 2;
     },
     provideEditor: () => ({
         editor: Editor,

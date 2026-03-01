@@ -327,6 +327,7 @@ const GlideGrid = (props) => {
         preventDiagonalScrolling,
         scaleToRem,
         className,
+        style,
         rowSelect,
         columnSelect,
         rangeSelect,
@@ -1416,9 +1417,15 @@ const GlideGrid = (props) => {
             window._glideGridRefs = window._glideGridRefs || {};
             window._glideGridRefs[id] = gridRef.current;
         }
+        if (containerRef.current) {
+            containerRef.current._gridRef = gridRef.current;
+        }
         return () => {
             if (id && window._glideGridRefs) {
                 delete window._glideGridRefs[id];
+            }
+            if (containerRef.current) {
+                delete containerRef.current._gridRef;
             }
         };
     }, [id, gridRef.current]);
@@ -5033,6 +5040,7 @@ const GlideGrid = (props) => {
 
     // Container style with explicit height
     const containerStyle = {
+        ...style,
         height: typeof height === 'number' ? `${height}px` : height,
         width: typeof width === 'number' ? `${width}px` : width,
     };

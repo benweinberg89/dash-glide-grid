@@ -47,7 +47,10 @@ app.layout = html.Div(
                 html.P(
                     [
                         "Grid: ",
-                        html.Span(id="grid-size-display", children=f"{NUM_ROWS:,} x {NUM_COLS} = {NUM_ROWS * NUM_COLS:,}"),
+                        html.Span(
+                            id="grid-size-display",
+                            children=f"{NUM_ROWS:,} x {NUM_COLS} = {NUM_ROWS * NUM_COLS:,}",
+                        ),
                         " cells. Random cells pulse at your display's refresh rate. ",
                         "Switch between methods to compare performance. ",
                         html.Strong("Tip: "),

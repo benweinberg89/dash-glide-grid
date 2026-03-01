@@ -303,3 +303,6 @@ JuliaManifest.toml
 
 # Local dev scripts
 run-example.sh
+
+# Planning docs
+UPSTREAM_PR_PLAN.md

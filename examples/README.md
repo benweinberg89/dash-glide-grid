@@ -89,3 +89,10 @@ Then open http://localhost:8050 in your browser.
 | # | Example | Description |
 |---|---------|-------------|
 | 21 | [advanced_features.py](21_advanced_features.py) | Combined advanced features |
+| 60 | [tab_wrapping.py](60_tab_wrapping.py) | Tab key wrapping behavior |
+| 61 | [cell_context_menu.py](61_cell_context_menu.py) | Cell context menu events |
+| 62 | [column_autosize.py](62_column_autosize.py) | Auto-size columns to content |
+| 63 | [row_select_on_cell_click.py](63_row_select_on_cell_click.py) | Select rows by clicking cells |
+| 64 | [hidden_rows.py](64_hidden_rows.py) | Hide/show rows dynamically |
+| 65 | [fill_handle_double_click.py](65_fill_handle_double_click.py) | Double-click fill handle to auto-fill |
+| 66 | [transparent_grid.py](66_transparent_grid.py) | Transparent/glass grid with `style` prop for glassmorphism (backdrop-filter blur, border-radius, box-shadow) |
