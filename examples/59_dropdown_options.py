@@ -48,8 +48,18 @@ LIGHT_THEME = {
 }
 
 STATUS_OPTIONS = [
-    {"value": "not_started", "label": "Not Started", "color": "#6b7280", "emoji": "\u26aa"},
-    {"value": "in_progress", "label": "In Progress", "color": "#3b82f6", "emoji": "\U0001f504"},
+    {
+        "value": "not_started",
+        "label": "Not Started",
+        "color": "#6b7280",
+        "emoji": "\u26aa",
+    },
+    {
+        "value": "in_progress",
+        "label": "In Progress",
+        "color": "#3b82f6",
+        "emoji": "\U0001f504",
+    },
     {"value": "review", "label": "Review", "color": "#8b5cf6", "emoji": "\U0001f440"},
     {"value": "blocked", "label": "Blocked", "color": "#ef4444", "emoji": "\U0001f6d1"},
     {"value": "complete", "label": "Complete", "color": "#22c55e", "emoji": "\u2705"},
@@ -63,8 +73,16 @@ PRIORITY_OPTIONS = [
     {"value": "Critical", "label": "Critical", "icon": "mdi:fire"},
 ]
 
+ASSIGNEE_OPTIONS = [
+    {"value": "alice", "label": "Alice", "image": "/assets/avatar-alice.svg"},
+    {"value": "bob", "label": "Bob", "image": "/assets/avatar-bob.svg"},
+    {"value": "carol", "label": "Carol", "image": "/assets/avatar-carol.svg"},
+    {"value": "dana", "label": "Dana", "image": "/assets/avatar-dana.svg"},
+]
+
 COLUMNS = [
     {"title": "Task", "id": "task", "width": 180},
+    {"title": "Assignee", "id": "assignee", "width": 140},
     {"title": "Status", "id": "status", "width": 160},
     {"title": "Priority", "id": "priority", "width": 140},
 ]
@@ -88,26 +106,31 @@ def get_data(**options):
     return [
         {
             "task": "Design mockups",
+            "assignee": make_dropdown_cell("alice", ASSIGNEE_OPTIONS, **options),
             "status": make_dropdown_cell("complete", STATUS_OPTIONS, **options),
             "priority": make_dropdown_cell("High", PRIORITY_OPTIONS, **options),
         },
         {
             "task": "API integration",
+            "assignee": make_dropdown_cell("bob", ASSIGNEE_OPTIONS, **options),
             "status": make_dropdown_cell("in_progress", STATUS_OPTIONS, **options),
             "priority": make_dropdown_cell("Urgent", PRIORITY_OPTIONS, **options),
         },
         {
             "task": "Write tests",
+            "assignee": make_dropdown_cell("carol", ASSIGNEE_OPTIONS, **options),
             "status": make_dropdown_cell("not_started", STATUS_OPTIONS, **options),
             "priority": make_dropdown_cell("Medium", PRIORITY_OPTIONS, **options),
         },
         {
             "task": "Documentation",
+            "assignee": make_dropdown_cell("dana", ASSIGNEE_OPTIONS, **options),
             "status": make_dropdown_cell("review", STATUS_OPTIONS, **options),
             "priority": make_dropdown_cell("Low", PRIORITY_OPTIONS, **options),
         },
         {
             "task": "Performance audit",
+            "assignee": make_dropdown_cell("alice", ASSIGNEE_OPTIONS, **options),
             "status": make_dropdown_cell("blocked", STATUS_OPTIONS, **options),
             "priority": make_dropdown_cell("Critical", PRIORITY_OPTIONS, **options),
         },
@@ -118,7 +141,10 @@ app.layout = html.Div(
     id="app-container",
     children=[
         html.H1("Dropdown Cell Options", id="title"),
-        html.P("Toggle the options below to see how they affect the dropdown cells. Changes apply immediately.", id="subtitle"),
+        html.P(
+            "Toggle the options below to see how they affect the dropdown cells. Changes apply immediately.",
+            id="subtitle",
+        ),
         html.Div(
             [
                 html.Div(
@@ -139,7 +165,11 @@ app.layout = html.Div(
                                     },
                                 ),
                             ],
-                            style={"display": "flex", "justifyContent": "space-between", "alignItems": "center"},
+                            style={
+                                "display": "flex",
+                                "justifyContent": "space-between",
+                                "alignItems": "center",
+                            },
                         ),
                         html.Div(
                             [
@@ -147,7 +177,12 @@ app.layout = html.Div(
                                     [
                                         dcc.Checklist(
                                             id="opt-isClearable",
-                                            options=[{"label": " isClearable - Show X button to clear selection", "value": "on"}],
+                                            options=[
+                                                {
+                                                    "label": " isClearable - Show X button to clear selection",
+                                                    "value": "on",
+                                                }
+                                            ],
                                             value=[],
                                         ),
                                     ],
@@ -157,7 +192,12 @@ app.layout = html.Div(
                                     [
                                         dcc.Checklist(
                                             id="opt-isSearchable",
-                                            options=[{"label": " isSearchable - Enable typing to filter options (default: on)", "value": "on"}],
+                                            options=[
+                                                {
+                                                    "label": " isSearchable - Enable typing to filter options (default: on)",
+                                                    "value": "on",
+                                                }
+                                            ],
                                             value=["on"],
                                         ),
                                     ],
@@ -167,7 +207,12 @@ app.layout = html.Div(
                                     [
                                         dcc.Checklist(
                                             id="opt-hideSelectedOptions",
-                                            options=[{"label": " hideSelectedOptions - Hide selected option from dropdown", "value": "on"}],
+                                            options=[
+                                                {
+                                                    "label": " hideSelectedOptions - Hide selected option from dropdown",
+                                                    "value": "on",
+                                                }
+                                            ],
                                             value=[],
                                         ),
                                     ],
@@ -177,7 +222,12 @@ app.layout = html.Div(
                                     [
                                         dcc.Checklist(
                                             id="opt-allowCreation",
-                                            options=[{"label": " allowCreation - Allow typing custom values not in the list", "value": "on"}],
+                                            options=[
+                                                {
+                                                    "label": " allowCreation - Allow typing custom values not in the list",
+                                                    "value": "on",
+                                                }
+                                            ],
                                             value=[],
                                         ),
                                     ],
@@ -187,7 +237,12 @@ app.layout = html.Div(
                                     [
                                         dcc.Checklist(
                                             id="opt-prefillSearch",
-                                            options=[{"label": " prefillSearch - Pre-fill search with current value (auto-selected)", "value": "on"}],
+                                            options=[
+                                                {
+                                                    "label": " prefillSearch - Pre-fill search with current value (auto-selected)",
+                                                    "value": "on",
+                                                }
+                                            ],
                                             value=[],
                                         ),
                                     ],
@@ -197,7 +252,12 @@ app.layout = html.Div(
                                     [
                                         dcc.Checklist(
                                             id="opt-showBubble",
-                                            options=[{"label": " showBubble - Display selection as a colored bubble/pill", "value": "on"}],
+                                            options=[
+                                                {
+                                                    "label": " showBubble - Display selection as a colored bubble/pill",
+                                                    "value": "on",
+                                                }
+                                            ],
                                             value=[],
                                         ),
                                     ],
@@ -209,24 +269,42 @@ app.layout = html.Div(
                             [
                                 html.Div(
                                     [
-                                        html.Label("selectionIndicator: ", style={"fontWeight": "bold"}),
+                                        html.Label(
+                                            "selectionIndicator: ",
+                                            style={"fontWeight": "bold"},
+                                        ),
                                         dcc.Dropdown(
                                             id="opt-selectionIndicator",
                                             options=[
-                                                {"label": "checkmark (default)", "value": "checkmark"},
-                                                {"label": "highlight", "value": "highlight"},
+                                                {
+                                                    "label": "checkmark (default)",
+                                                    "value": "checkmark",
+                                                },
+                                                {
+                                                    "label": "highlight",
+                                                    "value": "highlight",
+                                                },
                                                 {"label": "both", "value": "both"},
                                             ],
                                             value="checkmark",
-                                            style={"width": "180px", "display": "inline-block"},
+                                            style={
+                                                "width": "180px",
+                                                "display": "inline-block",
+                                            },
                                             clearable=False,
                                         ),
                                     ],
-                                    style={"display": "inline-block", "marginRight": "24px"},
+                                    style={
+                                        "display": "inline-block",
+                                        "marginRight": "24px",
+                                    },
                                 ),
                                 html.Div(
                                     [
-                                        html.Label("placeholder: ", style={"fontWeight": "bold"}),
+                                        html.Label(
+                                            "placeholder: ",
+                                            style={"fontWeight": "bold"},
+                                        ),
                                         dcc.Input(
                                             id="opt-placeholder",
                                             type="text",
@@ -235,11 +313,17 @@ app.layout = html.Div(
                                             debounce=True,
                                         ),
                                     ],
-                                    style={"display": "inline-block", "marginRight": "24px"},
+                                    style={
+                                        "display": "inline-block",
+                                        "marginRight": "24px",
+                                    },
                                 ),
                                 html.Div(
                                     [
-                                        html.Label("maxMenuHeight: ", style={"fontWeight": "bold"}),
+                                        html.Label(
+                                            "maxMenuHeight: ",
+                                            style={"fontWeight": "bold"},
+                                        ),
                                         dcc.Input(
                                             id="opt-maxMenuHeight",
                                             type="number",
@@ -251,11 +335,17 @@ app.layout = html.Div(
                                         ),
                                         html.Span(" px"),
                                     ],
-                                    style={"display": "inline-block", "marginRight": "24px"},
+                                    style={
+                                        "display": "inline-block",
+                                        "marginRight": "24px",
+                                    },
                                 ),
                                 html.Div(
                                     [
-                                        html.Label("menuPlacement: ", style={"fontWeight": "bold"}),
+                                        html.Label(
+                                            "menuPlacement: ",
+                                            style={"fontWeight": "bold"},
+                                        ),
                                         dcc.Dropdown(
                                             id="opt-menuPlacement",
                                             options=[
@@ -264,7 +354,10 @@ app.layout = html.Div(
                                                 {"label": "bottom", "value": "bottom"},
                                             ],
                                             value="auto",
-                                            style={"width": "120px", "display": "inline-block"},
+                                            style={
+                                                "width": "120px",
+                                                "display": "inline-block",
+                                            },
                                             clearable=False,
                                         ),
                                     ],
@@ -298,15 +391,31 @@ app.layout = html.Div(
                 html.H3("Instructions:"),
                 html.Ul(
                     [
-                        html.Li("Click on a Status or Priority cell to open the dropdown editor"),
-                        html.Li("Status options show emoji visuals; Priority options show Iconify icons"),
+                        html.Li(
+                            "Click on a Status or Priority cell to open the dropdown editor"
+                        ),
+                        html.Li(
+                            "Assignee uses image avatars; Status uses emoji; Priority uses Iconify icons"
+                        ),
                         html.Li("Toggle options above to see changes immediately"),
-                        html.Li("Try selectionIndicator to change how selected options are shown (checkmark, highlight, or both)"),
-                        html.Li("Try isClearable to enable clearing the selection with X"),
-                        html.Li("Try hideSelectedOptions to remove the selected item from the list"),
-                        html.Li("Try allowCreation to type custom values that aren't in the dropdown list"),
-                        html.Li("Try prefillSearch to pre-fill the search box with the current value (useful for editing similar options)"),
-                        html.Li("Try showBubble to display the selected value as a colored pill (Status column has custom colors)"),
+                        html.Li(
+                            "Try selectionIndicator to change how selected options are shown (checkmark, highlight, or both)"
+                        ),
+                        html.Li(
+                            "Try isClearable to enable clearing the selection with X"
+                        ),
+                        html.Li(
+                            "Try hideSelectedOptions to remove the selected item from the list"
+                        ),
+                        html.Li(
+                            "Try allowCreation to type custom values that aren't in the dropdown list"
+                        ),
+                        html.Li(
+                            "Try prefillSearch to pre-fill the search box with the current value (useful for editing similar options)"
+                        ),
+                        html.Li(
+                            "Try showBubble to display the selected value as a colored pill (Status column has custom colors)"
+                        ),
                     ]
                 ),
             ],
@@ -331,7 +440,18 @@ app.layout = html.Div(
     Input("opt-menuPlacement", "value"),
     Input("opt-selectionIndicator", "value"),
 )
-def update_grid(is_clearable, is_searchable, hide_selected, allow_creation, prefill_search, show_bubble, placeholder, max_height, menu_placement, selection_indicator):
+def update_grid(
+    is_clearable,
+    is_searchable,
+    hide_selected,
+    allow_creation,
+    prefill_search,
+    show_bubble,
+    placeholder,
+    max_height,
+    menu_placement,
+    selection_indicator,
+):
     """Update grid when any option changes."""
     options = {}
 
@@ -380,12 +500,31 @@ def toggle_theme(n_clicks):
     if is_dark:
         return (
             DARK_THEME,
-            {"margin": "40px", "fontFamily": "Arial, sans-serif", "backgroundColor": "#111827", "minHeight": "100vh", "color": "#f3f4f6"},
+            {
+                "margin": "40px",
+                "fontFamily": "Arial, sans-serif",
+                "backgroundColor": "#111827",
+                "minHeight": "100vh",
+                "color": "#f3f4f6",
+            },
             {"color": "#f3f4f6"},
             {"color": "#9ca3af"},
-            {"backgroundColor": "#374151", "padding": "20px", "borderRadius": "8px", "marginBottom": "20px"},
+            {
+                "backgroundColor": "#374151",
+                "padding": "20px",
+                "borderRadius": "8px",
+                "marginBottom": "20px",
+            },
             {"marginTop": "20px", "color": "#f3f4f6"},
-            {"marginBottom": "15px", "padding": "8px 16px", "cursor": "pointer", "borderRadius": "6px", "border": "1px solid #4b5563", "backgroundColor": "#4b5563", "color": "#f3f4f6"},
+            {
+                "marginBottom": "15px",
+                "padding": "8px 16px",
+                "cursor": "pointer",
+                "borderRadius": "6px",
+                "border": "1px solid #4b5563",
+                "backgroundColor": "#4b5563",
+                "color": "#f3f4f6",
+            },
             "Toggle Light Mode",
         )
     else:
@@ -394,9 +533,21 @@ def toggle_theme(n_clicks):
             {"margin": "40px", "fontFamily": "Arial, sans-serif"},
             {"color": "#111827"},
             {"color": "#6b7280"},
-            {"backgroundColor": "#f5f5f5", "padding": "20px", "borderRadius": "8px", "marginBottom": "20px"},
+            {
+                "backgroundColor": "#f5f5f5",
+                "padding": "20px",
+                "borderRadius": "8px",
+                "marginBottom": "20px",
+            },
             {"marginTop": "20px"},
-            {"marginBottom": "15px", "padding": "8px 16px", "cursor": "pointer", "borderRadius": "6px", "border": "1px solid #d1d5db", "backgroundColor": "#f3f4f6"},
+            {
+                "marginBottom": "15px",
+                "padding": "8px 16px",
+                "cursor": "pointer",
+                "borderRadius": "6px",
+                "border": "1px solid #d1d5db",
+                "backgroundColor": "#f3f4f6",
+            },
             "Toggle Dark Mode",
         )
 

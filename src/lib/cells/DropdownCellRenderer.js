@@ -20,6 +20,22 @@ import {
     measureTextCached,
 } from "@glideapps/glide-data-grid";
 
+// Module-level image cache for icons and images rendered on the canvas
+const imageCache = new Map();
+function loadCachedImage(src) {
+    if (imageCache.has(src)) return imageCache.get(src);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = src;
+    imageCache.set(src, null); // mark as loading
+    img.onload = () => imageCache.set(src, img);
+    img.onerror = () => imageCache.set(src, false);
+    return null;
+}
+
+const ICON_SIZE = 16;
+const ICON_GAP = 6;
+
 const CustomMenu = (p) => {
     const { Menu } = components;
     const { children, ...rest } = p;
@@ -339,6 +355,22 @@ const Editor = (p) => {
     );
 };
 
+function drawVisual(ctx, emoji, iconId, imageUrl, color, x, y, textY) {
+    if (emoji) {
+        // Draw emoji at the same baseline as the label text
+        ctx.fillStyle = color;
+        ctx.fillText(emoji, x, textY);
+    } else if (iconId) {
+        const hexColor = encodeURIComponent(color);
+        const src = `https://api.iconify.design/${iconId.replace(":", "/")}.svg?color=${hexColor}`;
+        const img = loadCachedImage(src);
+        if (img) ctx.drawImage(img, x, y, ICON_SIZE, ICON_SIZE);
+    } else if (imageUrl) {
+        const img = loadCachedImage(imageUrl);
+        if (img) ctx.drawImage(img, x, y, ICON_SIZE, ICON_SIZE);
+    }
+}
+
 const renderer = {
     kind: GridCellKind.Custom,
     isMatch: (c) => c.data.kind === "dropdown-cell",
@@ -369,6 +401,13 @@ const renderer = {
 
         if (!displayText) return true;
 
+        // Check for visual (emoji, icon, or image) on the matched option
+        const emoji = typeof foundOption === "object" ? foundOption.emoji : undefined;
+        const iconId = typeof foundOption === "object" ? foundOption.icon : undefined;
+        const imageUrl = typeof foundOption === "object" ? foundOption.image : undefined;
+        const hasVisual = !!(emoji || iconId || imageUrl);
+        const visualOffset = hasVisual ? ICON_SIZE + ICON_GAP : 0;
+
         if (showBubble) {
             // Get color from option or use theme default
             const bubbleColor =
@@ -380,7 +419,7 @@ const renderer = {
 
             // Calculate bubble dimensions
             const metrics = measureTextCached(displayText, ctx);
-            const bubbleWidth = metrics.width + theme.bubblePadding * 2;
+            const bubbleWidth = visualOffset + metrics.width + theme.bubblePadding * 2;
             const bubbleHeight = theme.bubbleHeight;
             const x = rect.x + theme.cellHorizontalPadding;
             const y = rect.y + (rect.height - bubbleHeight) / 2;
@@ -391,27 +430,47 @@ const renderer = {
             roundedRect(ctx, x, y, bubbleWidth, bubbleHeight, theme.roundingRadius ?? bubbleHeight / 2);
             ctx.fill();
 
+            const textColor = getLuminance(bubbleColor) > 0.5 ? "#000000" : "#ffffff";
+            const textY = y + bubbleHeight / 2 + getMiddleCenterBias(ctx, theme);
+
+            // Draw visual inside bubble
+            if (hasVisual) {
+                const vx = x + theme.bubblePadding;
+                const vy = y + (bubbleHeight - ICON_SIZE) / 2;
+                drawVisual(ctx, emoji, iconId, imageUrl, textColor, vx, vy, textY);
+            }
+
             // Draw text with smart contrast based on actual background color
-            ctx.fillStyle = getLuminance(bubbleColor) > 0.5 ? "#000000" : "#ffffff";
-            ctx.fillText(displayText, x + theme.bubblePadding, y + bubbleHeight / 2 + getMiddleCenterBias(ctx, theme));
+            ctx.fillStyle = textColor;
+            ctx.fillText(displayText, x + theme.bubblePadding + visualOffset, textY);
         } else {
+            const x = rect.x + theme.cellHorizontalPadding;
+            const textY = rect.y + rect.height / 2 + getMiddleCenterBias(ctx, theme);
+
+            // Draw visual before text
+            if (hasVisual) {
+                const vy = rect.y + (rect.height - ICON_SIZE) / 2;
+                drawVisual(ctx, emoji, iconId, imageUrl, theme.textDark, x, vy, textY);
+            }
+
             // Default text rendering
             ctx.fillStyle = theme.textDark;
-            ctx.fillText(
-                displayText,
-                rect.x + theme.cellHorizontalPadding,
-                rect.y + rect.height / 2 + getMiddleCenterBias(ctx, theme)
-            );
+            ctx.fillText(displayText, x + visualOffset, textY);
         }
         return true;
     },
     measure: (ctx, cell, theme) => {
-        const { value, showBubble } = cell.data;
+        const { value, allowedValues = [], showBubble } = cell.data;
         const textWidth = value ? ctx.measureText(value).width : 0;
+        const foundOption = allowedValues.find((opt) =>
+            typeof opt === "object" && opt !== null ? opt.value === value : opt === value
+        );
+        const hasVisual = typeof foundOption === "object" && (foundOption.emoji || foundOption.icon || foundOption.image);
+        const visualOffset = hasVisual ? ICON_SIZE + ICON_GAP : 0;
         if (showBubble) {
-            return textWidth + theme.bubblePadding * 2 + theme.cellHorizontalPadding * 2;
+            return visualOffset + textWidth + theme.bubblePadding * 2 + theme.cellHorizontalPadding * 2;
         }
-        return textWidth + theme.cellHorizontalPadding * 2;
+        return visualOffset + textWidth + theme.cellHorizontalPadding * 2;
     },
     provideEditor: () => ({
         editor: Editor,
