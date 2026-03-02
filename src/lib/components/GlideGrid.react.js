@@ -1071,6 +1071,20 @@ GlideGrid.propTypes = {
     ]),
 
     /**
+     * Externally trigger cell flash effects by providing a map of cell
+     * coordinates to timestamps. Merges with internal flash state from
+     * edits/paste/undo so both sources coexist.
+     *
+     * Keys are "row,col" strings, values are performance.now() timestamps.
+     * Example: {"0,2": 1709234567.89, "3,4": 1709234567.89}
+     *
+     * Note: showCellFlash does NOT need to be enabled for this prop to work.
+     * showCellFlash controls automatic flashing on edit/paste/undo/redo;
+     * this prop provides explicit, manual control.
+     */
+    lastUpdatedCells: PropTypes.objectOf(PropTypes.number),
+
+    /**
      * Initial horizontal scroll offset in pixels. Applied on mount.
      */
     scrollOffsetX: PropTypes.number,
