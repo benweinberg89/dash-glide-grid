@@ -524,6 +524,15 @@ const GlideGrid = (props) => {
     // without triggering React re-renders. getCellContent reads from both.
     const imperativeFlashRef = useRef({});
 
+    // Imperative highlight regions — set via window._glideGridUpdaters[id].setHighlightRegions()
+    const [imperativeHighlightRegions, setImperativeHighlightRegions] = useState([]);
+
+    const mergedHighlightRegions = useMemo(() => {
+        if (!imperativeHighlightRegions.length) return highlightRegions;
+        if (!highlightRegions?.length) return imperativeHighlightRegions;
+        return [...highlightRegions, ...imperativeHighlightRegions];
+    }, [highlightRegions, imperativeHighlightRegions]);
+
     // Merge externally-provided lastUpdatedCells prop into internal state
     useEffect(() => {
         if (lastUpdatedCellsProp && typeof lastUpdatedCellsProp === 'object' &&
@@ -1491,6 +1500,8 @@ const GlideGrid = (props) => {
             getDataRef: () => localDataRef.current,
             getGridRef: () => gridRef.current,
             getFlashRef: () => imperativeFlashRef.current,
+            setHighlightRegions: setImperativeHighlightRegions,
+            setProps: setProps,
         };
         return () => {
             if (window._glideGridUpdaters) {
@@ -5235,7 +5246,7 @@ const GlideGrid = (props) => {
                 onVisibleRegionChanged={handleVisibleRegionChanged}
                 onColumnMoved={columnMovable !== false ? handleColumnMoved : undefined}
                 onRowMoved={rowMovable !== false ? handleRowMoved : undefined}
-                highlightRegions={highlightRegions}
+                highlightRegions={mergedHighlightRegions}
                 trailingRowOptions={trailingRowOptions}
                 onRowAppended={trailingRowOptions ? handleRowAppended : undefined}
                 scrollOffsetX={scrollOffsetX}

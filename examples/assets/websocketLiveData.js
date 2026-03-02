@@ -300,6 +300,7 @@
     }
 
     function init() {
+        if (!document.getElementById(GRID_ID)) return;
         connect();
         initControls();
     }
