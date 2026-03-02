@@ -52,6 +52,13 @@ The original code had a clip-skip optimization: it only clipped cells that were 
 - **Always clip during damage repaints**: Removed the conditional clip-skip. Every cell in the damage list is now clipped to its full bounds, preventing any `drawCell` content from bleeding into adjacent cells.
 - **Full-bounds clear and fill**: Changed from 1px-inset clear/fill (`cellX + 1`, `drawY + 1`, `cellWidth - 1`, `rh - 1`) to full cell bounds (`cellX`, `drawY`, `cellWidth`, `rh`). Added `clearRect` before `fillRect` for translucent backgrounds.
 
+### 5. Grid Line Restoration During Damage Repaints
+
+**Problem**: After patch #4 changed cell fills from 1px-inset to full-bounds, `updateCells()` damage repaints erase grid lines. The damage path calls `drawCells()` (which fills full cell bounds including the border zone) but never calls `drawGridLines()`. Grid lines progressively disappear wherever cells are updated — visible in animations like snake games or cellular automata where `updateCells()` runs every frame.
+
+**Changes** (`data-grid-render.js`):
+- **Call drawGridLines in doDamage**: Added `drawGridLines()` after `drawCells()` in the damage repaint path (`doDamage` closure). Grid lines are now redrawn on top of the freshly filled cells, matching the normal full-render flow (which already calls `drawGridLines` after `drawCells`). The always-clip fix from patch #4 prevents any accumulation since each cell is cleared before being refilled.
+
 ## Updating Patches
 
 After modifying files in `node_modules/@glideapps/glide-data-grid/`:

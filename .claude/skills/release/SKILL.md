@@ -83,11 +83,13 @@ Format the release notes with:
 
 ## Step 5 — Publish to PyPI
 
+First remove any old version artifacts from `dist/` (only the current version's files should remain), then publish:
+
 ```
-uv publish
+twine upload dist/*
 ```
 
-If this fails due to missing credentials, tell the user to set `UV_PUBLISH_TOKEN` or run `uv publish` manually with `--token`.
+If this fails due to missing credentials, tell the user to configure a `~/.pypirc` or set `TWINE_USERNAME`/`TWINE_PASSWORD`.
 
 ## Done
 

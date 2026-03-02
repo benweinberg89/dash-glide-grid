@@ -177,7 +177,7 @@ index ce77f79..16dc859 100644
      ctx.fillRect(0, 0, width, totalHeaderHeight);
      const hCol = hovered?.[0]?.[0];
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
-index 7b88fe4..ebef64e 100644
+index 7b88fe4..4633a62 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid-render.js
 @@ -1,5 +1,5 @@
@@ -218,7 +218,21 @@ index 7b88fe4..ebef64e 100644
          overlayCtx.stroke();
          if (mustDrawHighlightRingsOnHeader) {
              drawHighlightRings(overlayCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, freezeColumns, headerHeight, groupHeaderHeight, rowHeight, freezeTrailingRows, rows, highlightRegions, theme);
-@@ -249,10 +253,14 @@ export function drawGrid(arg, lastArg) {
+@@ -191,7 +195,12 @@ export function drawGrid(arg, lastArg) {
+             },
+         ]);
+         const doDamage = (ctx) => {
+-            drawCells(ctx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
++            const spans = drawCells(ctx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
++            // Redraw grid lines after damage repaints. The full-bounds cell fill
++            // (clearRect + fillRect) erases grid lines that were drawn on top of
++            // cells during the initial render. Without this, grid lines disappear
++            // wherever updateCells() triggers a damage repaint.
++            drawGridLines(ctx, effectiveCols, cellYOffset, translateX, translateY, width, height, drawRegions, spans, groupHeaderHeight, totalHeaderHeight, getRowHeight, getRowThemeOverride, verticalBorder, freezeTrailingRows, rows, theme);
+             const selectionCurrent = selection.current;
+             if ((fillHandle !== false && fillHandle !== undefined) &&
+                 drawFocus &&
+@@ -249,10 +258,14 @@ export function drawGrid(arg, lastArg) {
              targetCtx.rect(r.x, r.y, r.width, r.height);
          }
          targetCtx.clip();
@@ -233,7 +247,7 @@ index 7b88fe4..ebef64e 100644
          targetCtx.fillRect(0, 0, width, height);
      }
      const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
-@@ -274,8 +282,11 @@ export function drawGrid(arg, lastArg) {
+@@ -274,8 +287,11 @@ export function drawGrid(arg, lastArg) {
          });
      }
      if (mainCtx !== null) {
@@ -447,7 +461,7 @@ index ce77f79..16dc859 100644
      ctx.fillRect(0, 0, width, totalHeaderHeight);
      const hCol = hovered?.[0]?.[0];
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
-index abef757..c055fc9 100644
+index abef757..8c51c23 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.js
 @@ -3,7 +3,7 @@
@@ -490,7 +504,21 @@ index abef757..c055fc9 100644
          overlayCtx.stroke();
          if (mustDrawHighlightRingsOnHeader) {
              drawHighlightRings(overlayCtx, width, height, cellXOffset, cellYOffset, translateX, translateY, mappedColumns, freezeColumns, headerHeight, groupHeaderHeight, rowHeight, freezeTrailingRows, rows, highlightRegions, theme);
-@@ -253,10 +257,14 @@ export function drawGrid(arg, lastArg) {
+@@ -195,7 +199,12 @@ export function drawGrid(arg, lastArg) {
+             },
+         ]);
+         const doDamage = (ctx) => {
+-            drawCells(ctx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
++            const spans = drawCells(ctx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
++            // Redraw grid lines after damage repaints. The full-bounds cell fill
++            // (clearRect + fillRect) erases grid lines that were drawn on top of
++            // cells during the initial render. Without this, grid lines disappear
++            // wherever updateCells() triggers a damage repaint.
++            drawGridLines(ctx, effectiveCols, cellYOffset, translateX, translateY, width, height, drawRegions, spans, groupHeaderHeight, totalHeaderHeight, getRowHeight, getRowThemeOverride, verticalBorder, freezeTrailingRows, rows, theme);
+             const selectionCurrent = selection.current;
+             if ((fillHandle !== false && fillHandle !== undefined) &&
+                 drawFocus &&
+@@ -253,10 +262,14 @@ export function drawGrid(arg, lastArg) {
              targetCtx.rect(r.x, r.y, r.width, r.height);
          }
          targetCtx.clip();
@@ -505,7 +533,7 @@ index abef757..c055fc9 100644
          targetCtx.fillRect(0, 0, width, height);
      }
      const spans = drawCells(targetCtx, effectiveCols, mappedColumns, height, totalHeaderHeight, translateX, translateY, cellYOffset, rows, getRowHeight, getCellContent, getGroupDetails, getRowThemeOverride, disabledRows, isFocused, drawFocus, freezeTrailingRows, hasAppendRow, drawRegions, damage, selection, prelightCells, highlightRegions, imageLoader, spriteManager, hoverValues, hoverInfo, drawCellCallback, hyperWrapping, theme, enqueue, renderStateProvider, getCellRenderer, overrideCursor, minimumCellWidth);
-@@ -278,8 +286,11 @@ export function drawGrid(arg, lastArg) {
+@@ -278,8 +291,11 @@ export function drawGrid(arg, lastArg) {
          });
      }
      if (mainCtx !== null) {
