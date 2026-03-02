@@ -1880,13 +1880,21 @@ const GlideGrid = (props) => {
             }
         }
 
-        // Apply lastUpdated timestamp if this cell was recently edited
+        // Apply lastUpdated timestamp if this cell was recently edited/updated.
+        // Supports both plain timestamps (number) and objects with color:
+        //   {t: timestamp, color: "#10b981"} for colored flash
         const cellKey = `${actualRow},${col}`;
-        if (lastUpdatedCells[cellKey]) {
-            cellResult = {
-                ...cellResult,
-                lastUpdated: lastUpdatedCells[cellKey]
-            };
+        const cellUpdate = lastUpdatedCells[cellKey];
+        if (cellUpdate) {
+            if (typeof cellUpdate === 'number') {
+                cellResult = { ...cellResult, lastUpdated: cellUpdate };
+            } else if (typeof cellUpdate === 'object' && cellUpdate.t) {
+                cellResult = {
+                    ...cellResult,
+                    lastUpdated: cellUpdate.t,
+                    themeOverride: { ...cellResult.themeOverride, bgSearchResult: cellUpdate.color }
+                };
+            }
         }
 
         // If row is hidden, strip properties that would cause visible rendering
@@ -6188,7 +6196,10 @@ GlideGrid.propTypes = {
      * showCellFlash controls automatic flashing on edit/paste/undo/redo;
      * this prop provides explicit, manual control.
      */
-    lastUpdatedCells: PropTypes.objectOf(PropTypes.number),
+    lastUpdatedCells: PropTypes.objectOf(PropTypes.oneOfType([
+        PropTypes.number,
+        PropTypes.shape({ t: PropTypes.number, color: PropTypes.string }),
+    ])),
 
     /**
      * Initial horizontal scroll offset in pixels.

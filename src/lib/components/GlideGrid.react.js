@@ -1082,7 +1082,10 @@ GlideGrid.propTypes = {
      * showCellFlash controls automatic flashing on edit/paste/undo/redo;
      * this prop provides explicit, manual control.
      */
-    lastUpdatedCells: PropTypes.objectOf(PropTypes.number),
+    lastUpdatedCells: PropTypes.objectOf(PropTypes.oneOfType([
+        PropTypes.number,
+        PropTypes.shape({ t: PropTypes.number, color: PropTypes.string }),
+    ])),
 
     /**
      * Initial horizontal scroll offset in pixels. Applied on mount.

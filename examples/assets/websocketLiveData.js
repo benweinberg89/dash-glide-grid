@@ -27,7 +27,15 @@
         var ws = new WebSocket(protocol + "//" + location.host + "/ws/live-data");
 
         ws.onopen = function () {
-            updateStatus(true);
+            // Retry until Dash has rendered the status elements
+            function tryUpdate() {
+                if (document.getElementById("ws-status-dot")) {
+                    updateStatus(true);
+                } else {
+                    setTimeout(tryUpdate, 100);
+                }
+            }
+            tryUpdate();
             ws.send("ping");
         };
 

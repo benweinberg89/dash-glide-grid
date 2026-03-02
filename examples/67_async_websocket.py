@@ -29,7 +29,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 import dash_glide_grid as dgg
 
-app = dash.Dash(__name__, backend="fastapi", assets_folder="assets")
+app = dash.Dash(__name__, backend="fastapi", assets_folder="assets", update_title=None)
 
 # Workaround: Dash 4.1.0rc0's DashMiddleware creates an HTTP Request object for
 # WebSocket scopes, which crashes on Starlette's assert scope["type"] == "http".
@@ -333,7 +333,7 @@ app.layout = html.Div(
                                     style={"marginTop": "0", "color": "#7c3aed"},
                                 ),
                                 html.Pre(
-                                    "@app.server.websocket(\"/ws\")\n"
+                                    '@app.server.websocket("/ws")\n'
                                     "async def ws(websocket):\n"
                                     "    await websocket.accept()\n"
                                     "    await websocket.send_json(data)",
@@ -434,8 +434,9 @@ clientside_callback(
                 row.bid = u.bid;
                 row.ask = u.ask;
                 // Mark changed cells for flash (key format: "row,col")
+                var color = u.change >= 0 ? '#10b981' : '#ef4444';
                 for (var c = 2; c <= 7; c++) {
-                    flash[u.row + ',' + c] = now;
+                    flash[u.row + ',' + c] = {t: now, color: color};
                 }
             }
         }

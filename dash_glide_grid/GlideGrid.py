@@ -846,7 +846,7 @@ Keyword arguments:
     acceptOverlayDown, acceptOverlayUp,   acceptOverlayLeft,
     acceptOverlayRight.
 
-- lastUpdatedCells (dict with strings as keys and values of type number; optional):
+- lastUpdatedCells (dict; optional):
     Externally trigger cell flash effects by providing a map of cell
     coordinates to timestamps. Merges with internal flash state from
     edits/paste/undo so both sources coexist.  Keys are \"row,col\"
@@ -855,6 +855,13 @@ Keyword arguments:
     showCellFlash does NOT need to be enabled for this prop to work.
     showCellFlash controls automatic flashing on edit/paste/undo/redo;
     this prop provides explicit, manual control.
+
+    `lastUpdatedCells` is a dict with strings as keys and values of
+    type number | dict with keys:
+
+    - t (number; optional)
+
+    - color (string; optional)
 
 - linkClicked (dict; optional):
     Information about the last clicked link in a links cell. Format:
@@ -1812,6 +1819,14 @@ Keyword arguments:
         }
     )
 
+    LastUpdatedCells = TypedDict(
+        "LastUpdatedCells",
+            {
+            "t": NotRequired[NumberType],
+            "color": NotRequired[str]
+        }
+    )
+
     DragStarted = TypedDict(
         "DragStarted",
             {
@@ -2047,7 +2062,7 @@ Keyword arguments:
         redrawTrigger: typing.Optional[typing.Union[NumberType, str]] = None,
         remeasureColumns: typing.Optional["RemeasureColumns"] = None,
         showCellFlash: typing.Optional[typing.Union[bool, typing.Sequence[Literal["edit", "paste", "undo", "redo", "copy"]]]] = None,
-        lastUpdatedCells: typing.Optional[typing.Dict[typing.Union[str, float, int], NumberType]] = None,
+        lastUpdatedCells: typing.Optional[typing.Dict[typing.Union[str, float, int], typing.Union[NumberType, "LastUpdatedCells"]]] = None,
         scrollOffsetX: typing.Optional[NumberType] = None,
         scrollOffsetY: typing.Optional[NumberType] = None,
         keybindings: typing.Optional[dict] = None,
