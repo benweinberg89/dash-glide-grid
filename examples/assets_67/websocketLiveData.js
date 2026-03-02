@@ -299,10 +299,22 @@
         }
     }
 
+    var _waitAttempts = 0;
+    var _maxWaitAttempts = 50; // ~10 seconds
+
+    function waitForGrid(cb) {
+        if (document.getElementById(GRID_ID)) {
+            cb();
+        } else if (_waitAttempts++ < _maxWaitAttempts) {
+            setTimeout(function () { waitForGrid(cb); }, 200);
+        }
+    }
+
     function init() {
-        if (!document.getElementById(GRID_ID)) return;
-        connect();
-        initControls();
+        waitForGrid(function () {
+            connect();
+            initControls();
+        });
     }
 
     if (document.readyState === "loading") {

@@ -28,7 +28,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 import dash_glide_grid as dgg
 
-app = dash.Dash(__name__, backend="fastapi", assets_folder="assets")
+app = dash.Dash(__name__, backend="fastapi", assets_folder="assets_68")
 
 # Workaround: Dash 4.1.0rc0's DashMiddleware creates an HTTP Request object for
 # WebSocket scopes, which crashes on Starlette's assert scope["type"] == "http".
