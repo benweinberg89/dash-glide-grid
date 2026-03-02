@@ -520,6 +520,10 @@ const GlideGrid = (props) => {
     // Map of "row,col" -> timestamp (performance.now())
     const [lastUpdatedCells, setLastUpdatedCells] = useState({});
 
+    // Imperative flash map — used by window._glideGridUpdaters to set flash
+    // without triggering React re-renders. getCellContent reads from both.
+    const imperativeFlashRef = useRef({});
+
     // Merge externally-provided lastUpdatedCells prop into internal state
     useEffect(() => {
         if (lastUpdatedCellsProp && typeof lastUpdatedCellsProp === 'object' &&
@@ -1439,6 +1443,62 @@ const GlideGrid = (props) => {
         };
     }, [id, gridRef.current]);
 
+    // Expose imperative data update API — bypasses React entirely.
+    // Usage: window._glideGridUpdaters[id].updateRows(updates)
+    //   updates: array of { row, data, flash? }
+    //     row: row index to update
+    //     data: object of { columnId: newValue } to merge into the row
+    //     flash: (optional) color string like "#10b981" for cell flash
+    useEffect(() => {
+        if (!id) return;
+        window._glideGridUpdaters = window._glideGridUpdaters || {};
+        window._glideGridUpdaters[id] = {
+            updateRows: (updates) => {
+                const data = localDataRef.current;
+                if (!data) return;
+                const cols = localColumnsRef.current;
+                const cellsToUpdate = [];
+                const now = performance.now();
+
+                for (let i = 0; i < updates.length; i++) {
+                    const u = updates[i];
+                    const row = data[u.row];
+                    if (!row) continue;
+
+                    // Merge new values into the row (mutates ref in place)
+                    const changedKeys = Object.keys(u.data);
+                    Object.assign(row, u.data);
+
+                    // Build damage list and flash entries for changed columns
+                    if (cols) {
+                        for (let c = 0; c < cols.length; c++) {
+                            const colId = cols[c].id || cols[c].title;
+                            if (changedKeys.indexOf(colId) !== -1) {
+                                cellsToUpdate.push({ cell: [c, u.row] });
+                                if (u.flash) {
+                                    imperativeFlashRef.current[`${u.row},${c}`] = { t: now, color: u.flash };
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (cellsToUpdate.length > 0 && gridRef.current) {
+                    gridRef.current.updateCells(cellsToUpdate);
+                }
+            },
+            // Direct access for advanced use cases
+            getDataRef: () => localDataRef.current,
+            getGridRef: () => gridRef.current,
+            getFlashRef: () => imperativeFlashRef.current,
+        };
+        return () => {
+            if (window._glideGridUpdaters) {
+                delete window._glideGridUpdaters[id];
+            }
+        };
+    }, [id]);
+
     // Create portal div for Glide Data Grid overlay editor
     useEffect(() => {
         if (typeof document !== 'undefined' && containerRef.current) {
@@ -1829,8 +1889,9 @@ const GlideGrid = (props) => {
         // Translate row index if sorting is active
         const actualRow = sortedIndices ? sortedIndices[row] : row;
 
-        // Handle out of bounds
-        if (!localData || actualRow >= localData.length || actualRow < 0) {
+        // Handle out of bounds — read from ref so imperative mutations are visible
+        const currentData = localDataRef.current;
+        if (!currentData || actualRow >= currentData.length || actualRow < 0) {
             return {
                 kind: GridCellKind.Text,
                 data: '',
@@ -1839,7 +1900,7 @@ const GlideGrid = (props) => {
             };
         }
 
-        const rowData = localData[actualRow];
+        const rowData = currentData[actualRow];
         if (!rowData) {
             return {
                 kind: GridCellKind.Text,
@@ -1883,8 +1944,9 @@ const GlideGrid = (props) => {
         // Apply lastUpdated timestamp if this cell was recently edited/updated.
         // Supports both plain timestamps (number) and objects with color:
         //   {t: timestamp, color: "#10b981"} for colored flash
+        // Checks both React state (lastUpdatedCells) and imperative ref (imperativeFlashRef).
         const cellKey = `${actualRow},${col}`;
-        const cellUpdate = lastUpdatedCells[cellKey];
+        const cellUpdate = imperativeFlashRef.current[cellKey] || lastUpdatedCells[cellKey];
         if (cellUpdate) {
             if (typeof cellUpdate === 'number') {
                 cellResult = { ...cellResult, lastUpdated: cellUpdate };

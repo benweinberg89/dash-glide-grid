@@ -1,13 +1,14 @@
 """
-Example 67: Async & WebSocket Live Data
+Example 67: WebSocket + Imperative Grid Updates
 
 Demonstrates Dash 4.1's FastAPI backend with:
 1. Real-time WebSocket data streaming (no polling)
-2. Async callbacks (async def with await)
+2. Imperative grid updates via window._glideGridUpdaters (bypasses React)
 3. Direct access to the underlying FastAPI server
 
 A simulated stock ticker streams live price updates via WebSocket.
-Client-side JavaScript receives updates and merges them into the grid.
+Client-side JavaScript receives updates and pushes them directly to the
+grid canvas — no Intervals, no Dash callbacks, no React re-renders.
 
 Requirements:
     pip install "dash[fastapi]>=4.1.0" websockets
@@ -24,12 +25,12 @@ import time
 import warnings
 
 import dash
-from dash import html, dcc, callback, Input, Output, State, clientside_callback
+from dash import dcc, html
 from fastapi import WebSocket, WebSocketDisconnect
 
 import dash_glide_grid as dgg
 
-app = dash.Dash(__name__, backend="fastapi", assets_folder="assets", update_title=None)
+app = dash.Dash(__name__, backend="fastapi", assets_folder="assets")
 
 # Workaround: Dash 4.1.0rc0's DashMiddleware creates an HTTP Request object for
 # WebSocket scopes, which crashes on Starlette's assert scope["type"] == "http".
@@ -50,28 +51,47 @@ DashMiddleware.__call__ = _patched_mw_call
 
 # -- Stock data ---------------------------------------------------------------
 
-STOCKS = [
-    {"symbol": "AAPL", "company": "Apple Inc.", "price": 178.50},
-    {"symbol": "MSFT", "company": "Microsoft Corp.", "price": 378.20},
-    {"symbol": "GOOGL", "company": "Alphabet Inc.", "price": 141.80},
-    {"symbol": "AMZN", "company": "Amazon.com Inc.", "price": 178.25},
-    {"symbol": "NVDA", "company": "NVIDIA Corp.", "price": 875.30},
-    {"symbol": "META", "company": "Meta Platforms", "price": 505.75},
-    {"symbol": "TSLA", "company": "Tesla Inc.", "price": 175.20},
-    {"symbol": "BRK.B", "company": "Berkshire Hathaway", "price": 412.50},
-    {"symbol": "JPM", "company": "JPMorgan Chase", "price": 195.80},
-    {"symbol": "V", "company": "Visa Inc.", "price": 278.40},
-    {"symbol": "UNH", "company": "UnitedHealth", "price": 527.30},
-    {"symbol": "JNJ", "company": "Johnson & Johnson", "price": 156.20},
-    {"symbol": "WMT", "company": "Walmart Inc.", "price": 165.80},
-    {"symbol": "PG", "company": "Procter & Gamble", "price": 162.40},
-    {"symbol": "MA", "company": "Mastercard", "price": 458.90},
-    {"symbol": "HD", "company": "Home Depot", "price": 378.20},
-    {"symbol": "DIS", "company": "Walt Disney", "price": 112.50},
-    {"symbol": "NFLX", "company": "Netflix Inc.", "price": 628.40},
-    {"symbol": "PFE", "company": "Pfizer Inc.", "price": 27.80},
-    {"symbol": "KO", "company": "Coca-Cola Co.", "price": 59.40},
+_REAL_STOCKS = [
+    ("AAPL", "Apple Inc.", 178.50),
+    ("MSFT", "Microsoft Corp.", 378.20),
+    ("GOOGL", "Alphabet Inc.", 141.80),
+    ("AMZN", "Amazon.com Inc.", 178.25),
+    ("NVDA", "NVIDIA Corp.", 875.30),
+    ("META", "Meta Platforms", 505.75),
+    ("TSLA", "Tesla Inc.", 175.20),
+    ("BRK.B", "Berkshire Hathaway", 412.50),
+    ("JPM", "JPMorgan Chase", 195.80),
+    ("V", "Visa Inc.", 278.40),
+    ("UNH", "UnitedHealth", 527.30),
+    ("JNJ", "Johnson & Johnson", 156.20),
+    ("WMT", "Walmart Inc.", 165.80),
+    ("PG", "Procter & Gamble", 162.40),
+    ("MA", "Mastercard", 458.90),
+    ("HD", "Home Depot", 378.20),
+    ("DIS", "Walt Disney", 112.50),
+    ("NFLX", "Netflix Inc.", 628.40),
+    ("PFE", "Pfizer Inc.", 27.80),
+    ("KO", "Coca-Cola Co.", 59.40),
 ]
+
+NUM_ROWS = 1000
+
+
+def _generate_stocks(n):
+    """Generate n stock entries, cycling through real names + synthetics."""
+    stocks = []
+    for i in range(n):
+        if i < len(_REAL_STOCKS):
+            sym, company, price = _REAL_STOCKS[i]
+        else:
+            sym = f"SYN{i:04d}"
+            company = f"Synthetic Corp #{i}"
+            price = round(random.uniform(10, 900), 2)
+        stocks.append({"symbol": sym, "company": company, "price": price})
+    return stocks
+
+
+STOCKS = _generate_stocks(NUM_ROWS)
 
 COLUMNS = [
     {"title": "Symbol", "id": "symbol", "width": 90},
@@ -127,17 +147,17 @@ async def live_data_ws(websocket: WebSocket):
 
 async def _broadcast_loop():
     """Background task: simulate random-walk price changes and push to clients."""
-    prices = {s["symbol"]: s["price"] for s in STOCKS}
+    prices = {i: s["price"] for i, s in enumerate(STOCKS)}
+    num_stocks = len(STOCKS)
 
     while True:
-        n = random.randint(3, 8)
-        indices = random.sample(range(len(STOCKS)), min(n, len(STOCKS)))
+        n = random.randint(3, min(15, num_stocks))
+        indices = random.sample(range(num_stocks), n)
         updates = []
         for idx in indices:
-            sym = STOCKS[idx]["symbol"]
             base = STOCKS[idx]["price"]
-            prices[sym] = round(prices[sym] + random.gauss(0, base * 0.001), 2)
-            price = prices[sym]
+            prices[idx] = round(prices[idx] + random.gauss(0, base * 0.001), 2)
+            price = prices[idx]
             change = round(price - base, 2)
             pct = round(change / base * 100, 2)
             spread = round(random.uniform(0.01, 0.10), 2)
@@ -241,9 +261,8 @@ app.layout = html.Div(
                 [
                     "Powered by ",
                     html.Strong("Dash 4.1 + FastAPI"),
-                    " \u2014 prices stream via WebSocket, stats computed with ",
-                    html.Code("async def"),
-                    " callbacks. No polling.",
+                    " \u2014 prices stream via WebSocket directly to the grid canvas. ",
+                    "No polling, no React re-renders.",
                 ],
                 style={"margin": "0"},
             ),
@@ -275,10 +294,118 @@ app.layout = html.Div(
                 "fontSize": "14px",
             },
         ),
-        # Bridge: WS messages -> Dash via Interval
-        dcc.Interval(id="ws-poll", interval=100, n_intervals=0),
-        dcc.Interval(id="stats-poll", interval=2000, n_intervals=0),
-        html.Div(id="_ws-sink", style={"display": "none"}),
+        # Stress test controls (pure HTML — JS reads values directly, no Dash callbacks)
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.Strong(
+                            "Stress Test",
+                            style={"marginRight": "15px", "fontSize": "13px"},
+                        ),
+                        html.Button(
+                            "Start",
+                            id="stress-btn",
+                            style={
+                                "padding": "4px 16px",
+                                "borderRadius": "6px",
+                                "border": "1px solid #d1d5db",
+                                "backgroundColor": "#fff",
+                                "cursor": "pointer",
+                                "fontSize": "13px",
+                                "fontWeight": "bold",
+                                "marginRight": "20px",
+                            },
+                        ),
+                    ],
+                    style={"display": "flex", "alignItems": "center"},
+                ),
+                # Rate slider
+                html.Div(
+                    [
+                        html.Label(
+                            "Rate: ",
+                            style={"fontSize": "12px", "color": "#64748b"},
+                        ),
+                        dcc.Input(
+                            id="stress-rate",
+                            type="range",
+                            min="1",
+                            max="60",
+                            value="30",
+                            style={"width": "100px", "verticalAlign": "middle"},
+                        ),
+                        html.Span(
+                            "30 Hz",
+                            id="stress-rate-label",
+                            style={
+                                "fontSize": "12px",
+                                "fontFamily": "monospace",
+                                "marginLeft": "4px",
+                                "minWidth": "45px",
+                                "display": "inline-block",
+                            },
+                        ),
+                    ],
+                    style={"display": "flex", "alignItems": "center", "gap": "4px"},
+                ),
+                # Rows per tick slider
+                html.Div(
+                    [
+                        html.Label(
+                            "Rows/tick: ",
+                            style={"fontSize": "12px", "color": "#64748b"},
+                        ),
+                        dcc.Input(
+                            id="stress-rows",
+                            type="range",
+                            min="1",
+                            max="500",
+                            value="50",
+                            style={"width": "100px", "verticalAlign": "middle"},
+                        ),
+                        html.Span(
+                            "50",
+                            id="stress-rows-label",
+                            style={
+                                "fontSize": "12px",
+                                "fontFamily": "monospace",
+                                "marginLeft": "4px",
+                                "minWidth": "35px",
+                                "display": "inline-block",
+                            },
+                        ),
+                    ],
+                    style={"display": "flex", "alignItems": "center", "gap": "4px"},
+                ),
+                # Perf metrics
+                html.Div(
+                    [
+                        html.Span(
+                            "\u2014",
+                            id="stress-perf",
+                            style={
+                                "fontSize": "12px",
+                                "fontFamily": "monospace",
+                                "color": "#64748b",
+                            },
+                        ),
+                    ],
+                    style={"marginLeft": "auto"},
+                ),
+            ],
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "gap": "20px",
+                "padding": "8px 16px",
+                "backgroundColor": "#fefce8",
+                "borderRadius": "8px",
+                "marginBottom": "15px",
+                "border": "1px solid #fde68a",
+                "fontSize": "14px",
+            },
+        ),
         # Grid
         dgg.GlideGrid(
             id="live-grid",
@@ -362,14 +489,17 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.H4(
-                                    "3. Async Callbacks",
+                                    "3. Imperative Grid Updates",
                                     style={"marginTop": "0", "color": "#059669"},
                                 ),
                                 html.Pre(
-                                    "@callback(...)\n"
-                                    "async def compute(data):\n"
-                                    "    result = await db.query(...)\n"
-                                    "    return result",
+                                    "// In JS asset file:\n"
+                                    "var updater = window\n"
+                                    "  ._glideGridUpdaters[id];\n"
+                                    "updater.updateRows([\n"
+                                    "  {row: 0, data: {price: 42},\n"
+                                    '   flash: "#10b981"}\n'
+                                    "]);",
                                     style={
                                         "backgroundColor": "#1e293b",
                                         "color": "#e2e8f0",
@@ -379,8 +509,8 @@ app.layout = html.Div(
                                     },
                                 ),
                                 html.P(
-                                    "Callbacks can be async def. Await database queries, "
-                                    "API calls, or any async I/O without blocking.",
+                                    "Update grid cells directly via the canvas API. "
+                                    "Bypasses React \u2014 only changed cells repaint.",
                                     style={"fontSize": "13px", "color": "#475569"},
                                 ),
                             ],
@@ -405,84 +535,6 @@ app.layout = html.Div(
         "fontFamily": "system-ui, -apple-system, sans-serif",
     },
 )
-
-
-# -- Clientside callback: merge WS updates into grid data ----------------------
-
-clientside_callback(
-    """
-    function(nIntervals, currentData) {
-        if (!window._wsQueue || window._wsQueue.length === 0) {
-            return [window.dash_clientside.no_update, window.dash_clientside.no_update];
-        }
-
-        var data = currentData.map(function(row) { return Object.assign({}, row); });
-        var flash = {};
-        var now = performance.now();
-
-        while (window._wsQueue.length > 0) {
-            var msg = window._wsQueue.shift();
-            if (!msg.updates) continue;
-            for (var i = 0; i < msg.updates.length; i++) {
-                var u = msg.updates[i];
-                var row = data[u.row];
-                if (!row) continue;
-                row.price = u.price;
-                row.change = u.change;
-                row.changePct = u.changePct;
-                row.volume = u.volume;
-                row.bid = u.bid;
-                row.ask = u.ask;
-                // Mark changed cells for flash (key format: "row,col")
-                var color = u.change >= 0 ? '#10b981' : '#ef4444';
-                for (var c = 2; c <= 7; c++) {
-                    flash[u.row + ',' + c] = {t: now, color: color};
-                }
-            }
-        }
-
-        return [data, flash];
-    }
-    """,
-    [Output("live-grid", "data"), Output("live-grid", "lastUpdatedCells")],
-    Input("ws-poll", "n_intervals"),
-    State("live-grid", "data"),
-    prevent_initial_call=True,
-)
-
-
-# -- Async callback: compute market stats (runs server-side) -------------------
-
-
-@callback(
-    Output("stat-gainers", "children"),
-    Output("stat-losers", "children"),
-    Output("stat-avg", "children"),
-    Output("stat-vol", "children"),
-    Input("stats-poll", "n_intervals"),
-    State("live-grid", "data"),
-)
-async def compute_stats(n_intervals, data):
-    """Async callback — demonstrates async def with await on the FastAPI backend."""
-    if not data:
-        return "\u2014", "\u2014", "\u2014", "\u2014"
-
-    # Simulate an async I/O operation (e.g. database query)
-    await asyncio.sleep(0.01)
-
-    gainers = sum(1 for r in data if r.get("change", 0) > 0)
-    losers = sum(1 for r in data if r.get("change", 0) < 0)
-    avg = sum(r.get("changePct", 0) for r in data) / len(data)
-    vol = sum(r.get("volume", 0) for r in data)
-
-    avg_color = "#10b981" if avg >= 0 else "#ef4444"
-
-    return (
-        str(gainers),
-        str(losers),
-        html.Span(f"{avg:+.2f}%", style={"color": avg_color}),
-        f"{vol:,.0f}",
-    )
 
 
 if __name__ == "__main__":
