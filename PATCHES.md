@@ -66,6 +66,14 @@ The original code had a clip-skip optimization: it only clipped cells that were 
 **Changes** (`data-grid-render.lines.js`):
 - **Blend grid line colors to opaque**: In `drawGridLines()`, all line colors (`hColor`, `vColor`, and per-row theme overrides) are now blended against `theme.bgCell` using `blendCache()` before stroking. This makes grid lines idempotent — drawing an opaque line on top of itself produces an identical result, eliminating accumulation. This matches what `overdrawStickyBoundaries()` already does for sticky column/freeze row borders.
 
+### 7. Transparent Border Preservation in blend()
+
+**Problem**: Patch #6 blends all grid line colors against `bgCell` via `blendCache()` before stroking. When a border color is fully transparent (`rgba(0,0,0,0)`), `blend()` composites it against the opaque `bgCell` and produces the background color itself — making "invisible" grid lines appear as solid `bgCell`-colored lines. Users setting `borderColor: "rgba(0,0,0,0)"` to hide grid lines see opaque lines instead.
+
+**Changes** (`color-parser.js`):
+- **Early return for transparent foreground**: Added `if (a === 0) return color;` after the existing `if (a === 1)` fast path. Fully transparent colors now pass through `blend()` unchanged, so canvas strokes with them remain invisible.
+- **Guard against zero combined alpha**: Added `if (ao === 0) return "rgba(0, 0, 0, 0)";` after computing the combined alpha `ao`, preventing NaN from division by zero when both foreground and background are transparent.
+
 ## Updating Patches
 
 After modifying files in `node_modules/@glideapps/glide-data-grid/`:
