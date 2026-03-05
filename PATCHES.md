@@ -59,6 +59,13 @@ The original code had a clip-skip optimization: it only clipped cells that were 
 **Changes** (`data-grid-render.js`):
 - **Call drawGridLines in doDamage**: Added `drawGridLines()` after `drawCells()` in the damage repaint path (`doDamage` closure). Grid lines are now redrawn on top of the freshly filled cells, matching the normal full-render flow (which already calls `drawGridLines` after `drawCells`). The always-clip fix from patch #4 prevents any accumulation since each cell is cleared before being refilled.
 
+### 6. Opaque Grid Line Colors (Fixes Accumulation with Semi-Transparent Borders)
+
+**Problem**: Patch #5 added `drawGridLines()` to the damage repaint path, but when border colors are semi-transparent (e.g., `rgba(255, 255, 255, 0.1)` in dark themes), each damage repaint draws grid lines on top of existing ones. Anti-aliased line pixels at cell boundaries accumulate opacity, causing visible artifacts: flickering on header hover, thickening borders on the row marker column, and progressive darkening near animated cells (booleans, sparklines). Additionally, the accumulated grid lines could overpower the 1px focus ring / selection border.
+
+**Changes** (`data-grid-render.lines.js`):
+- **Blend grid line colors to opaque**: In `drawGridLines()`, all line colors (`hColor`, `vColor`, and per-row theme overrides) are now blended against `theme.bgCell` using `blendCache()` before stroking. This makes grid lines idempotent — drawing an opaque line on top of itself produces an identical result, eliminating accumulation. This matches what `overdrawStickyBoundaries()` already does for sticky column/freeze row borders.
+
 ## Updating Patches
 
 After modifying files in `node_modules/@glideapps/glide-data-grid/`:
