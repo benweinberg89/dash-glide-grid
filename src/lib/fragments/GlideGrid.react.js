@@ -4390,6 +4390,27 @@ const GlideGrid = (props) => {
         };
     }, [coercePasteValue]);
 
+    // Blend a foreground rgba color over a background color to produce an opaque result.
+    // Needed because GDG's drawCheckbox uses bgCell as the checkmark stroke color,
+    // so semi-transparent bgCell (from hover tint) makes checkmarks invisible.
+    const blendToOpaque = useCallback((fg, bg) => {
+        const parse = (c) => {
+            if (!c) return [255, 255, 255, 1];
+            const rgba = c.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
+            if (rgba) return [+rgba[1], +rgba[2], +rgba[3], rgba[4] !== undefined ? +rgba[4] : 1];
+            if (c.startsWith('#')) {
+                const h = c.slice(1);
+                if (h.length === 3) return [parseInt(h[0]+h[0],16), parseInt(h[1]+h[1],16), parseInt(h[2]+h[2],16), 1];
+                if (h.length >= 6) return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16), 1];
+            }
+            return [255, 255, 255, 1];
+        };
+        const [fr, fg_, fb, fa] = parse(fg);
+        if (fa >= 1) return fg;
+        const [br, bg_, bb] = parse(bg);
+        return `rgba(${Math.round(fr*fa + br*(1-fa))}, ${Math.round(fg_*fa + bg_*(1-fa))}, ${Math.round(fb*fa + bb*(1-fa))}, 1)`;
+    }, []);
+
     // Create getRowThemeOverride callback for Glide DataEditor
     // Combines user-defined row theme with row hover effect
     const handleGetRowThemeOverride = useCallback((rowIndex) => {
@@ -4420,11 +4441,14 @@ const GlideGrid = (props) => {
         let themeOverride = undefined;
 
         // Apply row hover effect if enabled
+        // Blend hover color to opaque so GDG's drawCheckbox (which uses bgCell
+        // as checkmark stroke color) renders visible checkmarks.
         if (hoverRow && rowIndex === hoveredRow) {
             const rowColor = theme?.bgRowHovered || 'rgba(0, 0, 0, 0.04)';
+            const blended = blendToOpaque(rowColor, theme?.bgCell || '#ffffff');
             themeOverride = {
-                bgCell: rowColor,
-                bgCellMedium: rowColor
+                bgCell: blended,
+                bgCellMedium: blended
             };
         }
 
@@ -4443,7 +4467,7 @@ const GlideGrid = (props) => {
         }
 
         return themeOverride;
-    }, [getRowThemeOverride, data, hoverRow, hoveredRow, theme?.bgRowHovered, hiddenRowsSet]);
+    }, [getRowThemeOverride, data, hoverRow, hoveredRow, theme?.bgRowHovered, theme?.bgCell, blendToOpaque, hiddenRowsSet]);
 
     // Create drawCell callback for custom cell rendering
     // Allows complete control over cell drawing via Canvas API
