@@ -108,6 +108,8 @@ GlideGrid.propTypes = {
         group: PropTypes.string,
         /** Column-specific theme overrides */
         themeOverride: PropTypes.object,
+        /** Controls how much the column grows to fill available horizontal space. 0 = don't grow (default), 1+ = grow proportionally to fill remaining space. */
+        grow: PropTypes.number,
         /**
          * Custom value formatter for display. Formats the cell value for display
          * without changing the underlying data.
@@ -239,7 +241,8 @@ GlideGrid.propTypes = {
     ]),
 
     /**
-     * Container width. Can be a number (pixels) or string. Defaults to "100%".
+     * Container width. Can be a number (pixels), string ("100%", "500px"), or "fit-content"
+     * to auto-size the grid to exactly fit its columns with no trailing blank space. Defaults to "100%".
      */
     width: PropTypes.oneOfType([
         PropTypes.number,

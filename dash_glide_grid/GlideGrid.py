@@ -241,6 +241,11 @@ Keyword arguments:
     - themeOverride (dict; optional):
         Column-specific theme overrides.
 
+    - grow (number; optional):
+        Controls how much the column grows to fill available
+        horizontal space. 0 = don't grow (default), 1+ = grow
+        proportionally to fill remaining space.
+
     - valueFormatter (dict; optional):
         Custom value formatter for display. Formats the cell value for
         display without changing the underlying data.  **Usage**:
@@ -1387,7 +1392,9 @@ Keyword arguments:
     indices). This is an output prop that updates when filters change.
 
 - width (number | string; default '100%'):
-    Container width. Can be a number (pixels) or string. Defaults to
+    Container width. Can be a number (pixels), string (\"100%\",
+    \"500px\"), or \"fit-content\" to auto-size the grid to exactly
+    fit its columns with no trailing blank space. Defaults to
     \"100%\"."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
@@ -1413,6 +1420,7 @@ Keyword arguments:
             "sortable": NotRequired[bool],
             "group": NotRequired[str],
             "themeOverride": NotRequired[dict],
+            "grow": NotRequired[NumberType],
             "valueFormatter": NotRequired["ColumnsValueFormatter"]
         }
     )

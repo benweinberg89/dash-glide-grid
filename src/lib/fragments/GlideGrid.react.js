@@ -1800,6 +1800,7 @@ const GlideGrid = (props) => {
                 hasMenu: showMenu,
                 menuIcon: showMenu ? menuIconValue : undefined,
                 group: col.group,
+                grow: col.grow,
                 themeOverride: columnThemeOverride
             };
         });
@@ -5062,11 +5063,22 @@ const GlideGrid = (props) => {
         return result;
     }, [getCellContent, hiddenRowsSet, skipOnCopy]);
 
+    // Calculate fit-content width from column widths + row marker
+    const fitContentWidth = useMemo(() => {
+        if (width !== 'fit-content') return undefined;
+        const colTotal = (localColumns || []).reduce((sum, col) => sum + (col.width || 150), 0);
+        // Add row marker width (default ~50px when row markers are shown)
+        const markerWidth = rowMarkers && rowMarkers !== 'none' ? (rowMarkerWidth || 50) : 0;
+        // Add 1px for the border
+        return colTotal + markerWidth + 1;
+    }, [width, localColumns, rowMarkers, rowMarkerWidth]);
+
     // Container style with explicit height
+    const resolvedWidth = fitContentWidth ? `${fitContentWidth}px` : (typeof width === 'number' ? `${width}px` : width);
     const containerStyle = {
         ...style,
         height: typeof height === 'number' ? `${height}px` : height,
-        width: typeof width === 'number' ? `${width}px` : width,
+        width: resolvedWidth,
     };
 
     return (
@@ -5291,6 +5303,8 @@ GlideGrid.propTypes = {
         group: PropTypes.string,
         /** Column-specific theme overrides */
         themeOverride: PropTypes.object,
+        /** Controls how much the column grows to fill available horizontal space. 0 = don't grow (default), 1+ = grow proportionally to fill remaining space. */
+        grow: PropTypes.number,
         /**
          * Custom value formatter for display. Formats the cell value for display
          * without changing the underlying data.
@@ -5404,7 +5418,8 @@ GlideGrid.propTypes = {
     ]),
 
     /**
-     * Container width. Can be a number (pixels) or string. Defaults to "100%".
+     * Container width. Can be a number (pixels), string ("100%", "500px"), or "fit-content"
+     * to auto-size the grid to exactly fit its columns with no trailing blank space. Defaults to "100%".
      */
     width: PropTypes.oneOfType([
         PropTypes.number,
