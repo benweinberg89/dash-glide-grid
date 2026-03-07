@@ -1,5 +1,5 @@
 /**
- * Collaborative editing client for Example 68.
+ * Collaborative editing client for Example 69.
  *
  * Connects to the /ws/collab WebSocket endpoint and:
  * - Sends local cursor (selectedCell) and cell edits to the server

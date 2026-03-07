@@ -1,5 +1,5 @@
 /**
- * WebSocket client + Stress Test for Example 67 — Live Market Data
+ * WebSocket client + Stress Test for Example 68 — Live Market Data
  *
  * Two modes:
  * 1. WebSocket mode: server pushes updates via WS, JS applies them imperatively

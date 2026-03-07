@@ -1,20 +1,22 @@
 """
-Example 67: WebSocket + Imperative Grid Updates
+Example 70: Server-Sent Events (SSE) Stock Ticker
 
-Demonstrates Dash 4.1's FastAPI backend with:
-1. Real-time WebSocket data streaming (no polling)
-2. Imperative grid updates via window._glideGridUpdaters (bypasses React)
-3. Direct access to the underlying FastAPI server
+Same live market data as Example 68, but using SSE instead of WebSocket.
 
-A simulated stock ticker streams live price updates via WebSocket.
-Client-side JavaScript receives updates and pushes them directly to the
-grid canvas — no Intervals, no Dash callbacks, no React re-renders.
+Advantages over the WebSocket approach:
+1. No DashMiddleware patch needed — SSE is plain HTTP
+2. Auto-reconnect built into the browser's EventSource API
+3. Works through HTTP proxies and CDNs that block WebSocket
+4. Simpler server code — just yield from an async generator
+
+Trade-off: SSE is one-way only (server → client). For bidirectional
+use cases like collaborative editing (Example 69), you still need WebSocket.
 
 Requirements:
-    pip install "dash[fastapi]>=4.1.0" websockets
+    pip install "dash[fastapi]>=4.1.0" sse-starlette
 
 Run with:
-    python examples/67_async_websocket.py
+    python examples/70_sse_stock_ticker.py
 """
 
 import asyncio
@@ -22,32 +24,19 @@ import json
 import random
 import time
 
-import warnings
+from fastapi import FastAPI
+from sse_starlette.sse import EventSourceResponse
+from starlette.requests import Request
 
 import dash
 from dash import dcc, html
-from fastapi import WebSocket, WebSocketDisconnect
 
 import dash_glide_grid as dgg
 
-app = dash.Dash(__name__, backend="fastapi", assets_folder="assets_67")
-
-# Workaround: Dash 4.1.0rc0's DashMiddleware creates an HTTP Request object for
-# WebSocket scopes, which crashes on Starlette's assert scope["type"] == "http".
-# Patch the middleware to pass WebSocket scopes straight through.
-from dash.backends._fastapi import DashMiddleware  # noqa: E402
-
-_original_mw_call = DashMiddleware.__call__
-
-
-async def _patched_mw_call(self, scope, receive, send):
-    if scope["type"] == "websocket":
-        await self.app(scope, receive, send)
-        return
-    return await _original_mw_call(self, scope, receive, send)
-
-
-DashMiddleware.__call__ = _patched_mw_call
+# Create the FastAPI server first and register custom routes on it.
+# Dash's catch-all route `/{path:path}` is added last during init, so
+# routes registered here will be matched first.
+server = FastAPI()
 
 # -- Stock data ---------------------------------------------------------------
 
@@ -128,29 +117,18 @@ def make_initial_data():
 
 INITIAL_DATA = make_initial_data()
 
-# -- WebSocket endpoint -------------------------------------------------------
+# -- SSE endpoint -------------------------------------------------------------
 
-connected_clients: set[WebSocket] = set()
-
-
-@app.server.websocket("/ws/live-data")
-async def live_data_ws(websocket: WebSocket):
-    """WebSocket endpoint — streams live market data to connected clients."""
-    await websocket.accept()
-    connected_clients.add(websocket)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        connected_clients.discard(websocket)
+prices = {i: s["price"] for i, s in enumerate(STOCKS)}
 
 
-async def _broadcast_loop():
-    """Background task: simulate random-walk price changes and push to clients."""
-    prices = {i: s["price"] for i, s in enumerate(STOCKS)}
+async def _stock_generator(request: Request):
+    """Async generator that yields SSE events with stock updates."""
     num_stocks = len(STOCKS)
-
     while True:
+        if await request.is_disconnected():
+            break
+
         n = random.randint(3, min(15, num_stocks))
         indices = random.sample(range(num_stocks), n)
         updates = []
@@ -173,23 +151,23 @@ async def _broadcast_loop():
                 }
             )
 
-        payload = json.dumps({"updates": updates, "ts": time.time()})
-        gone = set()
-        for ws in list(connected_clients):
-            try:
-                await ws.send_text(payload)
-            except Exception:
-                gone.add(ws)
-        connected_clients.difference_update(gone)
+        yield {
+            "event": "update",
+            "data": json.dumps({"updates": updates, "ts": time.time()}),
+        }
         await asyncio.sleep(0.2)  # ~5 updates/sec
 
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", DeprecationWarning)
+@server.get("/api/stream")
+async def stream(request: Request):
+    """SSE endpoint — streams live market data to connected clients."""
+    return EventSourceResponse(_stock_generator(request))
 
-    @app.server.on_event("startup")
-    async def _start_broadcaster():
-        asyncio.create_task(_broadcast_loop())
+
+# Create the Dash app AFTER registering custom routes on the server.
+# Dash appends its catch-all `/{path:path}` during init, so our routes
+# are matched first.
+app = dash.Dash(__name__, server=server, backend="fastapi", assets_folder="assets_70")
 
 
 # -- Helpers -------------------------------------------------------------------
@@ -223,13 +201,13 @@ app.layout = html.Div(
         html.Div(
             [
                 html.H1(
-                    "Live Market Data",
+                    "Live Market Data (SSE)",
                     style={"margin": "0", "fontSize": "24px"},
                 ),
                 html.Div(
                     [
                         html.Span(
-                            id="ws-status-dot",
+                            id="sse-status-dot",
                             style={
                                 "width": "8px",
                                 "height": "8px",
@@ -241,7 +219,7 @@ app.layout = html.Div(
                         ),
                         html.Span(
                             "Connecting\u2026",
-                            id="ws-status-text",
+                            id="sse-status-text",
                             style={"fontSize": "13px", "color": "#64748b"},
                         ),
                     ],
@@ -260,18 +238,61 @@ app.layout = html.Div(
             html.P(
                 [
                     "Powered by ",
-                    html.Strong("Dash 4.1 + FastAPI"),
-                    " \u2014 prices stream via WebSocket directly to the grid canvas. ",
-                    "No polling, no React re-renders.",
+                    html.Strong("Dash 4.1 + FastAPI + SSE"),
+                    " \u2014 prices stream via Server-Sent Events directly to the "
+                    "grid canvas. No WebSocket, no polling, no React re-renders. ",
+                    "Auto-reconnects if the connection drops.",
                 ],
                 style={"margin": "0"},
             ),
             style={
-                "backgroundColor": "#dbeafe",
+                "backgroundColor": "#fef3c7",
                 "padding": "12px 16px",
                 "borderRadius": "8px",
                 "marginBottom": "15px",
-                "border": "1px solid #93c5fd",
+                "border": "1px solid #fcd34d",
+                "fontSize": "14px",
+            },
+        ),
+        # Comparison box
+        html.Div(
+            [
+                html.Strong(
+                    "SSE vs WebSocket",
+                    style={"display": "block", "marginBottom": "6px"},
+                ),
+                html.Ul(
+                    [
+                        html.Li(
+                            "No DashMiddleware patch needed \u2014 SSE is plain HTTP"
+                        ),
+                        html.Li(
+                            "Auto-reconnect built into EventSource API \u2014 "
+                            "no manual retry logic"
+                        ),
+                        html.Li(
+                            "Works through corporate proxies and CDNs that block "
+                            "WebSocket"
+                        ),
+                        html.Li(
+                            "Trade-off: one-way only (server \u2192 client) \u2014 "
+                            "fine for live feeds, not for collaboration"
+                        ),
+                    ],
+                    style={
+                        "margin": "0",
+                        "paddingLeft": "20px",
+                        "fontSize": "13px",
+                        "color": "#475569",
+                    },
+                ),
+            ],
+            style={
+                "backgroundColor": "#f0fdf4",
+                "padding": "12px 16px",
+                "borderRadius": "8px",
+                "marginBottom": "15px",
+                "border": "1px solid #86efac",
                 "fontSize": "14px",
             },
         ),
@@ -291,118 +312,6 @@ app.layout = html.Div(
                 "backgroundColor": "#f8fafc",
                 "borderRadius": "8px",
                 "marginBottom": "15px",
-                "fontSize": "14px",
-            },
-        ),
-        # Stress test controls (pure HTML — JS reads values directly, no Dash callbacks)
-        html.Div(
-            [
-                html.Div(
-                    [
-                        html.Strong(
-                            "Stress Test",
-                            style={"marginRight": "15px", "fontSize": "13px"},
-                        ),
-                        html.Button(
-                            "Start",
-                            id="stress-btn",
-                            style={
-                                "padding": "4px 16px",
-                                "borderRadius": "6px",
-                                "border": "1px solid #d1d5db",
-                                "backgroundColor": "#fff",
-                                "cursor": "pointer",
-                                "fontSize": "13px",
-                                "fontWeight": "bold",
-                                "marginRight": "20px",
-                            },
-                        ),
-                    ],
-                    style={"display": "flex", "alignItems": "center"},
-                ),
-                # Rate slider
-                html.Div(
-                    [
-                        html.Label(
-                            "Rate: ",
-                            style={"fontSize": "12px", "color": "#64748b"},
-                        ),
-                        dcc.Input(
-                            id="stress-rate",
-                            type="range",
-                            min="1",
-                            max="60",
-                            value="30",
-                            style={"width": "100px", "verticalAlign": "middle"},
-                        ),
-                        html.Span(
-                            "30 Hz",
-                            id="stress-rate-label",
-                            style={
-                                "fontSize": "12px",
-                                "fontFamily": "monospace",
-                                "marginLeft": "4px",
-                                "minWidth": "45px",
-                                "display": "inline-block",
-                            },
-                        ),
-                    ],
-                    style={"display": "flex", "alignItems": "center", "gap": "4px"},
-                ),
-                # Rows per tick slider
-                html.Div(
-                    [
-                        html.Label(
-                            "Rows/tick: ",
-                            style={"fontSize": "12px", "color": "#64748b"},
-                        ),
-                        dcc.Input(
-                            id="stress-rows",
-                            type="range",
-                            min="1",
-                            max="500",
-                            value="50",
-                            style={"width": "100px", "verticalAlign": "middle"},
-                        ),
-                        html.Span(
-                            "50",
-                            id="stress-rows-label",
-                            style={
-                                "fontSize": "12px",
-                                "fontFamily": "monospace",
-                                "marginLeft": "4px",
-                                "minWidth": "35px",
-                                "display": "inline-block",
-                            },
-                        ),
-                    ],
-                    style={"display": "flex", "alignItems": "center", "gap": "4px"},
-                ),
-                # Perf metrics
-                html.Div(
-                    [
-                        html.Span(
-                            "\u2014",
-                            id="stress-perf",
-                            style={
-                                "fontSize": "12px",
-                                "fontFamily": "monospace",
-                                "color": "#64748b",
-                            },
-                        ),
-                    ],
-                    style={"marginLeft": "auto"},
-                ),
-            ],
-            style={
-                "display": "flex",
-                "alignItems": "center",
-                "gap": "20px",
-                "padding": "8px 16px",
-                "backgroundColor": "#fefce8",
-                "borderRadius": "8px",
-                "marginBottom": "15px",
-                "border": "1px solid #fde68a",
                 "fontSize": "14px",
             },
         ),
@@ -426,11 +335,15 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.H4(
-                                    "1. FastAPI Backend",
-                                    style={"marginTop": "0", "color": "#2563eb"},
+                                    "1. FastAPI + SSE",
+                                    style={"marginTop": "0", "color": "#d97706"},
                                 ),
                                 html.Pre(
-                                    'app = Dash(backend="fastapi")',
+                                    "@app.server.get('/api/stream')\n"
+                                    "async def stream(request):\n"
+                                    "    return EventSourceResponse(\n"
+                                    "        stock_generator(request)\n"
+                                    "    )",
                                     style={
                                         "backgroundColor": "#1e293b",
                                         "color": "#e2e8f0",
@@ -440,30 +353,36 @@ app.layout = html.Div(
                                     },
                                 ),
                                 html.P(
-                                    "Dash 4.1 runs on FastAPI/uvicorn instead of Flask. "
-                                    "Full ASGI support with native async.",
+                                    "An async generator yields SSE events. "
+                                    "Each connected client gets its own generator "
+                                    "instance \u2014 no connection tracking needed.",
                                     style={"fontSize": "13px", "color": "#475569"},
                                 ),
                             ],
                             style={
                                 "flex": "1",
                                 "padding": "15px",
-                                "backgroundColor": "#eff6ff",
+                                "backgroundColor": "#fffbeb",
                                 "borderRadius": "8px",
-                                "border": "1px solid #bfdbfe",
+                                "border": "1px solid #fde68a",
                             },
                         ),
                         html.Div(
                             [
                                 html.H4(
-                                    "2. WebSocket Endpoint",
+                                    "2. EventSource API",
                                     style={"marginTop": "0", "color": "#7c3aed"},
                                 ),
                                 html.Pre(
-                                    '@app.server.websocket("/ws")\n'
-                                    "async def ws(websocket):\n"
-                                    "    await websocket.accept()\n"
-                                    "    await websocket.send_json(data)",
+                                    "var es = new EventSource(\n"
+                                    "  '/api/stream'\n"
+                                    ");\n"
+                                    "es.addEventListener('update',\n"
+                                    "  function(e) {\n"
+                                    "    var msg = JSON.parse(e.data);\n"
+                                    "    // apply to grid...\n"
+                                    "  }\n"
+                                    ");",
                                     style={
                                         "backgroundColor": "#1e293b",
                                         "color": "#e2e8f0",
@@ -473,8 +392,9 @@ app.layout = html.Div(
                                     },
                                 ),
                                 html.P(
-                                    "Add WebSocket routes directly to the underlying "
-                                    "FastAPI server. No extensions needed.",
+                                    "The browser's EventSource connects and auto-"
+                                    "reconnects. Named events ('update') keep the "
+                                    "protocol clean.",
                                     style={"fontSize": "13px", "color": "#475569"},
                                 ),
                             ],
@@ -493,7 +413,7 @@ app.layout = html.Div(
                                     style={"marginTop": "0", "color": "#059669"},
                                 ),
                                 html.Pre(
-                                    "// In JS asset file:\n"
+                                    "// Same as Example 68:\n"
                                     "var updater = window\n"
                                     "  ._glideGridUpdaters[id];\n"
                                     "updater.updateRows([\n"
@@ -509,8 +429,9 @@ app.layout = html.Div(
                                     },
                                 ),
                                 html.P(
-                                    "Update grid cells directly via the canvas API. "
-                                    "Bypasses React \u2014 only changed cells repaint.",
+                                    "The grid update path is identical \u2014 only the "
+                                    "transport layer changed. SSE delivers, JS applies "
+                                    "imperatively.",
                                     style={"fontSize": "13px", "color": "#475569"},
                                 ),
                             ],
@@ -538,4 +459,4 @@ app.layout = html.Div(
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8055)
+    app.run(debug=True, port=8069)

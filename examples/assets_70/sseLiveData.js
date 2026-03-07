@@ -1,5 +1,5 @@
 /**
- * SSE (Server-Sent Events) client for Example 69 — Live Market Data via SSE
+ * SSE (Server-Sent Events) client for Example 70 — Live Market Data via SSE
  *
  * Uses the browser's EventSource API instead of WebSocket.
  * Key differences from websocketLiveData.js:

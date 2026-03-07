@@ -1,5 +1,5 @@
 """
-Example 68: Collaborative Editing (Google Sheets-style)
+Example 69: Collaborative Editing (Google Sheets-style)
 
 Demonstrates Dash 4.1's FastAPI backend with:
 1. Real-time collaborative editing via WebSocket
@@ -14,7 +14,7 @@ Requirements:
     pip install "dash[fastapi]>=4.1.0" websockets
 
 Run with:
-    python examples/68_collaborative_editing.py
+    python examples/69_collaborative_editing.py
 """
 
 import asyncio
@@ -28,7 +28,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 import dash_glide_grid as dgg
 
-app = dash.Dash(__name__, backend="fastapi", assets_folder="assets_68")
+app = dash.Dash(__name__, backend="fastapi", assets_folder="assets_69")
 
 # Workaround: Dash 4.1.0rc0's DashMiddleware creates an HTTP Request object for
 # WebSocket scopes, which crashes on Starlette's assert scope["type"] == "http".
