@@ -163,7 +163,7 @@
 
             updates.push({
                 row: rowIdx,
-                values: {
+                data: {
                     price: newPrice,
                     change: change,
                     changePct: changePct,
