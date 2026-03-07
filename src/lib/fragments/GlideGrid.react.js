@@ -1434,7 +1434,6 @@ const GlideGrid = (props) => {
     }, [redrawTrigger]);
 
     // Expose imperative API at window.dashGlideGrid[id].
-    // Also attaches gridRef to the container DOM element for direct access.
     //
     // Usage: window.dashGlideGrid[id].updateCells(updates)
     //   updates: array of { row, values, flash? }
@@ -1442,11 +1441,6 @@ const GlideGrid = (props) => {
     //     values: object of { columnId: newValue } to merge into the row
     //     flash: (optional) color string like "#10b981" for cell flash
     useEffect(() => {
-        // Attach gridRef to container DOM element for direct access
-        if (containerRef.current) {
-            containerRef.current._gridRef = gridRef.current;
-        }
-
         if (!id) return;
         window.dashGlideGrid = window.dashGlideGrid || {};
         window.dashGlideGrid[id] = {
@@ -1484,7 +1478,6 @@ const GlideGrid = (props) => {
                     gridRef.current.updateCells(cellsToUpdate);
                 }
             },
-            // Direct access for advanced use cases
             ref: gridRef.current,
             getData: () => localDataRef.current,
             getFlash: () => imperativeFlashRef.current,
@@ -1494,9 +1487,6 @@ const GlideGrid = (props) => {
         return () => {
             if (window.dashGlideGrid) {
                 delete window.dashGlideGrid[id];
-            }
-            if (containerRef.current) {
-                delete containerRef.current._gridRef;
             }
         };
     }, [id, gridRef.current]);
