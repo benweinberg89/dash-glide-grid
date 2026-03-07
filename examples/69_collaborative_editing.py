@@ -506,7 +506,7 @@ app.layout = html.Div(
                                     "// Remote edit arrives via WS\n"
                                     "grid.updateCells([{\n"
                                     "  row: 3,\n"
-                                    '  values: {status: "Done"},\n'
+                                    '  data: {status: "Done"},\n'
                                     '  flash: "#3b82f6"\n'
                                     "}]);",
                                     style={

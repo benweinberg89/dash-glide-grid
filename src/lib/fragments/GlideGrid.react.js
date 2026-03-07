@@ -1436,9 +1436,9 @@ const GlideGrid = (props) => {
     // Expose imperative API at window.dashGlideGrid[id].
     //
     // Usage: window.dashGlideGrid[id].updateCells(updates)
-    //   updates: array of { row, values, flash? }
+    //   updates: array of { row, data, flash? }
     //     row: row index to update
-    //     values: object of { columnId: newValue } to merge into the row
+    //     data: object of { columnId: newValue } to merge into the row
     //     flash: (optional) color string like "#10b981" for cell flash
     useEffect(() => {
         if (!id) return;
@@ -1457,8 +1457,8 @@ const GlideGrid = (props) => {
                     if (!row) continue;
 
                     // Merge new values into the row (mutates ref in place)
-                    const changedKeys = Object.keys(u.values);
-                    Object.assign(row, u.values);
+                    const changedKeys = Object.keys(u.data);
+                    Object.assign(row, u.data);
 
                     // Build damage list and flash entries for changed columns
                     if (cols) {

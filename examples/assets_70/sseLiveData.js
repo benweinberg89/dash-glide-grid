@@ -73,7 +73,7 @@
                 var u = msg.updates[i];
                 updates.push({
                     row: u.row,
-                    values: {
+                    data: {
                         price: u.price,
                         change: u.change,
                         changePct: u.changePct,

@@ -192,7 +192,7 @@
         updater.updateCells([
             {
                 row: msg.row,
-                values: data,
+                data: data,
                 flash: msg.color,
             },
         ]);

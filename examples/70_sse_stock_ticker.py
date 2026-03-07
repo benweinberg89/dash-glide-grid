@@ -417,7 +417,7 @@ app.layout = html.Div(
                                     "var grid = window\n"
                                     "  .dashGlideGrid[id];\n"
                                     "grid.updateCells([\n"
-                                    "  {row: 0, values: {price: 42},\n"
+                                    "  {row: 0, data: {price: 42},\n"
                                     '   flash: "#10b981"}\n'
                                     "]);",
                                     style={
