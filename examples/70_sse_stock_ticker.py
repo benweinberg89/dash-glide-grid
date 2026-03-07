@@ -414,10 +414,10 @@ app.layout = html.Div(
                                 ),
                                 html.Pre(
                                     "// Same as Example 68:\n"
-                                    "var updater = window\n"
-                                    "  ._glideGridUpdaters[id];\n"
-                                    "updater.updateRows([\n"
-                                    "  {row: 0, data: {price: 42},\n"
+                                    "var grid = window\n"
+                                    "  .dashGlideGrid[id];\n"
+                                    "grid.updateCells([\n"
+                                    "  {row: 0, values: {price: 42},\n"
                                     '   flash: "#10b981"}\n'
                                     "]);",
                                     style={

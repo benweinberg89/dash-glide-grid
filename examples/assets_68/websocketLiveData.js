@@ -5,7 +5,7 @@
  * 1. WebSocket mode: server pushes updates via WS, JS applies them imperatively
  * 2. Stress test mode: client-side loop generates random updates at configurable rate
  *
- * Both use window._glideGridUpdaters for zero-React grid updates.
+ * Both use window.dashGlideGrid for zero-React grid updates.
  */
 
 (function () {
@@ -23,7 +23,7 @@
     }
 
     function updateStats(updater) {
-        var data = updater.getDataRef();
+        var data = updater.getData();
         if (!data) return;
         var gainers = 0, losers = 0, totalPct = 0, totalVol = 0;
         for (var j = 0; j < data.length; j++) {
@@ -70,7 +70,7 @@
             var msg = JSON.parse(event.data);
             if (!msg.updates) return;
 
-            var updater = window._glideGridUpdaters && window._glideGridUpdaters[GRID_ID];
+            var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
             if (!updater) return;
 
             var updates = [];
@@ -78,7 +78,7 @@
                 var u = msg.updates[i];
                 updates.push({
                     row: u.row,
-                    data: {
+                    values: {
                         price: u.price,
                         change: u.change,
                         changePct: u.changePct,
@@ -90,7 +90,7 @@
                 });
             }
 
-            updater.updateRows(updates);
+            updater.updateCells(updates);
             updateStats(updater);
 
             msgCount++;
@@ -134,10 +134,10 @@
     }
 
     function stressTick() {
-        var updater = window._glideGridUpdaters && window._glideGridUpdaters[GRID_ID];
+        var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
         if (!updater || !stressRunning) return;
 
-        var data = updater.getDataRef();
+        var data = updater.getData();
         if (!data) return;
         var totalRows = data.length;
 
@@ -163,7 +163,7 @@
 
             updates.push({
                 row: rowIdx,
-                data: {
+                values: {
                     price: newPrice,
                     change: change,
                     changePct: changePct,
@@ -176,7 +176,7 @@
         }
 
         var t0 = performance.now();
-        updater.updateRows(updates);
+        updater.updateCells(updates);
         var dt = performance.now() - t0;
 
         // Track perf

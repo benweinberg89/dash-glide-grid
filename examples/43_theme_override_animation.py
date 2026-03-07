@@ -368,7 +368,7 @@ clientside_callback(
         }
 
         function animate() {
-            const gridRef = window._glideGridRefs?.['grid'];
+            const gridRef = window.dashGlideGrid?.['grid']?.ref;
 
             // Access the component's internal data through React fiber
             const gridEl = document.getElementById('grid');

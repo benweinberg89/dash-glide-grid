@@ -289,7 +289,7 @@ app.layout = html.Div(
                 html.P(
                     [
                         "The key to 120fps animations is bypassing React. GlideGrid exposes ",
-                        html.Code("window._glideGridRefs[id]"),
+                        html.Code("window.dashGlideGrid[id].ref"),
                         " which gives direct access to the DataEditor's ",
                         html.Code("updateCells()"),
                         " method. This avoids React reconciliation overhead entirely.",
@@ -297,7 +297,7 @@ app.layout = html.Div(
                 ),
                 html.Pre(
                     "// Direct call - 120fps capable\n"
-                    "const gridRef = window._glideGridRefs['grid'];\n"
+                    "const gridRef = window.dashGlideGrid['grid'].ref;\n"
                     "gridRef.updateCells([{cell: [col, row]}, ...]);",
                     style={
                         "backgroundColor": "#1e293b",
@@ -395,7 +395,7 @@ clientside_callback(
 
         function animate() {
             // Get direct grid ref (exposed by GlideGrid component for high-perf access)
-            const gridRef = window._glideGridRefs?.['grid'];
+            const gridRef = window.dashGlideGrid?.['grid']?.ref;
 
             // Find setProps for redrawTrigger method (fallback)
             const gridEl = document.getElementById('grid');

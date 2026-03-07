@@ -3,7 +3,7 @@ Example 68: WebSocket + Imperative Grid Updates
 
 Demonstrates Dash 4.1's FastAPI backend with:
 1. Real-time WebSocket data streaming (no polling)
-2. Imperative grid updates via window._glideGridUpdaters (bypasses React)
+2. Imperative grid updates via window.dashGlideGrid (bypasses React)
 3. Direct access to the underlying FastAPI server
 
 A simulated stock ticker streams live price updates via WebSocket.
@@ -494,10 +494,10 @@ app.layout = html.Div(
                                 ),
                                 html.Pre(
                                     "// In JS asset file:\n"
-                                    "var updater = window\n"
-                                    "  ._glideGridUpdaters[id];\n"
-                                    "updater.updateRows([\n"
-                                    "  {row: 0, data: {price: 42},\n"
+                                    "var grid = window\n"
+                                    "  .dashGlideGrid[id];\n"
+                                    "grid.updateCells([\n"
+                                    "  {row: 0, values: {price: 42},\n"
                                     '   flash: "#10b981"}\n'
                                     "]);",
                                     style={

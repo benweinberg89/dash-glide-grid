@@ -520,11 +520,11 @@ const GlideGrid = (props) => {
     // Map of "row,col" -> timestamp (performance.now())
     const [lastUpdatedCells, setLastUpdatedCells] = useState({});
 
-    // Imperative flash map — used by window._glideGridUpdaters to set flash
+    // Imperative flash map — used by window.dashGlideGrid to set flash
     // without triggering React re-renders. getCellContent reads from both.
     const imperativeFlashRef = useRef({});
 
-    // Imperative highlight regions — set via window._glideGridUpdaters[id].setHighlightRegions()
+    // Imperative highlight regions — set via window.dashGlideGrid[id].setHighlightRegions()
     const [imperativeHighlightRegions, setImperativeHighlightRegions] = useState([]);
 
     const mergedHighlightRegions = useMemo(() => {
@@ -1433,36 +1433,24 @@ const GlideGrid = (props) => {
         window.dispatchEvent(new Event('resize'));
     }, [redrawTrigger]);
 
-    // Expose gridRef for direct updateCells access (bypasses React for high-perf animations)
+    // Expose imperative API at window.dashGlideGrid[id].
+    // Also attaches gridRef to the container DOM element for direct access.
+    //
+    // Usage: window.dashGlideGrid[id].updateCells(updates)
+    //   updates: array of { row, values, flash? }
+    //     row: row index to update
+    //     values: object of { columnId: newValue } to merge into the row
+    //     flash: (optional) color string like "#10b981" for cell flash
     useEffect(() => {
-        if (gridRef.current && id) {
-            window._glideGridRefs = window._glideGridRefs || {};
-            window._glideGridRefs[id] = gridRef.current;
-        }
+        // Attach gridRef to container DOM element for direct access
         if (containerRef.current) {
             containerRef.current._gridRef = gridRef.current;
         }
-        return () => {
-            if (id && window._glideGridRefs) {
-                delete window._glideGridRefs[id];
-            }
-            if (containerRef.current) {
-                delete containerRef.current._gridRef;
-            }
-        };
-    }, [id, gridRef.current]);
 
-    // Expose imperative data update API — bypasses React entirely.
-    // Usage: window._glideGridUpdaters[id].updateRows(updates)
-    //   updates: array of { row, data, flash? }
-    //     row: row index to update
-    //     data: object of { columnId: newValue } to merge into the row
-    //     flash: (optional) color string like "#10b981" for cell flash
-    useEffect(() => {
         if (!id) return;
-        window._glideGridUpdaters = window._glideGridUpdaters || {};
-        window._glideGridUpdaters[id] = {
-            updateRows: (updates) => {
+        window.dashGlideGrid = window.dashGlideGrid || {};
+        window.dashGlideGrid[id] = {
+            updateCells: (updates) => {
                 const data = localDataRef.current;
                 if (!data) return;
                 const cols = localColumnsRef.current;
@@ -1475,8 +1463,8 @@ const GlideGrid = (props) => {
                     if (!row) continue;
 
                     // Merge new values into the row (mutates ref in place)
-                    const changedKeys = Object.keys(u.data);
-                    Object.assign(row, u.data);
+                    const changedKeys = Object.keys(u.values);
+                    Object.assign(row, u.values);
 
                     // Build damage list and flash entries for changed columns
                     if (cols) {
@@ -1497,18 +1485,21 @@ const GlideGrid = (props) => {
                 }
             },
             // Direct access for advanced use cases
-            getDataRef: () => localDataRef.current,
-            getGridRef: () => gridRef.current,
-            getFlashRef: () => imperativeFlashRef.current,
+            ref: gridRef.current,
+            getData: () => localDataRef.current,
+            getFlash: () => imperativeFlashRef.current,
             setHighlightRegions: setImperativeHighlightRegions,
             setProps: setProps,
         };
         return () => {
-            if (window._glideGridUpdaters) {
-                delete window._glideGridUpdaters[id];
+            if (window.dashGlideGrid) {
+                delete window.dashGlideGrid[id];
+            }
+            if (containerRef.current) {
+                delete containerRef.current._gridRef;
             }
         };
-    }, [id]);
+    }, [id, gridRef.current]);
 
     // Create portal div for Glide Data Grid overlay editor
     useEffect(() => {

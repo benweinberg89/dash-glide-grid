@@ -4,7 +4,7 @@
  * Connects to the /ws/collab WebSocket endpoint and:
  * - Sends local cursor (selectedCell) and cell edits to the server
  * - Receives remote cursors and renders them as highlight regions
- * - Receives remote edits and applies them imperatively via updateRows()
+ * - Receives remote edits and applies them imperatively via updateCells()
  * - Manages the connected users bar in the DOM
  *
  * The WebSocket object is stored on window._collabWs so that Dash
@@ -90,7 +90,7 @@
     // ========== CURSOR HIGHLIGHTS ==========
 
     function updateCursorHighlights() {
-        var updater = window._glideGridUpdaters && window._glideGridUpdaters[GRID_ID];
+        var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
         if (!updater || !updater.setHighlightRegions) return;
 
         var regions = [];
@@ -133,7 +133,7 @@
         }
 
         // Set grid accent color to this user's color
-        var updater = window._glideGridUpdaters && window._glideGridUpdaters[GRID_ID];
+        var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
         if (updater && updater.setProps) {
             updater.setProps({
                 theme: {
@@ -145,7 +145,7 @@
 
         // Sync full data from server (source of truth)
         if (updater && msg.data) {
-            var dataRef = updater.getDataRef();
+            var dataRef = updater.getData();
             if (dataRef) {
                 // Overwrite all rows in place
                 for (var r = 0; r < msg.data.length && r < dataRef.length; r++) {
@@ -153,7 +153,7 @@
                 }
 
                 // Force full repaint
-                var gridRef = updater.getGridRef();
+                var gridRef = updater.ref;
                 if (gridRef) {
                     var cells = [];
                     for (var row = 0; row < dataRef.length; row++) {
@@ -183,16 +183,16 @@
     }
 
     function handleRemoteEdit(msg) {
-        var updater = window._glideGridUpdaters && window._glideGridUpdaters[GRID_ID];
+        var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
         if (!updater) return;
 
         var data = {};
         data[msg.colId] = msg.value;
 
-        updater.updateRows([
+        updater.updateCells([
             {
                 row: msg.row,
-                data: data,
+                values: data,
                 flash: msg.color,
             },
         ]);

@@ -24,7 +24,7 @@
     }
 
     function updateStats(updater) {
-        var data = updater.getDataRef();
+        var data = updater.getData();
         if (!data) return;
         var gainers = 0, losers = 0, totalPct = 0, totalVol = 0;
         for (var j = 0; j < data.length; j++) {
@@ -65,7 +65,7 @@
             var msg = JSON.parse(event.data);
             if (!msg.updates) return;
 
-            var updater = window._glideGridUpdaters && window._glideGridUpdaters[GRID_ID];
+            var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
             if (!updater) return;
 
             var updates = [];
@@ -73,7 +73,7 @@
                 var u = msg.updates[i];
                 updates.push({
                     row: u.row,
-                    data: {
+                    values: {
                         price: u.price,
                         change: u.change,
                         changePct: u.changePct,
@@ -85,7 +85,7 @@
                 });
             }
 
-            updater.updateRows(updates);
+            updater.updateCells(updates);
             updateStats(updater);
 
             // Track updates/sec
