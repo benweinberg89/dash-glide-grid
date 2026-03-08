@@ -1479,10 +1479,24 @@ const GlideGrid = (props) => {
                 }
             },
             ref: gridRef.current,
+            containerEl: containerRef.current,
             getData: () => localDataRef.current,
             getFlash: () => imperativeFlashRef.current,
             setHighlightRegions: setImperativeHighlightRegions,
             setProps: setProps,
+            clearSelection: () => {
+                setGridSelection(prev => {
+                    // Damage the previously focused cell so the canvas repaints it
+                    if (prev.current?.cell && gridRef.current) {
+                        gridRef.current.updateCells([{ cell: prev.current.cell }]);
+                    }
+                    return {
+                        columns: CompactSelection.empty(),
+                        rows: CompactSelection.empty(),
+                        current: undefined,
+                    };
+                });
+            },
         };
         return () => {
             if (window.dashGlideGrid) {
@@ -3281,6 +3295,11 @@ const GlideGrid = (props) => {
             } else {
                 updates.selectedRanges = [];
             }
+        } else {
+            // Selection was cleared (e.g. click on empty area, Escape key)
+            updates.selectedCell = null;
+            updates.selectedRange = null;
+            updates.selectedRanges = [];
         }
 
         // Handle row selection (CompactSelection to array)
