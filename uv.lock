@@ -368,6 +368,11 @@ name = "dash-glide-grid"
 version = "0.1.16"
 source = { editable = "." }
 dependencies = [
+    { name = "dash" },
+]
+
+[package.optional-dependencies]
+async = [
     { name = "dash", extra = ["fastapi"] },
     { name = "sse-starlette", version = "3.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "sse-starlette", version = "3.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -378,20 +383,24 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "build" },
+    { name = "dash-glide-grid", extra = ["async"] },
     { name = "pyyaml" },
     { name = "twine" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "dash", extras = ["fastapi"], specifier = "==4.1.0rc0" },
-    { name = "sse-starlette", specifier = ">=3.3.0" },
-    { name = "websockets", specifier = ">=15.0.1" },
+    { name = "dash", specifier = ">=2.0.0" },
+    { name = "dash", extras = ["fastapi"], marker = "extra == 'async'", specifier = ">=4.1.0rc0" },
+    { name = "sse-starlette", marker = "extra == 'async'", specifier = ">=3.3.0" },
+    { name = "websockets", marker = "extra == 'async'", specifier = ">=15.0.1" },
 ]
+provides-extras = ["async"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "build", specifier = ">=1.0.0" },
+    { name = "dash-glide-grid", extras = ["async"] },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "twine", specifier = ">=5.0.0" },
 ]
