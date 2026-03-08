@@ -800,6 +800,8 @@ Keyword arguments:
 
         - height (number; required)
 
+    - label (string; optional)
+
     - style (a value equal to: "dashed", "solid", "solid-outline", "no-outline"; optional)
 
 - hoverRow (boolean; default False):
@@ -1776,6 +1778,7 @@ Keyword arguments:
             {
             "color": str,
             "range": "HighlightRegionsRange",
+            "label": NotRequired[str],
             "style": NotRequired[Literal["dashed", "solid", "solid-outline", "no-outline"]]
         }
     )

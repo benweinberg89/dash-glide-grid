@@ -974,6 +974,7 @@ GlideGrid.propTypes = {
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired
         }).isRequired,
+        label: PropTypes.string,
         style: PropTypes.oneOf(["dashed", "solid", "solid-outline", "no-outline"])
     })),
 

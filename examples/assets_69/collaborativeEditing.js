@@ -106,6 +106,7 @@
                         width: 1,
                         height: 1,
                     },
+                    label: user.name,
                 });
             }
         }

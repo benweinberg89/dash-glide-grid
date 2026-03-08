@@ -6163,7 +6163,9 @@ GlideGrid.propTypes = {
             y: PropTypes.number.isRequired,
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired
-        }).isRequired
+        }).isRequired,
+        label: PropTypes.string,
+        style: PropTypes.oneOf(['dashed', 'solid', 'no-outline', 'solid-outline'])
     })),
 
     // ========== TRAILING ROW (ADD ROW) ==========

@@ -23,10 +23,18 @@ index 02406d9..7972d35 100644
                      }
                  }
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
-index 203e242..68d8150 100644
+index 203e242..b4baa5d 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
-@@ -1108,7 +1108,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+@@ -298,6 +298,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+                             width: Math.min(maxWidth, r.range.width),
+                         },
+                         style: r.style,
++                        label: r.label,
+                     });
+                 }
+             }
+@@ -1108,7 +1109,7 @@ const DataEditorImpl = (p, forwardedRef) => {
              }
              const inputCol = columns[col - rowMarkerOffset];
              const offscreen = document.createElement("canvas");
@@ -335,6 +343,81 @@ index 4b05453..ac1793a 100644
                  });
              }
              y += getRowHeight(row);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid.render.rings.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid.render.rings.js
+index 9c310b2..ea6ef97 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid.render.rings.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/internal/data-grid/render/data-grid.render.rings.js
+@@ -31,6 +31,7 @@ export function drawHighlightRings(ctx, width, height, cellXOffset, cellYOffset,
+             return {
+                 color: h.color,
+                 style,
++                label: h.label,
+                 clip: arg.clip,
+                 rect: hugRectToTarget({
+                     x: topLeftBounds.x,
+@@ -80,6 +81,62 @@ export function drawHighlightRings(ctx, width, height, cellXOffset, cellYOffset,
+         if (dashed) {
+             ctx.setLineDash([]);
+         }
++        // Draw labels for highlight regions that have one.
++        // Group by cell position so overlapping cursors tile horizontally.
++        const labelsByPos = new Map();
++        for (const dr of drawRects) {
++            for (const s of dr) {
++                if (s?.rect === undefined || !s.label) continue;
++                if (!intersectRect(0, 0, width, height, s.rect.x, s.rect.y, s.rect.width, s.rect.height)) continue;
++                const key = `${s.rect.x},${s.rect.y}`;
++                if (!labelsByPos.has(key)) labelsByPos.set(key, []);
++                labelsByPos.get(key).push(s);
++            }
++        }
++        const fontSize = 11;
++        const padH = 5;
++        const padV = 2;
++        const tagH = fontSize + padV * 2;
++        const maxLabelChars = 8;
++        for (const labels of labelsByPos.values()) {
++            // Truncate long names and measure
++            ctx.save();
++            ctx.font = `bold ${fontSize}px ${theme.fontFamily ?? "sans-serif"}`;
++            const truncated = labels.map(s => {
++                const raw = s.label;
++                return raw.length > maxLabelChars ? raw.slice(0, maxLabelChars) + "\u2026" : raw;
++            });
++            const widths = truncated.map(t => ctx.measureText(t).width + padH * 2);
++            const totalW = widths.reduce((a, b) => a + b, 0) + (widths.length - 1);
++            ctx.restore();
++            const baseRect = labels[0].rect;
++            // Clip to cell bounds
++            ctx.save();
++            ctx.beginPath();
++            ctx.rect(baseRect.x, baseRect.y, baseRect.width, baseRect.height);
++            ctx.clip();
++            let curX = baseRect.x + baseRect.width - totalW - 1;
++            for (let i = 0; i < labels.length; i++) {
++                const s = labels[i];
++                const tagW = widths[i];
++                const tagX = curX;
++                const tagY = baseRect.y + 1;
++                curX += tagW + 1;
++                ctx.font = `bold ${fontSize}px ${theme.fontFamily ?? "sans-serif"}`;
++                // Derive opaque background from region color
++                const rgbaMatch = s.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
++                const bgColor = rgbaMatch
++                    ? `rgba(${rgbaMatch[1]},${rgbaMatch[2]},${rgbaMatch[3]},0.9)`
++                    : withAlpha(s.color, 1);
++                ctx.fillStyle = bgColor;
++                ctx.fillRect(tagX, tagY, tagW, tagH);
++                ctx.fillStyle = "#ffffff";
++                ctx.textBaseline = "top";
++                ctx.textAlign = "left";
++                ctx.fillText(truncated[i], tagX + padH, tagY + padV);
++            }
++            ctx.restore();
++        }
+     };
+     drawCb();
+     return drawCb;
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js b/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
 index 02406d9..7972d35 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/common/styles.js
@@ -360,10 +443,18 @@ index 02406d9..7972d35 100644
                      }
                  }
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
-index 8b9a584..32e6b67 100644
+index 8b9a584..355a51c 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
-@@ -1108,7 +1108,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+@@ -298,6 +298,7 @@ const DataEditorImpl = (p, forwardedRef) => {
+                             width: Math.min(maxWidth, r.range.width),
+                         },
+                         style: r.style,
++                        label: r.label,
+                     });
+                 }
+             }
+@@ -1108,7 +1109,7 @@ const DataEditorImpl = (p, forwardedRef) => {
              }
              const inputCol = columns[col - rowMarkerOffset];
              const offscreen = document.createElement("canvas");
@@ -674,3 +765,78 @@ index 8837a70..c56db43 100644
                  });
              }
              y += getRowHeight(row);
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid.render.rings.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid.render.rings.js
+index de055a5..d2d2c9e 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid.render.rings.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid.render.rings.js
+@@ -33,6 +33,7 @@ export function drawHighlightRings(ctx, width, height, cellXOffset, cellYOffset,
+             return {
+                 color: h.color,
+                 style,
++                label: h.label,
+                 clip: arg.clip,
+                 rect: hugRectToTarget({
+                     x: topLeftBounds.x,
+@@ -82,6 +83,62 @@ export function drawHighlightRings(ctx, width, height, cellXOffset, cellYOffset,
+         if (dashed) {
+             ctx.setLineDash([]);
+         }
++        // Draw labels for highlight regions that have one.
++        // Group by cell position so overlapping cursors tile horizontally.
++        const labelsByPos = new Map();
++        for (const dr of drawRects) {
++            for (const s of dr) {
++                if (s?.rect === undefined || !s.label) continue;
++                if (!intersectRect(0, 0, width, height, s.rect.x, s.rect.y, s.rect.width, s.rect.height)) continue;
++                const key = `${s.rect.x},${s.rect.y}`;
++                if (!labelsByPos.has(key)) labelsByPos.set(key, []);
++                labelsByPos.get(key).push(s);
++            }
++        }
++        const fontSize = 11;
++        const padH = 5;
++        const padV = 2;
++        const tagH = fontSize + padV * 2;
++        const maxLabelChars = 8;
++        for (const labels of labelsByPos.values()) {
++            // Truncate long names and measure
++            ctx.save();
++            ctx.font = `bold ${fontSize}px ${theme.fontFamily ?? "sans-serif"}`;
++            const truncated = labels.map(s => {
++                const raw = s.label;
++                return raw.length > maxLabelChars ? raw.slice(0, maxLabelChars) + "\u2026" : raw;
++            });
++            const widths = truncated.map(t => ctx.measureText(t).width + padH * 2);
++            const totalW = widths.reduce((a, b) => a + b, 0) + (widths.length - 1);
++            ctx.restore();
++            const baseRect = labels[0].rect;
++            // Clip to cell bounds
++            ctx.save();
++            ctx.beginPath();
++            ctx.rect(baseRect.x, baseRect.y, baseRect.width, baseRect.height);
++            ctx.clip();
++            let curX = baseRect.x + baseRect.width - totalW - 1;
++            for (let i = 0; i < labels.length; i++) {
++                const s = labels[i];
++                const tagW = widths[i];
++                const tagX = curX;
++                const tagY = baseRect.y + 1;
++                curX += tagW + 1;
++                ctx.font = `bold ${fontSize}px ${theme.fontFamily ?? "sans-serif"}`;
++                // Derive opaque background from region color
++                const rgbaMatch = s.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
++                const bgColor = rgbaMatch
++                    ? `rgba(${rgbaMatch[1]},${rgbaMatch[2]},${rgbaMatch[3]},0.9)`
++                    : withAlpha(s.color, 1);
++                ctx.fillStyle = bgColor;
++                ctx.fillRect(tagX, tagY, tagW, tagH);
++                ctx.fillStyle = "#ffffff";
++                ctx.textBaseline = "top";
++                ctx.textAlign = "left";
++                ctx.fillText(truncated[i], tagX + padH, tagY + padV);
++            }
++            ctx.restore();
++        }
+     };
+     drawCb();
+     return drawCb;
