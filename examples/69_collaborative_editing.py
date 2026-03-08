@@ -550,9 +550,11 @@ app.layout = html.Div(
 
 app.clientside_callback(
     """function(selectedCell) {
-        if (window._collabWs && window._collabWs.readyState === 1 && selectedCell) {
+        if (window._collabWs && window._collabWs.readyState === 1) {
             window._collabWs.send(JSON.stringify({
-                type: 'cursor', col: selectedCell.col, row: selectedCell.row
+                type: 'cursor',
+                col: selectedCell ? selectedCell.col : null,
+                row: selectedCell ? selectedCell.row : null
             }));
         }
         return window.dash_clientside.no_update;
