@@ -3327,30 +3327,33 @@ const GlideGrid = (props) => {
         }
     }, [setProps, selectionColumnMin, unselectableColumns, unselectableRows, rowSelectOnCellClick, rowSelect, rangeSelect, columnSelect]);
 
-    // Handle column resize
+    // Handle column resize — update ref immediately, throttle React state to once per frame.
+    // Without throttle, every pixel fires setLocalColumns → Dash Redux → determineChangedProps
+    // which scans ALL components on the page (O(N) per pixel). rAF caps this to display refresh rate.
+    const resizeRafRef = useRef(null);
     const handleColumnResize = useCallback((column, newSize, columnIndex) => {
-        if (!setProps) return;
-
-        // Use functional update to avoid stale closure when multiple resizes fire rapidly
-        // (e.g., from remeasureColumns triggering resize events for multiple columns)
-        setLocalColumns(prevColumns => {
-            if (!prevColumns) return prevColumns;
-
-            const newColumns = prevColumns.map((col, idx) => {
-                if (idx === columnIndex) {
-                    return { ...col, width: newSize };
-                }
-                return col;
+        const prevColumns = localColumnsRef.current;
+        if (!prevColumns) return;
+        localColumnsRef.current = prevColumns.map((col, idx) =>
+            idx === columnIndex ? { ...col, width: newSize } : col
+        );
+        if (!resizeRafRef.current) {
+            resizeRafRef.current = requestAnimationFrame(() => {
+                resizeRafRef.current = null;
+                setLocalColumns(localColumnsRef.current);
             });
+        }
+    }, []);
 
-            // Send new widths to Dash
-            const newWidths = newColumns.map(col => col.width || 150);
-            setProps({
-                columnWidths: newWidths
-            });
-
-            return newColumns;
-        });
+    // Sync ref → state + setProps once when drag ends
+    const handleColumnResizeEnd = useCallback((column, newSize, columnIndex) => {
+        const currentCols = localColumnsRef.current;
+        if (currentCols) {
+            setLocalColumns(currentCols);
+            if (setProps) {
+                setProps({ columnWidths: currentCols.map(col => col.width || 150) });
+            }
+        }
     }, [setProps]);
 
     // Handle search close
@@ -5184,6 +5187,7 @@ const GlideGrid = (props) => {
                 onPaste={!readonly && enableCopyPaste ? handlePaste : undefined}
                 onGridSelectionChange={handleSelectionChanged}
                 onColumnResize={columnResize ? handleColumnResize : undefined}
+                onColumnResizeEnd={columnResize ? handleColumnResizeEnd : undefined}
                 fillHandle={fillHandle}
                 onFillPattern={fillHandle && !readonly ? handleFillPattern : undefined}
                 allowedFillDirections={allowedFillDirections}
@@ -6738,4 +6742,4 @@ GlideGrid.propTypes = {
     setProps: PropTypes.func
 };
 
-export default GlideGrid;
+export default React.memo(GlideGrid);
