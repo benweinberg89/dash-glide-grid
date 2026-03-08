@@ -113,6 +113,23 @@
         updater.setHighlightRegions(regions);
     }
 
+    // ========== CLICK-OUTSIDE DESELECT ==========
+
+    // Clear selection and broadcast cursor-clear when clicking outside the grid.
+    // Uses capture phase so it runs before glide-data-grid's own pointerdown.
+    document.addEventListener("pointerdown", function (e) {
+        var updater = window.dashGlideGrid && window.dashGlideGrid[GRID_ID];
+        if (!updater) return;
+        var el = updater.containerEl;
+        if (el && el.contains(e.target)) return; // click is inside the grid
+        if (updater.clearSelection) updater.clearSelection();
+        if (window._collabWs && window._collabWs.readyState === 1) {
+            window._collabWs.send(JSON.stringify({
+                type: "cursor", col: null, row: null,
+            }));
+        }
+    }, true);
+
     // ========== MESSAGE HANDLERS ==========
 
     function handleInit(msg) {
@@ -179,7 +196,8 @@
                 cursor: null,
             };
         }
-        remoteUsers[msg.userId].cursor = { col: msg.col, row: msg.row };
+        remoteUsers[msg.userId].cursor =
+            msg.col != null && msg.row != null ? { col: msg.col, row: msg.row } : null;
         updateCursorHighlights();
     }
 
