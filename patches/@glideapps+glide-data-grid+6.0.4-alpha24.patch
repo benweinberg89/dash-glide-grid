@@ -522,7 +522,7 @@ index a14050b..2cba831 100644
      const ro = (a * r + ba * br * (1 - a)) / ao;
      const go = (a * g + ba * bg * (1 - a)) / ao;
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
-index 26c8100..41f12d1 100644
+index 26c8100..2c4cfad 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/data-grid.js
 @@ -284,7 +284,7 @@ const DataGrid = (p, forwardedRef) => {
@@ -549,6 +549,21 @@ index 26c8100..41f12d1 100644
              overlay.width = 0;
              overlay.height = 0;
          }
+@@ -742,12 +742,10 @@ const DataGrid = (p, forwardedRef) => {
+             return;
+         const eventTarget = eventTargetRef?.current;
+         const isIndirect = ev.target !== canvas && ev.target !== eventTarget;
+-        const args = getMouseArgsForPosition(canvas, ev.clientX, ev.clientY, ev);
+-        if (args.kind !== "out-of-bounds" && isIndirect && !mouseDown.current && !args.isTouch) {
+-            // we are obscured by something else, so we want to not register events if we are not doing anything
+-            // important already
++        if (isIndirect && !mouseDown.current) {
+             return;
+         }
++        const args = getMouseArgsForPosition(canvas, ev.clientX, ev.clientY, ev);
+         // the point here is not to trigger re-renders every time the mouse moves over a cell
+         // that doesn't care about the mouse positon.
+         const maybeSetHoveredInfo = (newVal, needPosition) => {
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js b/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js
 index 0f08841..1ab6e7a 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/esm/internal/data-grid/render/data-grid-render.cells.js

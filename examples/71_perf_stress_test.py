@@ -42,6 +42,7 @@ def make_grid(index, with_animation=False):
         height=300,
         columnResize=True,
         rowMarkers="number",
+        lazyLoad=True,
     )
     if with_animation:
         props["drawCell"] = {
