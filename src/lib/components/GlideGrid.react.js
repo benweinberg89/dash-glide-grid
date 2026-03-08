@@ -7,9 +7,9 @@ import { GlideGrid as RealComponent } from '../LazyLoader';
  * It wraps the Glide Data Grid library to provide an Excel-like grid experience
  * with support for millions of rows, multiple cell types, and rich interactions.
  */
-const GlideGrid = React.memo((props) => {
+const GlideGrid = (props) => {
     return <RealComponent {...props} />;
-});
+};
 
 GlideGrid.defaultProps = {
     height: 400,

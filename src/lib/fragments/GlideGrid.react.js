@@ -6742,4 +6742,4 @@ GlideGrid.propTypes = {
     setProps: PropTypes.func
 };
 
-export default React.memo(GlideGrid);
+export default GlideGrid;
